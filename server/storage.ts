@@ -53,7 +53,9 @@ export class MemStorage implements IStorage {
     const demoUser: User = {
       id: 1,
       username: "demo",
-      password: "demo123"
+      password: "demo123",
+      walletAddress: "2Hx7kP3bN9sQ8vMxW1tY6zR4nKjL5cE8aF9dG3wV2uS7",
+      walletBalance: "15.67"
     };
     this.users.set(1, demoUser);
     this.currentUserId = 2;
@@ -155,7 +157,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      walletAddress: null,
+      walletBalance: null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -173,7 +180,10 @@ export class MemStorage implements IStorage {
     const trade: Trade = { 
       ...insertTrade, 
       id,
-      timestamp: new Date()
+      timestamp: new Date(),
+      userId: insertTrade.userId || null,
+      pnl: insertTrade.pnl || null,
+      confidence: insertTrade.confidence || null
     };
     this.trades.set(id, trade);
     return trade;
