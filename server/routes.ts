@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertTradeSchema, insertRecommendationSchema } from "@shared/schema";
 import { aiTradingEngine } from "./ai-trading-engine";
+import { liveDataService } from "./live-data-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -125,19 +126,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/prices/top-tokens", async (req, res) => {
     try {
-      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h');
-      const data = await response.json();
+      const tokens = await liveDataService.getTopMemecoins();
       
-      const tokens = data.map((token: any) => ({
-        symbol: token.symbol.toUpperCase(),
+      const formattedTokens = tokens.map(token => ({
+        symbol: token.symbol,
         name: token.name,
-        price: token.current_price,
-        change24h: token.price_change_percentage_24h,
-        image: token.image
+        price: token.price,
+        change24h: token.priceChange24h,
+        image: `https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/${token.mintAddress}/logo.png`
       }));
       
-      res.json(tokens);
+      res.json(formattedTokens);
     } catch (error) {
+      console.error('Failed to fetch memecoin data:', error);
       res.status(500).json({ message: "Failed to fetch token prices" });
     }
   });

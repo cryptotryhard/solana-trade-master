@@ -1,4 +1,6 @@
 import { storage } from './storage';
+import { liveDataService } from './live-data-service';
+import { profitTracker } from './profit-tracker';
 import type { InsertTrade, InsertRecommendation, InsertToken } from '@shared/schema';
 
 interface TokenMetrics {
@@ -98,49 +100,22 @@ class AITradingEngine {
   }
 
   private async getTopTokens(): Promise<TokenMetrics[]> {
-    // Simulate fetching top memecoins from pump.fun or similar
-    return [
-      {
-        symbol: 'BONK',
-        mintAddress: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
-        price: 0.00003421,
-        volume24h: 15600000,
-        marketCap: 2100000000,
-        priceChange24h: 12.7,
-        holders: 145000,
-        liquidity: 8500000
-      },
-      {
-        symbol: 'WIF',
-        mintAddress: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
-        price: 2.87,
-        volume24h: 89400000,
-        marketCap: 2870000000,
-        priceChange24h: -4.2,
-        holders: 89000,
-        liquidity: 12300000
-      },
-      {
-        symbol: 'POPCAT',
-        mintAddress: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',
-        price: 1.43,
-        volume24h: 34200000,
-        marketCap: 1430000000,
-        priceChange24h: 8.9,
-        holders: 67000,
-        liquidity: 5600000
-      },
-      {
-        symbol: 'PEPE',
-        mintAddress: '6GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',
-        price: 0.000019,
-        volume24h: 124000000,
-        marketCap: 7800000000,
-        priceChange24h: 15.6,
-        holders: 234000,
-        liquidity: 15700000
-      }
-    ];
+    try {
+      const liveTokens = await liveDataService.getTopMemecoins();
+      return liveTokens.map(token => ({
+        symbol: token.symbol,
+        mintAddress: token.mintAddress,
+        price: token.price,
+        volume24h: token.volume24h,
+        marketCap: token.marketCap,
+        priceChange24h: token.priceChange24h,
+        holders: token.holders,
+        liquidity: token.liquidity
+      }));
+    } catch (error) {
+      console.error('Failed to fetch live token data:', error);
+      throw error;
+    }
   }
 
   private async fetchTokenData(): Promise<TokenMetrics[]> {
