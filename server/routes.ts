@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { insertTradeSchema, insertRecommendationSchema } from "@shared/schema";
 import { aiTradingEngine } from "./ai-trading-engine";
 import { liveDataService } from "./live-data-service";
+import { profitTracker } from "./profit-tracker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -193,6 +194,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to connect wallet" });
+    }
+  });
+
+  // Portfolio analytics endpoint
+  app.get("/api/portfolio/analytics/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const metrics = await profitTracker.getDetailedPortfolioReport();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get portfolio analytics" });
+    }
+  });
+
+  // Live token data endpoint  
+  app.get("/api/tokens/live", async (req, res) => {
+    try {
+      const tokens = await liveDataService.getTopMemecoins();
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch live token data" });
+    }
+  });
+
+  // Jupiter swap quote endpoint
+  app.post("/api/swap/quote", async (req, res) => {
+    try {
+      const { inputMint, outputMint, amount, slippage } = req.body;
+      
+      // This would integrate with Jupiter API
+      const mockQuote = {
+        inputMint,
+        outputMint,
+        inAmount: amount,
+        outAmount: (parseFloat(amount) * 0.98).toString(), // Mock 2% slippage
+        priceImpact: "0.5",
+        estimatedGas: "5000"
+      };
+      
+      res.json(mockQuote);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get swap quote" });
     }
   });
   

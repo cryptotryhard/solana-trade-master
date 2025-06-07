@@ -84,7 +84,7 @@ class ProfitTracker {
       }
       
       // Create position objects
-      for (const [symbol, posData] of positionMap.entries()) {
+      for (const [symbol, posData] of Array.from(positionMap.entries())) {
         if (posData.quantity > 0) {
           const avgEntryPrice = posData.totalCost / posData.quantity;
           const currentPrice = currentPrices.get(symbol) || avgEntryPrice;

@@ -48,6 +48,9 @@ class AITradingEngine {
     
     // Position management - runs every minute
     setInterval(() => this.managePositions(), 60000);
+    
+    // Portfolio tracking - runs every 2 minutes
+    setInterval(() => profitTracker.updatePortfolioInDatabase(), 120000);
   }
 
   stopEngine() {
