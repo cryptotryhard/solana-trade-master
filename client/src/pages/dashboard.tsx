@@ -10,6 +10,8 @@ import type { WebSocketMessage } from '@/types/trading';
 
 export default function Dashboard() {
   const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string>();
+  const [walletBalance, setWalletBalance] = useState<number>();
   const { toast } = useToast();
 
   const handleWebSocketMessage = (message: WebSocketMessage) => {
@@ -41,11 +43,19 @@ export default function Dashboard() {
     document.title = "CryptoAI - Autonomous Solana Trading Bot";
   }, []);
 
+  const handleWalletConnect = (connected: boolean, address?: string, balance?: number) => {
+    setWalletConnected(connected);
+    setWalletAddress(address);
+    setWalletBalance(balance);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-card">
       <Header 
-        walletConnected={walletConnected} 
-        onWalletConnect={setWalletConnected} 
+        walletConnected={walletConnected}
+        walletAddress={walletAddress}
+        walletBalance={walletBalance}
+        onWalletConnect={handleWalletConnect} 
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
