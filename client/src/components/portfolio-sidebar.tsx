@@ -1,10 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { PieChart, Bot, Shield, Circle, Play, Square } from 'lucide-react';
 import { getPortfolio } from '@/lib/crypto-api';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PortfolioSidebarProps {
   userId: number;

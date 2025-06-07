@@ -5,10 +5,12 @@ import { Bot, Wallet, Circle } from 'lucide-react';
 
 interface HeaderProps {
   walletConnected: boolean;
-  onWalletConnect: (connected: boolean) => void;
+  walletAddress?: string;
+  walletBalance?: number;
+  onWalletConnect: (connected: boolean, address?: string, balance?: number) => void;
 }
 
-export function Header({ walletConnected, onWalletConnect }: HeaderProps) {
+export function Header({ walletConnected, walletAddress, walletBalance, onWalletConnect }: HeaderProps) {
   const [showWalletModal, setShowWalletModal] = useState(false);
 
   const handleWalletClick = () => {
@@ -17,6 +19,10 @@ export function Header({ walletConnected, onWalletConnect }: HeaderProps) {
     } else {
       setShowWalletModal(true);
     }
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
   return (
@@ -51,7 +57,12 @@ export function Header({ walletConnected, onWalletConnect }: HeaderProps) {
                 } text-primary font-semibold neon-border transition-all duration-300`}
               >
                 <Wallet className="mr-2 h-4 w-4" />
-                {walletConnected ? '2Hx...9kL3' : 'Connect Phantom'}
+                {walletConnected ? (
+                  <div className="flex flex-col items-start">
+                    <span className="text-xs">{walletAddress ? formatAddress(walletAddress) : 'Connected'}</span>
+                    <span className="text-xs opacity-75">{walletBalance?.toFixed(2)} SOL</span>
+                  </div>
+                ) : 'Connect Phantom'}
               </Button>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertTradeSchema, insertRecommendationSchema } from "@shared/schema";
+import { aiTradingEngine } from "./ai-trading-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -141,36 +142,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Simulate periodic AI recommendations and trades
-  setInterval(async () => {
-    const symbols = ['BONK', 'WIF', 'SAMO', 'ORCA', 'RAY'];
-    const actions = ['buy', 'sell', 'hold'];
-    const reasons = [
-      'Strong momentum detected with volume spike',
-      'Technical indicators show oversold conditions',
-      'Breaking through key resistance level',
-      'Consolidation pattern forming',
-      'Bearish divergence on RSI'
-    ];
-    
-    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-    const randomAction = actions[Math.floor(Math.random() * actions.length)];
-    const randomReason = reasons[Math.floor(Math.random() * reasons.length)];
-    const confidence = Math.floor(Math.random() * 30) + 70; // 70-100
-    
+  // AI Trading Engine Status endpoint
+  app.get("/api/bot/status", async (req, res) => {
     try {
-      const recommendation = await storage.createRecommendation({
-        symbol: randomSymbol,
-        action: randomAction,
-        confidence,
-        reason: randomReason
-      });
-      
-      broadcast({ type: 'NEW_RECOMMENDATION', data: recommendation });
+      const status = aiTradingEngine.getStatus();
+      res.json(status);
     } catch (error) {
-      console.error('Failed to create periodic recommendation:', error);
+      res.status(500).json({ message: "Failed to get bot status" });
     }
-  }, 60000); // Every minute
+  });
+
+  // Control AI Trading Bot
+  app.post("/api/bot/control", async (req, res) => {
+    try {
+      const { action, maxTradeSize, stopLoss } = req.body;
+      
+      if (action === 'start') {
+        aiTradingEngine.startEngine();
+      } else if (action === 'stop') {
+        aiTradingEngine.stopEngine();
+      }
+      
+      if (maxTradeSize) {
+        aiTradingEngine.setMaxTradeSize(maxTradeSize);
+      }
+      
+      if (stopLoss) {
+        aiTradingEngine.setStopLoss(stopLoss);
+      }
+      
+      res.json({ success: true, status: aiTradingEngine.getStatus() });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to control bot" });
+    }
+  });
+
+  // Wallet connection endpoint
+  app.post("/api/wallet/connect", async (req, res) => {
+    try {
+      const { userId, walletAddress, balance } = req.body;
+      
+      // Update user with wallet info
+      const user = await storage.getUser(userId);
+      if (user) {
+        // In a real implementation, you'd update the user record
+        res.json({ success: true, walletAddress, balance });
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to connect wallet" });
+    }
+  });
   
   return httpServer;
 }
