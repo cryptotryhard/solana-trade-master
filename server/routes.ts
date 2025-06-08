@@ -222,20 +222,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/swap/quote", async (req, res) => {
     try {
       const { inputMint, outputMint, amount, slippage } = req.body;
+      const { jupiterIntegration } = await import('./jupiter-integration');
       
-      // This would integrate with Jupiter API
-      const mockQuote = {
-        inputMint,
-        outputMint,
-        inAmount: amount,
-        outAmount: (parseFloat(amount) * 0.98).toString(), // Mock 2% slippage
-        priceImpact: "0.5",
-        estimatedGas: "5000"
-      };
+      const quote = await jupiterIntegration.getQuote(inputMint, outputMint, amount, slippage || 300);
       
-      res.json(mockQuote);
+      if (quote) {
+        res.json(quote);
+      } else {
+        res.status(400).json({ message: "No route found for this swap" });
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to get swap quote" });
+    }
+  });
+
+  // Execute Jupiter swap
+  app.post("/api/swap/execute", async (req, res) => {
+    try {
+      const { inputMint, outputMint, amount, userPublicKey, slippage } = req.body;
+      const { jupiterIntegration } = await import('./jupiter-integration');
+      
+      const result = await jupiterIntegration.executeSwap(inputMint, outputMint, amount, userPublicKey, slippage || 300);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to execute swap" });
+    }
+  });
+
+  // Pump.fun scanner endpoint
+  app.get("/api/pump-fun/scan", async (req, res) => {
+    try {
+      const { pumpFunScanner } = await import('./pump-fun-scanner');
+      const tokens = await pumpFunScanner.scanAndAnalyze();
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to scan pump.fun" });
+    }
+  });
+
+  // AI trading controls
+  app.post("/api/trading/aggressive-mode", async (req, res) => {
+    try {
+      const { enabled, maxPositionSize } = req.body;
+      
+      if (enabled) {
+        aiTradingEngine.setMaxTradeSize(maxPositionSize || 15);
+        console.log(`🚀 AGGRESSIVE MODE ENABLED: Max position size ${maxPositionSize}%`);
+      }
+      
+      res.json({ success: true, aggressiveMode: enabled });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle aggressive mode" });
     }
   });
   
