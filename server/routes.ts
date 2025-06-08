@@ -576,7 +576,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: amount.toString(),
         pnl: '0', // Will be calculated on exit
         confidence: 100, // Manual trade
-        strategy: 'manual',
         timestamp: new Date()
       });
       
@@ -600,6 +599,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to execute manual trade" });
+    }
+  });
+
+  // Achievements system endpoints
+  app.get("/api/achievements/status", async (req, res) => {
+    try {
+      const { achievementsSystem } = await import('./achievements-system');
+      const status = await achievementsSystem.getAchievementStatus(1);
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get achievement status" });
+    }
+  });
+
+  app.get("/api/achievements/check", async (req, res) => {
+    try {
+      const { achievementsSystem } = await import('./achievements-system');
+      const newAchievements = await achievementsSystem.checkNewAchievements(1);
+      res.json({ newAchievements });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check achievements" });
+    }
+  });
+
+  // AI suggestion endpoint
+  app.post("/api/ai/suggestion", async (req, res) => {
+    try {
+      const { symbol } = req.body;
+      const { aiSuggestionEngine } = await import('./ai-suggestion-engine');
+      
+      const suggestion = await aiSuggestionEngine.generateTradeSuggestion(symbol);
+      res.json(suggestion);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate AI suggestion" });
+    }
+  });
+
+  // Profit vault endpoints
+  app.get("/api/vault/status", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const status = await profitVaultEngine.getVaultStatus(1);
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get vault status" });
+    }
+  });
+
+  app.post("/api/vault/settings", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const updatedSettings = await profitVaultEngine.updateVaultSettings(1, req.body);
+      res.json({ success: true, settings: updatedSettings });
+    } catch (error) {
+      res.status(400).json({ message: error.message || "Failed to update vault settings" });
+    }
+  });
+
+  app.get("/api/vault/profit", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const { amount = 1000 } = req.query;
+      const analysis = await profitVaultEngine.calculateOptimalAllocation(1, parseFloat(amount.toString()));
+      res.json(analysis);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to calculate optimal allocation" });
+    }
+  });
+
+  app.post("/api/vault/simulate", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const { amount, days, strategy } = req.body;
+      const simulation = await profitVaultEngine.simulateVaultGrowth(amount, days, strategy);
+      res.json(simulation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to simulate vault growth" });
     }
   });
   

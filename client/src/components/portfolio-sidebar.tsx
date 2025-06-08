@@ -7,6 +7,8 @@ import { getPortfolio } from '@/lib/crypto-api';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { AchievementsPanel } from './achievements-panel';
+import { ProfitVault } from './profit-vault';
 
 interface PortfolioSidebarProps {
   userId: number;
