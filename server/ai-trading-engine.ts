@@ -4,6 +4,10 @@ import { liveDataService } from './live-data-service';
 import { profitTracker } from './profit-tracker';
 import { pumpFunScanner } from './pump-fun-scanner';
 import { TradingStrategies } from './trading-strategies';
+import { advancedExitStrategy } from './advanced-exit-strategy';
+import { antiRugFilter } from './anti-rug-filter';
+import { capitalScalingEngine } from './capital-scaling-engine';
+import { momentumLeaderboard } from './momentum-leaderboard';
 import type { InsertTrade, InsertRecommendation, InsertToken } from '@shared/schema';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });

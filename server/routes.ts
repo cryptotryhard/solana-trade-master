@@ -275,6 +275,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to toggle aggressive mode" });
     }
   });
+
+  // Momentum leaderboard endpoints
+  app.get("/api/momentum/leaderboard", async (req, res) => {
+    try {
+      const { momentumLeaderboard } = await import('./momentum-leaderboard');
+      const leaderboard = momentumLeaderboard.getLeaderboard();
+      res.json(leaderboard);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get momentum leaderboard" });
+    }
+  });
+
+  app.get("/api/momentum/top-gainers", async (req, res) => {
+    try {
+      const { momentumLeaderboard } = await import('./momentum-leaderboard');
+      const topGainers = momentumLeaderboard.getTopGainers(10);
+      res.json(topGainers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get top gainers" });
+    }
+  });
+
+  app.get("/api/momentum/emerging-alpha", async (req, res) => {
+    try {
+      const { momentumLeaderboard } = await import('./momentum-leaderboard');
+      const emergingAlpha = momentumLeaderboard.getEmergingAlpha();
+      res.json(emergingAlpha);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get emerging alpha" });
+    }
+  });
+
+  // Capital scaling metrics
+  app.get("/api/scaling/metrics", async (req, res) => {
+    try {
+      const { capitalScalingEngine } = await import('./capital-scaling-engine');
+      const metrics = await capitalScalingEngine.getScalingReport();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get scaling metrics" });
+    }
+  });
+
+  // Security analysis endpoint
+  app.post("/api/security/analyze", async (req, res) => {
+    try {
+      const { tokenData } = req.body;
+      const { antiRugFilter } = await import('./anti-rug-filter');
+      const analysis = await antiRugFilter.analyzeTokenSecurity(tokenData);
+      res.json(analysis);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to analyze token security" });
+    }
+  });
+
+  // Advanced portfolio analytics
+  app.get("/api/portfolio/advanced/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { advancedExitStrategy } = await import('./advanced-exit-strategy');
+      
+      // Get comprehensive portfolio data
+      const portfolio = await storage.getPortfolio(userId);
+      const trades = await storage.getTrades(userId);
+      const metrics = await profitTracker.getDetailedPortfolioReport();
+      
+      res.json({
+        portfolio,
+        trades: trades.slice(0, 50), // Last 50 trades
+        metrics,
+        activePositions: metrics.positions || []
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get advanced portfolio analytics" });
+    }
+  });
   
   return httpServer;
 }
