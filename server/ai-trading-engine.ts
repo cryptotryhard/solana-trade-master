@@ -1,7 +1,12 @@
+import OpenAI from "openai";
 import { storage } from './storage';
 import { liveDataService } from './live-data-service';
 import { profitTracker } from './profit-tracker';
+import { pumpFunScanner } from './pump-fun-scanner';
+import { TradingStrategies } from './trading-strategies';
 import type { InsertTrade, InsertRecommendation, InsertToken } from '@shared/schema';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 interface TokenMetrics {
   symbol: string;
