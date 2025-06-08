@@ -6,6 +6,8 @@ import { insertTradeSchema, insertRecommendationSchema } from "@shared/schema";
 import { aiTradingEngine } from "./ai-trading-engine";
 import { liveDataService } from "./live-data-service";
 import { profitTracker } from "./profit-tracker";
+import { achievementsSystem } from "./achievements-system";
+import { profitVaultEngine } from "./profit-vault-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -639,7 +641,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profit vault endpoints
   app.get("/api/vault/status", async (req, res) => {
     try {
-      const { profitVaultEngine } = await import('./profit-vault-engine');
       const status = await profitVaultEngine.getVaultStatus(1);
       res.json(status);
     } catch (error) {
@@ -647,13 +648,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Achievements system routes
+  app.get("/api/achievements/status", async (req, res) => {
+    try {
+      const status = await achievementsSystem.getAchievementStatus(1);
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get achievement status" });
+    }
+  });
+
+  app.get("/api/achievements", async (req, res) => {
+    try {
+      const achievements = achievementsSystem.getAllAchievements();
+      res.json(achievements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get achievements" });
+    }
+  });
+
   app.post("/api/vault/settings", async (req, res) => {
     try {
-      const { profitVaultEngine } = await import('./profit-vault-engine');
       const updatedSettings = await profitVaultEngine.updateVaultSettings(1, req.body);
-      res.json({ success: true, settings: updatedSettings });
+      res.json(updatedSettings);
     } catch (error) {
-      res.status(400).json({ message: error.message || "Failed to update vault settings" });
+      res.status(400).json({ message: "Failed to update vault settings" });
     }
   });
 

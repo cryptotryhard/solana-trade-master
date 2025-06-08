@@ -38,7 +38,7 @@ export function ProfitVault() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: (settings: Partial<VaultSettings>) => 
-      apiRequest("/api/vault/settings", { method: "POST", body: settings }),
+      apiRequest('POST', "/api/vault/settings", settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vault/status"] });
       setShowSettings(false);

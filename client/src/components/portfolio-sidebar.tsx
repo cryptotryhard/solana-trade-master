@@ -209,6 +209,12 @@ export function PortfolioSidebar({ userId }: PortfolioSidebarProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Achievements Panel */}
+      <AchievementsPanel />
+
+      {/* Profit Vault */}
+      <ProfitVault />
     </div>
   );
 }
