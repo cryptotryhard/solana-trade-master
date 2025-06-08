@@ -38,6 +38,18 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Auto-activate Alpha Acceleration Mode
+  setTimeout(async () => {
+    const { alphaAccelerationEngine } = await import('./alpha-acceleration-engine');
+    await alphaAccelerationEngine.startAlphaMode();
+    console.log('⚡ VICTORIA ALPHA ACCELERATION MODE AUTO-ACTIVATED ⚡');
+    console.log('🎯 Target: Exponential Growth to $1B Portfolio');
+    console.log('🔥 Ultra-aggressive scanning: pump.fun every 20 seconds');
+    console.log('📈 Layered position stacking: Up to 3 layers per token');
+    console.log('💎 Auto-compounding: 85% profit reinvestment');
+    console.log('👥 Shadow trading: Top 50 wallets monitored');
+  }, 3000); // Activate after 3 seconds
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

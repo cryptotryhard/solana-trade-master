@@ -8,6 +8,7 @@ import { liveDataService } from "./live-data-service";
 import { profitTracker } from "./profit-tracker";
 import { achievementsSystem } from "./achievements-system";
 import { profitVaultEngine } from "./profit-vault-engine";
+import { alphaAccelerationEngine } from "./alpha-acceleration-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -695,6 +696,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(simulation);
     } catch (error) {
       res.status(500).json({ message: "Failed to simulate vault growth" });
+    }
+  });
+
+  // Alpha Acceleration Engine endpoints
+  app.post("/api/alpha/activate", async (req, res) => {
+    try {
+      await alphaAccelerationEngine.startAlphaMode();
+      res.json({ success: true, message: "Alpha Acceleration Mode activated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to activate Alpha mode" });
+    }
+  });
+
+  app.post("/api/alpha/deactivate", async (req, res) => {
+    try {
+      alphaAccelerationEngine.stopAlphaMode();
+      res.json({ success: true, message: "Alpha Acceleration Mode deactivated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to deactivate Alpha mode" });
+    }
+  });
+
+  app.get("/api/alpha/status", async (req, res) => {
+    try {
+      const status = alphaAccelerationEngine.getAlphaStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get Alpha status" });
+    }
+  });
+
+  app.get("/api/alpha/positions", async (req, res) => {
+    try {
+      const positions = alphaAccelerationEngine.getLayeredPositions();
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get layered positions" });
+    }
+  });
+
+  app.post("/api/alpha/settings", async (req, res) => {
+    try {
+      await alphaAccelerationEngine.adjustAlphaSettings(req.body);
+      res.json({ success: true, message: "Alpha settings updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update Alpha settings" });
+    }
+  });
+
+  app.get("/api/leaderboard/shadow", async (req, res) => {
+    try {
+      const status = alphaAccelerationEngine.getAlphaStatus();
+      res.json({ 
+        shadowingEnabled: status.active,
+        walletsTracked: status.leaderboardWallets,
+        recentShadowTrades: []
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get shadow trading status" });
     }
   });
   

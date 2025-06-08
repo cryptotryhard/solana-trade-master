@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AchievementsPanel } from './achievements-panel';
 import { ProfitVault } from './profit-vault';
+import { AlphaControlPanel } from './alpha-control-panel';
 
 interface PortfolioSidebarProps {
   userId: number;
@@ -209,6 +210,9 @@ export function PortfolioSidebar({ userId }: PortfolioSidebarProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Alpha Acceleration Control */}
+      <AlphaControlPanel />
 
       {/* Achievements Panel */}
       <AchievementsPanel />
