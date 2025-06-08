@@ -2,6 +2,7 @@ import { aiTradingEngine } from './ai-trading-engine';
 import { antiRugFilter } from './anti-rug-filter';
 import { storage } from './storage';
 import { jupiterIntegration } from './jupiter-integration';
+import { pumpFunScanner } from './pump-fun-scanner';
 
 interface AlphaToken {
   symbol: string;
@@ -120,41 +121,54 @@ class AlphaAccelerationEngine {
   }
 
   private async scanPumpFunAlphas(): Promise<AlphaToken[]> {
-    // Simulate ultra-aggressive pump.fun scanning
-    const mockAlphas: AlphaToken[] = [
-      {
-        symbol: 'MOONSHOT',
-        mintAddress: 'alpha1' + Date.now(),
-        price: 0.000001,
-        volume24h: 150000,
-        marketCap: 25000,
-        age: 2.5, // 2.5 minutes old
-        uniqueWallets: 12,
-        volumeSpike: 450, // 450% volume spike
-        aiScore: 94,
-        liquidityUSD: 8500,
-        ownershipRisk: 15
-      },
-      {
-        symbol: 'ROCKETFUEL',
-        mintAddress: 'alpha2' + Date.now(),
-        price: 0.000003,
-        volume24h: 89000,
-        marketCap: 15000,
-        age: 1.8, // 1.8 minutes old
-        uniqueWallets: 9,
-        volumeSpike: 380,
-        aiScore: 96,
-        liquidityUSD: 12000,
-        ownershipRisk: 8
+    try {
+      // Get fresh tokens from pump.fun API
+      const realAlphaTokens = await pumpFunScanner.getAlphaTokens();
+      
+      if (realAlphaTokens.length > 0) {
+        console.log(`🔍 Found ${realAlphaTokens.length} potential alpha tokens from pump.fun`);
+        
+        // Convert to internal AlphaToken format and calculate AI scores
+        const processedTokens: AlphaToken[] = realAlphaTokens.map(token => {
+          let aiScore = 85;
+          
+          // AI scoring based on real metrics
+          if (token.age < 2) aiScore += 8; // Ultra-early bonus
+          if (token.volumeSpike > 500) aiScore += 5; // High volume spike
+          if (token.uniqueWallets > 20) aiScore += 4; // Strong distribution
+          if (token.liquidityUSD > 20000) aiScore += 3; // Good liquidity
+          if (token.marketCap > 0 && token.marketCap < 100000) aiScore += 2; // Sweet spot market cap
+          
+          return {
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: Math.min(100, aiScore),
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          };
+        });
+        
+        return processedTokens.filter((token: AlphaToken) => 
+          token.age <= this.entryConditions.maxAge &&
+          token.volumeSpike >= this.entryConditions.minVolumeSpike &&
+          token.uniqueWallets >= this.entryConditions.minUniqueWallets
+        );
       }
-    ];
-
-    return mockAlphas.filter(token => 
-      token.age <= this.entryConditions.maxAge &&
-      token.volumeSpike >= this.entryConditions.minVolumeSpike &&
-      token.uniqueWallets >= this.entryConditions.minUniqueWallets
-    );
+      
+      // Fallback if API issues - use conservative simulation
+      console.log('⚠️ pump.fun API unavailable, using fallback discovery');
+      return [];
+      
+    } catch (error) {
+      console.error('Error scanning pump.fun:', error);
+      return [];
+    }
   }
 
   private async validateAlphaEntry(token: AlphaToken): Promise<boolean> {
