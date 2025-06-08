@@ -1,3 +1,4 @@
+import './buffer-polyfill';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 // Phantom wallet provider interface
@@ -78,11 +79,27 @@ class PhantomWalletService {
 
   async getBalance(publicKey: PublicKey): Promise<number> {
     try {
-      const balance = await this.connection.getBalance(publicKey);
+      // Add timeout and retry logic
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Balance fetch timeout')), 10000)
+      );
+      
+      const balancePromise = this.connection.getBalance(publicKey, 'confirmed');
+      
+      const balance = await Promise.race([balancePromise, timeoutPromise]) as number;
       return balance / LAMPORTS_PER_SOL;
     } catch (error) {
       console.error('Error getting wallet balance:', error);
-      return 0;
+      
+      // Try with a different RPC endpoint as fallback
+      try {
+        const fallbackConnection = new Connection('https://solana-api.projectserum.com', 'confirmed');
+        const balance = await fallbackConnection.getBalance(publicKey, 'confirmed');
+        return balance / LAMPORTS_PER_SOL;
+      } catch (fallbackError) {
+        console.error('Fallback balance fetch failed:', fallbackError);
+        return 0;
+      }
     }
   }
 
