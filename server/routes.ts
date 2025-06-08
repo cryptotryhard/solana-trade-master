@@ -351,6 +351,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get advanced portfolio analytics" });
     }
   });
+
+  // Trend prediction endpoint
+  app.post("/api/trend/predict", async (req, res) => {
+    try {
+      const { symbol } = req.body;
+      const { trendPredictor } = await import('./trend-predictor');
+      
+      const prediction = await trendPredictor.predictShortTermPump(symbol);
+      res.json(prediction);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to predict trend" });
+    }
+  });
+
+  app.get("/api/trend/top-candidates", async (req, res) => {
+    try {
+      const { trendPredictor } = await import('./trend-predictor');
+      const candidates = await trendPredictor.getTopPumpCandidates(5);
+      res.json(candidates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get pump candidates" });
+    }
+  });
+
+  // Portfolio growth simulation
+  app.get("/api/simulate/growth", async (req, res) => {
+    try {
+      const { portfolioSimulator } = await import('./portfolio-simulator');
+      const projections = await portfolioSimulator.getComprehensiveProjections();
+      res.json(projections);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to simulate growth" });
+    }
+  });
+
+  app.post("/api/simulate/custom", async (req, res) => {
+    try {
+      const { days, config } = req.body;
+      const { portfolioSimulator } = await import('./portfolio-simulator');
+      
+      const projection = await portfolioSimulator.simulateGrowth(days, config);
+      res.json(projection);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to run custom simulation" });
+    }
+  });
+
+  // Strategy management
+  app.get("/api/strategy/current", async (req, res) => {
+    try {
+      const { strategyManager } = await import('./strategy-manager');
+      const strategy = strategyManager.getCurrentStrategy();
+      const metrics = strategyManager.getStrategyMetrics();
+      
+      res.json({ strategy, metrics });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get current strategy" });
+    }
+  });
+
+  app.post("/api/strategy/mode", async (req, res) => {
+    try {
+      const { mode } = req.body;
+      const { strategyManager } = await import('./strategy-manager');
+      
+      if (!['conservative', 'balanced', 'hyper-aggressive'].includes(mode)) {
+        return res.status(400).json({ message: "Invalid strategy mode" });
+      }
+      
+      const newStrategy = await strategyManager.setStrategy(mode);
+      const metrics = strategyManager.getStrategyMetrics();
+      
+      console.log(`🎯 Strategy changed to ${mode} mode`);
+      
+      res.json({ 
+        success: true, 
+        strategy: newStrategy,
+        metrics,
+        message: `Strategy updated to ${mode} mode`
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update strategy mode" });
+    }
+  });
+
+  app.post("/api/strategy/auto-optimize", async (req, res) => {
+    try {
+      const { strategyManager } = await import('./strategy-manager');
+      const optimizedStrategy = await strategyManager.autoOptimizeStrategy();
+      const metrics = strategyManager.getStrategyMetrics();
+      
+      res.json({ 
+        strategy: optimizedStrategy,
+        metrics,
+        message: "Strategy auto-optimized based on performance"
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to auto-optimize strategy" });
+    }
+  });
+
+  // Emergency controls
+  app.post("/api/emergency/activate", async (req, res) => {
+    try {
+      const { strategyManager } = await import('./strategy-manager');
+      await strategyManager.activateEmergencyMode();
+      
+      console.log('🚨 Emergency mode activated via API');
+      
+      res.json({ 
+        success: true,
+        message: "Emergency mode activated - capital preservation priority"
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to activate emergency mode" });
+    }
+  });
+
+  // Telegram notification controls
+  app.post("/api/notifications/toggle", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      const { telegramNotifier } = await import('./telegram-notifier');
+      
+      telegramNotifier.toggleNotifications(enabled);
+      
+      res.json({ 
+        success: true,
+        enabled: telegramNotifier.isEnabled(),
+        message: `Telegram notifications ${enabled ? 'enabled' : 'disabled'}`
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle notifications" });
+    }
+  });
+
+  app.get("/api/notifications/status", async (req, res) => {
+    try {
+      const { telegramNotifier } = await import('./telegram-notifier');
+      
+      res.json({ 
+        enabled: telegramNotifier.isEnabled()
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get notification status" });
+    }
+  });
   
   return httpServer;
 }
