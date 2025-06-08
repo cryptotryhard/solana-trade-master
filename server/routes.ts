@@ -498,6 +498,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get notification status" });
     }
   });
+
+  // Token positions breakdown
+  app.get("/api/portfolio/positions", async (req, res) => {
+    try {
+      const { profitTracker } = await import('./profit-tracker');
+      const positions = profitTracker.getPositions();
+      
+      const positionsWithMetrics = positions.map(position => ({
+        ...position,
+        priceChange: ((position.currentPrice - position.entryPrice) / position.entryPrice) * 100,
+        pnlUsd: position.unrealizedPnL,
+        timeHeld: Math.floor((Date.now() - position.entryTime.getTime()) / (1000 * 60)), // minutes
+        status: position.unrealizedPnL > 0 ? 'profitable' : position.unrealizedPnL < 0 ? 'losing' : 'flat'
+      }));
+      
+      res.json(positionsWithMetrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get portfolio positions" });
+    }
+  });
+
+  // Daily trade summary
+  app.get("/api/trade/daily-summary", async (req, res) => {
+    try {
+      const trades = await storage.getTrades(1);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayTrades = trades.filter(trade => {
+        const tradeDate = new Date(trade.timestamp);
+        return tradeDate >= today;
+      });
+      
+      const winningTrades = todayTrades.filter(trade => parseFloat(trade.pnl || '0') > 0);
+      const losingTrades = todayTrades.filter(trade => parseFloat(trade.pnl || '0') < 0);
+      
+      const totalProfit = winningTrades.reduce((sum, trade) => sum + parseFloat(trade.pnl || '0'), 0);
+      const totalLoss = losingTrades.reduce((sum, trade) => sum + parseFloat(trade.pnl || '0'), 0);
+      const netPnL = totalProfit + totalLoss;
+      
+      const summary = {
+        totalTrades: todayTrades.length,
+        winningTrades: winningTrades.length,
+        losingTrades: losingTrades.length,
+        winRate: todayTrades.length > 0 ? (winningTrades.length / todayTrades.length) * 100 : 0,
+        totalProfit,
+        totalLoss,
+        netPnL,
+        largestWin: winningTrades.length > 0 ? Math.max(...winningTrades.map(t => parseFloat(t.pnl || '0'))) : 0,
+        largestLoss: losingTrades.length > 0 ? Math.min(...losingTrades.map(t => parseFloat(t.pnl || '0'))) : 0,
+        averageWin: winningTrades.length > 0 ? totalProfit / winningTrades.length : 0,
+        averageLoss: losingTrades.length > 0 ? totalLoss / losingTrades.length : 0
+      };
+      
+      res.json(summary);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get daily trade summary" });
+    }
+  });
+
+  // Manual trade execution
+  app.post("/api/trade/manual", async (req, res) => {
+    try {
+      const { symbol, action, amount, price } = req.body;
+      
+      if (!['buy', 'sell'].includes(action)) {
+        return res.status(400).json({ message: "Invalid action. Must be 'buy' or 'sell'" });
+      }
+      
+      // Create manual trade record
+      const trade = await storage.createTrade({
+        userId: 1,
+        symbol,
+        side: action,
+        price: price.toString(),
+        amount: amount.toString(),
+        pnl: '0', // Will be calculated on exit
+        confidence: 100, // Manual trade
+        strategy: 'manual',
+        timestamp: new Date()
+      });
+      
+      console.log(`📋 Manual ${action.toUpperCase()} order: ${symbol} at $${price} (Amount: ${amount})`);
+      
+      // Update portfolio if it's a sell order
+      if (action === 'sell') {
+        const portfolio = await storage.getPortfolio(1);
+        const currentBalance = parseFloat(portfolio?.totalBalance || '0');
+        const sellValue = amount * price;
+        
+        await storage.updatePortfolio(1, {
+          totalBalance: (currentBalance + sellValue).toString()
+        });
+      }
+      
+      res.json({
+        success: true,
+        trade,
+        message: `Manual ${action} order executed successfully`
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to execute manual trade" });
+    }
+  });
   
   return httpServer;
 }

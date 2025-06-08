@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, Brain, Circle, ArrowUp, ArrowDown, Pause } from 'lucide-react';
 import { getTopTokens, getRecommendations } from '@/lib/crypto-api';
+import { PositionsBreakdown } from './positions-breakdown';
+import { DailyTradeSummary } from './daily-trade-summary';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -167,6 +169,12 @@ export function MainDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Daily Trade Summary */}
+      <DailyTradeSummary />
+
+      {/* Active Positions */}
+      <PositionsBreakdown />
     </div>
   );
 }
