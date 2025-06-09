@@ -6,6 +6,7 @@ import { PositionsBreakdown } from './positions-breakdown';
 import { DailyTradeSummary } from './daily-trade-summary';
 import { AdaptiveModePanel } from './adaptive-mode-panel';
 import { SignalPerformanceHeatmap } from './signal-performance-heatmap';
+import { StrategyMatrixPanel } from './strategy-matrix-panel';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -183,6 +184,9 @@ export function MainDashboard() {
 
       {/* Signal Performance Heatmap */}
       <SignalPerformanceHeatmap />
+
+      {/* Strategy Matrix Panel */}
+      <StrategyMatrixPanel />
     </div>
   );
 }

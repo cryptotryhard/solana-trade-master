@@ -12,6 +12,7 @@ import { alphaAccelerationEngine } from "./alpha-acceleration-engine";
 import { adaptiveStrategyEngine } from "./adaptive-strategy-engine";
 import { signalOptimizer } from "./signal-optimizer";
 import { reinforcementOptimizer } from "./reinforcement-optimizer";
+import { adaptiveTradingStrategies } from "./adaptive-trading-strategies";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -837,6 +838,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Reinforcement settings updated" });
     } catch (error) {
       res.status(500).json({ message: "Failed to update reinforcement settings" });
+    }
+  });
+
+  // Adaptive Trading Strategies endpoints
+  app.get("/api/strategies/matrix", async (req, res) => {
+    try {
+      const matrix = await adaptiveTradingStrategies.getStrategyMatrix();
+      res.json(matrix);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get strategy matrix" });
+    }
+  });
+
+  app.get("/api/strategies/recommendations/:clusterId", async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const recommendations = await adaptiveTradingStrategies.getStrategyRecommendations(clusterId);
+      res.json(recommendations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get strategy recommendations" });
+    }
+  });
+
+  app.get("/api/strategies/executions", async (req, res) => {
+    try {
+      const { limit = 50 } = req.query;
+      const executions = adaptiveTradingStrategies.getExecutionHistory(Number(limit));
+      res.json(executions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get execution history" });
+    }
+  });
+
+  app.post("/api/strategies/optimize", async (req, res) => {
+    try {
+      await adaptiveTradingStrategies.optimizeAllStrategies();
+      res.json({ success: true, message: "Strategy optimization triggered" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to optimize strategies" });
+    }
+  });
+
+  app.post("/api/strategies/learning", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      adaptiveTradingStrategies.setLearningMode(enabled);
+      res.json({ success: true, message: `Learning mode ${enabled ? 'enabled' : 'disabled'}` });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update learning mode" });
     }
   });
 

@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { storage } from './storage';
 import { liveDataService } from './live-data-service';
 import { profitTracker } from './profit-tracker';
+import { adaptiveTradingStrategies } from './adaptive-trading-strategies';
+import { sentimentEngine } from './sentiment-engine';
 import { pumpFunScanner } from './pump-fun-scanner';
 import { TradingStrategies } from './trading-strategies';
 import { advancedExitStrategy } from './advanced-exit-strategy';
