@@ -55,14 +55,30 @@ class DexScreenerScanner {
   
   async getNewPairs(chain: string = 'solana'): Promise<DexScreenerPair[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/pairs/${chain}?limit=50`);
+      // Use search endpoint with filter for recent Solana pairs
+      const response = await fetch(`${this.baseUrl}/search/?q=${chain}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json() as DexScreenerResponse;
-      return data.pairs || [];
+      
+      // Filter for Solana pairs only
+      const solanaPairs = data.pairs?.filter(pair => pair.chainId === 'solana') || [];
+      
+      // Sort by creation time (newest first) if available
+      return solanaPairs.sort((a, b) => {
+        const timeA = a.pairCreatedAt || 0;
+        const timeB = b.pairCreatedAt || 0;
+        return timeB - timeA;
+      }).slice(0, 50);
+      
     } catch (error) {
       console.error('Failed to fetch pairs from DexScreener:', error);
       return [];

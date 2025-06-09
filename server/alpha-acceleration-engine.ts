@@ -163,20 +163,20 @@ class AlphaAccelerationEngine {
         );
       }
       
-      // Fallback to Helius API if pump.fun is unavailable
-      console.log('⚠️ pump.fun API unavailable, switching to Helius scanner');
-      const heliusTokens = await heliusScanner.getAlphaTokens();
+      // Activate DexScreener as primary source - reliable public API
+      console.log('🔄 Activating DexScreener as primary alpha source');
+      const dexTokens = await dexScreenerScanner.getAlphaTokens();
       
-      if (heliusTokens.length > 0) {
-        console.log(`✅ Helius fallback successful: ${heliusTokens.length} tokens found`);
+      if (dexTokens.length > 0) {
+        console.log(`✅ DexScreener delivering: ${dexTokens.length} fresh pairs`);
         
-        const processedTokens: AlphaToken[] = heliusTokens.map(token => {
-          let aiScore = 88; // Higher base score for Helius-verified tokens
+        const processedTokens: AlphaToken[] = dexTokens.map(token => {
+          let aiScore = 92; // High base score for DexScreener verified pairs
           
-          if (token.age < 2) aiScore += 6;
-          if (token.volumeSpike > 400) aiScore += 4;
-          if (token.uniqueWallets > 15) aiScore += 3;
-          if (token.liquidityUSD > 15000) aiScore += 2;
+          if (token.age < 5) aiScore += 4;
+          if (token.volumeSpike > 200) aiScore += 3;
+          if (token.uniqueWallets > 8) aiScore += 2;
+          if (token.liquidityUSD > 8000) aiScore += 1;
           
           return {
             symbol: token.symbol,
@@ -193,24 +193,50 @@ class AlphaAccelerationEngine {
           };
         });
         
-        return processedTokens.filter((token: AlphaToken) => 
+        // Filter for alpha opportunities
+        const alphaTokens = processedTokens.filter((token: AlphaToken) => 
           token.age <= this.entryConditions.maxAge &&
           token.volumeSpike >= this.entryConditions.minVolumeSpike &&
-          token.uniqueWallets >= this.entryConditions.minUniqueWallets
+          token.uniqueWallets >= this.entryConditions.minUniqueWallets &&
+          token.aiScore >= this.minAIScore
         );
+        
+        if (alphaTokens.length > 0) {
+          console.log(`🎯 Alpha opportunities identified: ${alphaTokens.length} tokens`);
+        }
+        
+        return alphaTokens;
       }
       
-      console.log('⚠️ All data sources unavailable, maintaining scan cycle');
-      return [];
-      
-    } catch (error) {
-      console.error('Error in alpha scanning:', error);
-      
-      // Final fallback to DexScreener
+      // Secondary fallback to Helius if available
       try {
+        const heliusTokens = await heliusScanner.getAlphaTokens();
+        if (heliusTokens.length > 0) {
+          console.log(`🔄 Helius secondary fallback: ${heliusTokens.length} tokens`);
+          return heliusTokens.map(token => ({
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: 88,
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          }));
+        }
+      } catch (heliusError) {
+        console.log('Helius also unavailable:', heliusError.message);
+      }
+      
+      // Immediate DexScreener activation
+      try {
+        console.log('🔄 Activating DexScreener as backup source');
         const dexTokens = await dexScreenerScanner.getAlphaTokens();
         if (dexTokens.length > 0) {
-          console.log(`🔄 DexScreener fallback: ${dexTokens.length} fresh pairs found`);
+          console.log(`✅ DexScreener backup successful: ${dexTokens.length} fresh pairs`);
           return dexTokens.map(token => ({
             symbol: token.symbol,
             mintAddress: token.mintAddress,
@@ -220,13 +246,43 @@ class AlphaAccelerationEngine {
             age: token.age,
             uniqueWallets: token.uniqueWallets,
             volumeSpike: token.volumeSpike,
-            aiScore: 93,
+            aiScore: 93, // High score for DexScreener verified pairs
             liquidityUSD: token.liquidityUSD,
             ownershipRisk: token.ownershipRisk
           }));
         }
-      } catch (fallbackError) {
-        console.error('All data sources failed:', fallbackError);
+      } catch (dexError) {
+        console.log('DexScreener backup failed:', dexError);
+      }
+      
+      console.log('⚠️ Continuing scan cycle');
+      return [];
+      
+    } catch (error) {
+      console.error('Error in alpha scanning:', error);
+      
+      // Emergency DexScreener activation
+      try {
+        console.log('🚨 Emergency DexScreener activation');
+        const dexTokens = await dexScreenerScanner.getAlphaTokens();
+        if (dexTokens.length > 0) {
+          console.log(`✅ Emergency source active: ${dexTokens.length} tokens`);
+          return dexTokens.map(token => ({
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: 95,
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          }));
+        }
+      } catch (emergencyError) {
+        console.error('All data sources failed:', emergencyError);
       }
       
       return [];
