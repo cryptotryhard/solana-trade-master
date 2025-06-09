@@ -238,12 +238,13 @@ export function AlphaOpportunities() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {tokensToShow.map((token: AlphaToken) => {
+          {tokensToShow.map((token: AlphaToken, index) => {
             const prePumpScore = showPrePumpScores ? getPrePumpScore(token.symbol) : undefined;
+            const uniqueKey = token.mintAddress ? `token-${token.mintAddress}` : `synthetic-${token.symbol}-${index}`;
             
             return (
               <div 
-                key={token.symbol}
+                key={uniqueKey}
                 className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
