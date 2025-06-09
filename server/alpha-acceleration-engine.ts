@@ -603,6 +603,26 @@ class AlphaAccelerationEngine {
       confidence: token.aiScore
     });
 
+    // Start tracking pump pattern for this trade
+    try {
+      const maturityScore = await prePumpPredictor.getTokenMaturityScore(token.symbol, token.mintAddress);
+      await pumpPatternMemory.startTrackingTrade(
+        token.symbol,
+        token.mintAddress,
+        token.price,
+        {
+          maturityScore: maturityScore?.maturityScore || 50,
+          sentimentScore: token.hypeScore || token.sentimentScore || 50,
+          entryMethod: 'market_buy',
+          exitStrategy: 'trailing_stop',
+          prePumpReadiness: maturityScore?.pumpReadiness || 'medium'
+        }
+      );
+      console.log(`📊 Started tracking pump pattern for ${token.symbol}`);
+    } catch (error) {
+      console.log(`⚠️ Failed to start pump pattern tracking for ${token.symbol}`);
+    }
+
     // Update portfolio
     await storage.updatePortfolio(1, {
       totalBalance: (parseFloat(await storage.getPortfolio(1)?.then(p => p?.totalBalance || '0') || '0') - positionSize).toString()
