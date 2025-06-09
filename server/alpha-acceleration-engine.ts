@@ -56,6 +56,7 @@ class AlphaAccelerationEngine {
   private layeredPositions = new Map<string, LayeredPosition>();
   private leaderboardWallets: LeaderboardWallet[] = [];
   private shadowPositionRatio: number = 0.5;
+  private recentAlphaTokens: Array<AlphaToken & { dataSources: string[], confidence: 'high' | 'medium' | 'low', detectedAt: Date }> = [];
   
   private profitAllocation = {
     sol: 0.10,
@@ -79,6 +80,48 @@ class AlphaAccelerationEngine {
 
   constructor() {
     console.log('🚀 Alpha Acceleration Engine Initialized - Target: $1B Portfolio');
+  }
+
+  private trackAlphaToken(token: AlphaToken, sources: string[]) {
+    const confidence: 'high' | 'medium' | 'low' = sources.length >= 2 ? 'high' : sources.length === 1 ? 'medium' : 'low';
+    
+    const enhancedToken = {
+      ...token,
+      dataSources: sources,
+      confidence,
+      detectedAt: new Date()
+    };
+
+    // Remove old tokens (keep last 50)
+    this.recentAlphaTokens = this.recentAlphaTokens.filter(t => 
+      Date.now() - t.detectedAt.getTime() < 300000 // 5 minutes
+    );
+    
+    // Add new token
+    this.recentAlphaTokens.unshift(enhancedToken);
+    
+    // Keep only last 50 tokens
+    if (this.recentAlphaTokens.length > 50) {
+      this.recentAlphaTokens = this.recentAlphaTokens.slice(0, 50);
+    }
+  }
+
+  getRecentAlphaTokens() {
+    return this.recentAlphaTokens.map(token => ({
+      symbol: token.symbol,
+      mintAddress: token.mintAddress,
+      price: token.price,
+      volume24h: token.volume24h,
+      marketCap: token.marketCap,
+      age: token.age,
+      uniqueWallets: token.uniqueWallets,
+      volumeSpike: token.volumeSpike,
+      aiScore: token.aiScore,
+      liquidityUSD: token.liquidityUSD,
+      ownershipRisk: token.ownershipRisk,
+      dataSources: token.dataSources,
+      confidence: token.confidence
+    }));
   }
 
   async startAlphaMode() {

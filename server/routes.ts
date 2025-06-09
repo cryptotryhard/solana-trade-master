@@ -736,6 +736,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/alpha/tokens", async (req, res) => {
+    try {
+      // Get recent alpha tokens with confidence data
+      const alphaTokens = await alphaAccelerationEngine.getRecentAlphaTokens();
+      res.json(alphaTokens);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get alpha tokens" });
+    }
+  });
+
   app.post("/api/alpha/settings", async (req, res) => {
     try {
       await alphaAccelerationEngine.adjustAlphaSettings(req.body);
