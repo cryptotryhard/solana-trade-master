@@ -16,6 +16,7 @@ import { adaptiveTradingStrategies } from "./adaptive-trading-strategies";
 import { prePumpPredictor } from "./pre-pump-predictor";
 import { pumpPatternMemory } from "./pump-pattern-memory";
 import { patternPerformanceTracker } from "./pattern-performance-tracker";
+import { portfolioMetaManager } from "./portfolio-meta-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -810,6 +811,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(achievements);
     } catch (error) {
       res.status(500).json({ message: "Failed to get achievements" });
+    }
+  });
+
+  // Portfolio Meta-Manager endpoints
+  app.get("/api/portfolio/meta/regime", async (req, res) => {
+    try {
+      const regime = portfolioMetaManager.getCurrentRegime();
+      res.json(regime);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get portfolio regime" });
+    }
+  });
+
+  app.get("/api/portfolio/meta/aggression", async (req, res) => {
+    try {
+      const aggression = portfolioMetaManager.getCurrentAggression();
+      res.json(aggression);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get aggression level" });
+    }
+  });
+
+  app.get("/api/portfolio/meta/metrics", async (req, res) => {
+    try {
+      const hours = parseInt(req.query.hours as string) || 4;
+      const metrics = portfolioMetaManager.getRecentMetrics(hours);
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get portfolio metrics" });
+    }
+  });
+
+  app.get("/api/portfolio/meta/adjustments", async (req, res) => {
+    try {
+      const adjustments = portfolioMetaManager.getAdjustmentHistory();
+      res.json(adjustments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get adjustment history" });
+    }
+  });
+
+  app.post("/api/portfolio/meta/toggle", async (req, res) => {
+    try {
+      const { active } = req.body;
+      portfolioMetaManager.setActive(active);
+      res.json({ success: true, active });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle meta manager" });
+    }
+  });
+
+  app.post("/api/portfolio/meta/force-analysis", async (req, res) => {
+    try {
+      const mockMetrics = req.body.metrics || {};
+      await portfolioMetaManager.forceRegimeAnalysis(mockMetrics);
+      res.json({ success: true, message: "Portfolio regime analysis triggered" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to trigger regime analysis" });
     }
   });
 

@@ -9,6 +9,7 @@ import { SignalPerformanceHeatmap } from './signal-performance-heatmap';
 import { StrategyMatrixPanel } from './strategy-matrix-panel';
 import { AlphaOpportunities } from './alpha-opportunities';
 import { PatternPerformanceTable } from './pattern-performance-table';
+import { PortfolioMetaDashboard } from './portfolio-meta-dashboard';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
