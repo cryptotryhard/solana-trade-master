@@ -605,17 +605,17 @@ class AlphaAccelerationEngine {
 
     // Start tracking pump pattern for this trade
     try {
-      const maturityScore = await prePumpPredictor.getTokenMaturityScore(token.symbol, token.mintAddress);
+      const maturityScore = await prePumpPredictor.analyzeTokenMaturity(token.symbol, token.mintAddress);
       await pumpPatternMemory.startTrackingTrade(
         token.symbol,
         token.mintAddress,
         token.price,
         {
-          maturityScore: maturityScore?.maturityScore || 50,
-          sentimentScore: token.hypeScore || token.sentimentScore || 50,
+          maturityScore: maturityScore?.totalScore || 50,
+          sentimentScore: token.hypeScore || 50,
           entryMethod: 'market_buy',
           exitStrategy: 'trailing_stop',
-          prePumpReadiness: maturityScore?.pumpReadiness || 'medium'
+          prePumpReadiness: maturityScore?.readiness || 'medium'
         }
       );
       console.log(`📊 Started tracking pump pattern for ${token.symbol}`);
@@ -731,6 +731,20 @@ class AlphaAccelerationEngine {
     const profitUSD = layer.amount * (layerProfit / 100);
     
     console.log(`💰 ${position.symbol}: Exit layer | ${reason} | Profit: ${layerProfit.toFixed(2)}% ($${profitUSD.toFixed(2)})`);
+    
+    // Complete pump pattern tracking when position is fully exited
+    if (position.layers.length === 1) { // This is the last layer
+      try {
+        await pumpPatternMemory.completeTrade(
+          position.symbol,
+          currentPrice,
+          reason.includes('stop') ? 'trailing_stop' : 'manual_exit'
+        );
+        console.log(`📊 Completed pump pattern analysis for ${position.symbol}`);
+      } catch (error) {
+        console.log(`⚠️ Failed to complete pump pattern for ${position.symbol}`);
+      }
+    }
     
     // Remove layer from position
     const layerIndex = position.layers.indexOf(layer);
