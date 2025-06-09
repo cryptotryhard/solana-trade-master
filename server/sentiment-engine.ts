@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { communitySentimentFeeds } from './community-sentiment-feeds';
+import { signalOptimizer } from './signal-optimizer';
 
 interface SentimentAnalysis {
   symbol: string;
@@ -39,7 +40,7 @@ class SentimentEngine {
     'support', 'resistance', 'volume', 'market cap', 'price action'
   ];
 
-  async analyzeSentiment(symbol: string, mintAddress: string): Promise<SentimentAnalysis> {
+  async analyzeSentiment(symbol: string, mintAddress: string): Promise<SentimentAnalysis & { detectedSignals: string[] }> {
     try {
       const comments = await this.fetchPumpFunComments(mintAddress);
       const pumpFunAnalysis = this.processComments(comments);
@@ -49,6 +50,20 @@ class SentimentEngine {
         symbol, 
         pumpFunAnalysis
       );
+
+      // Analyze signal contexts from comments
+      const detectedSignals: string[] = [];
+      
+      // Add sentiment source signals
+      if (comments.length > 0) detectedSignals.push('sentiment_pumpfun');
+      if (enhancedSentiment.sources.includes('telegram')) detectedSignals.push('sentiment_telegram');
+      if (enhancedSentiment.sources.includes('twitter')) detectedSignals.push('sentiment_twitter');
+
+      // Detect sentiment contexts from comments
+      for (const comment of comments) {
+        const contexts = await signalOptimizer.analyzeSignalContext(comment.text);
+        detectedSignals.push(...contexts);
+      }
       
       return {
         symbol,
@@ -58,11 +73,15 @@ class SentimentEngine {
         sentimentRating: this.calculateSentimentRating(enhancedSentiment.totalHypeScore, enhancedSentiment.totalFudScore),
         keyIndicators: pumpFunAnalysis.indicators,
         commentCount: comments.length,
-        recentActivity: this.hasRecentActivity(comments) || enhancedSentiment.socialVelocity > 10
+        recentActivity: this.hasRecentActivity(comments) || enhancedSentiment.socialVelocity > 10,
+        detectedSignals: [...new Set(detectedSignals)] // Remove duplicates
       };
     } catch (error) {
       console.log(`Enhanced sentiment analysis failed for ${symbol}:`, error);
-      return this.getDefaultSentiment(symbol, mintAddress);
+      return {
+        ...this.getDefaultSentiment(symbol, mintAddress),
+        detectedSignals: []
+      };
     }
   }
 

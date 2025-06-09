@@ -5,6 +5,7 @@ import { getTopTokens, getRecommendations } from '@/lib/crypto-api';
 import { PositionsBreakdown } from './positions-breakdown';
 import { DailyTradeSummary } from './daily-trade-summary';
 import { AdaptiveModePanel } from './adaptive-mode-panel';
+import { SignalPerformanceHeatmap } from './signal-performance-heatmap';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({

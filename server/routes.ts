@@ -10,6 +10,7 @@ import { achievementsSystem } from "./achievements-system";
 import { profitVaultEngine } from "./profit-vault-engine";
 import { alphaAccelerationEngine } from "./alpha-acceleration-engine";
 import { adaptiveStrategyEngine } from "./adaptive-strategy-engine";
+import { signalOptimizer } from "./signal-optimizer";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -749,6 +750,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Learning parameters updated" });
     } catch (error) {
       res.status(500).json({ message: "Failed to update learning parameters" });
+    }
+  });
+
+  // Signal Optimizer endpoints
+  app.get("/api/signals/subtypes", async (req, res) => {
+    try {
+      const subtypes = await signalOptimizer.getSignalSubtypes();
+      res.json(subtypes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get signal subtypes" });
+    }
+  });
+
+  app.get("/api/signals/heatmap", async (req, res) => {
+    try {
+      const heatmap = await signalOptimizer.getPerformanceHeatmap();
+      res.json(heatmap);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get performance heatmap" });
+    }
+  });
+
+  app.get("/api/signals/combinations", async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+      const combinations = await signalOptimizer.getTopPerformingCombinations(Number(limit));
+      res.json(combinations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get signal combinations" });
+    }
+  });
+
+  app.get("/api/signals/optimization-report", async (req, res) => {
+    try {
+      const report = await signalOptimizer.getSignalOptimizationReport();
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get optimization report" });
+    }
+  });
+
+  app.post("/api/signals/optimize", async (req, res) => {
+    try {
+      await signalOptimizer.optimizeSignalWeights();
+      res.json({ success: true, message: "Signal weights optimized" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to optimize signal weights" });
     }
   });
 
