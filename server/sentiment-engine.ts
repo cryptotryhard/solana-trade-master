@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { communitySentimentFeeds } from './community-sentiment-feeds';
 
 interface SentimentAnalysis {
   symbol: string;
@@ -41,20 +42,26 @@ class SentimentEngine {
   async analyzeSentiment(symbol: string, mintAddress: string): Promise<SentimentAnalysis> {
     try {
       const comments = await this.fetchPumpFunComments(mintAddress);
-      const analysis = this.processComments(comments);
+      const pumpFunAnalysis = this.processComments(comments);
+      
+      // Enhanced sentiment with community feeds
+      const enhancedSentiment = await communitySentimentFeeds.getEnhancedSentiment(
+        symbol, 
+        pumpFunAnalysis
+      );
       
       return {
         symbol,
         mintAddress,
-        hypeScore: analysis.hypeScore,
-        fudScore: analysis.fudScore,
-        sentimentRating: this.calculateSentimentRating(analysis.hypeScore, analysis.fudScore),
-        keyIndicators: analysis.indicators,
+        hypeScore: enhancedSentiment.totalHypeScore,
+        fudScore: enhancedSentiment.totalFudScore,
+        sentimentRating: this.calculateSentimentRating(enhancedSentiment.totalHypeScore, enhancedSentiment.totalFudScore),
+        keyIndicators: pumpFunAnalysis.indicators,
         commentCount: comments.length,
-        recentActivity: this.hasRecentActivity(comments)
+        recentActivity: this.hasRecentActivity(comments) || enhancedSentiment.socialVelocity > 10
       };
     } catch (error) {
-      console.log(`Sentiment analysis failed for ${symbol}:`, error);
+      console.log(`Enhanced sentiment analysis failed for ${symbol}:`, error);
       return this.getDefaultSentiment(symbol, mintAddress);
     }
   }

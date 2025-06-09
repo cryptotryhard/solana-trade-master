@@ -877,11 +877,18 @@ class AlphaAccelerationEngine {
     scanInterval: number;
     minAIScore: number;
     maxLayers: number;
+    aggressiveSentimentMode: boolean;
+    sentimentWeight: number;
     profitAllocation: typeof this.profitAllocation;
   }>) {
     if (settings.scanInterval) this.scanInterval = settings.scanInterval * 1000;
     if (settings.minAIScore) this.minAIScore = settings.minAIScore;
     if (settings.maxLayers) this.maxLayers = settings.maxLayers;
+    if (typeof settings.aggressiveSentimentMode === 'boolean') {
+      this.entryConditions.aggressiveSentimentMode = settings.aggressiveSentimentMode;
+      console.log(`⚡ Aggressive sentiment mode: ${settings.aggressiveSentimentMode ? 'ENABLED' : 'DISABLED'}`);
+    }
+    if (settings.sentimentWeight) this.entryConditions.sentimentWeight = settings.sentimentWeight;
     if (settings.profitAllocation) this.profitAllocation = { ...this.profitAllocation, ...settings.profitAllocation };
     
     console.log('⚙️ Alpha settings updated:', settings);
