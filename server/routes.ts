@@ -13,6 +13,7 @@ import { adaptiveStrategyEngine } from "./adaptive-strategy-engine";
 import { signalOptimizer } from "./signal-optimizer";
 import { reinforcementOptimizer } from "./reinforcement-optimizer";
 import { adaptiveTradingStrategies } from "./adaptive-trading-strategies";
+import { prePumpPredictor } from "./pre-pump-predictor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -640,6 +641,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(suggestion);
     } catch (error) {
       res.status(500).json({ message: "Failed to generate AI suggestion" });
+    }
+  });
+
+  // Pre-pump prediction endpoints
+  app.post("/api/prepump/analyze", async (req, res) => {
+    try {
+      const { symbol, mintAddress, sentimentScore } = req.body;
+      const prediction = await prePumpPredictor.generatePumpPrediction(symbol, mintAddress, sentimentScore);
+      res.json(prediction);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to analyze pre-pump potential" });
+    }
+  });
+
+  app.get("/api/prepump/high-readiness", async (req, res) => {
+    try {
+      const highReadinessTokens = await prePumpPredictor.getHighPumpReadinessTokens();
+      res.json(highReadinessTokens);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get high readiness tokens" });
+    }
+  });
+
+  app.get("/api/prepump/score/:symbol", async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const score = prePumpPredictor.getTokenScore(symbol);
+      if (score) {
+        res.json(score);
+      } else {
+        res.status(404).json({ message: "Token score not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get token score" });
+    }
+  });
+
+  app.get("/api/prepump/accuracy", async (req, res) => {
+    try {
+      const accuracy = prePumpPredictor.getPredictionAccuracy();
+      res.json(accuracy);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get prediction accuracy" });
     }
   });
 

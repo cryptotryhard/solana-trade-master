@@ -7,6 +7,7 @@ import { DailyTradeSummary } from './daily-trade-summary';
 import { AdaptiveModePanel } from './adaptive-mode-panel';
 import { SignalPerformanceHeatmap } from './signal-performance-heatmap';
 import { StrategyMatrixPanel } from './strategy-matrix-panel';
+import { AlphaOpportunities } from './alpha-opportunities';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -187,6 +188,9 @@ export function MainDashboard() {
 
       {/* Strategy Matrix Panel */}
       <StrategyMatrixPanel />
+
+      {/* Alpha Opportunities with Pre-Pump Prediction */}
+      <AlphaOpportunities />
     </div>
   );
 }
