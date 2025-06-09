@@ -14,6 +14,7 @@ import { signalOptimizer } from "./signal-optimizer";
 import { reinforcementOptimizer } from "./reinforcement-optimizer";
 import { adaptiveTradingStrategies } from "./adaptive-trading-strategies";
 import { prePumpPredictor } from "./pre-pump-predictor";
+import { pumpPatternMemory } from "./pump-pattern-memory";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -684,6 +685,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(accuracy);
     } catch (error) {
       res.status(500).json({ message: "Failed to get prediction accuracy" });
+    }
+  });
+
+  // Pump Pattern Memory endpoints
+  app.post("/api/patterns/forecast", async (req, res) => {
+    try {
+      const { symbol, maturityScore, sentimentScore, context } = req.body;
+      const forecast = await pumpPatternMemory.generatePumpPatternForecast(
+        symbol,
+        maturityScore,
+        sentimentScore,
+        context
+      );
+      res.json(forecast);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate pump pattern forecast" });
+    }
+  });
+
+  app.get("/api/patterns/stats", async (req, res) => {
+    try {
+      const stats = pumpPatternMemory.getAllPatternStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get pattern statistics" });
+    }
+  });
+
+  app.get("/api/patterns/recent", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const patterns = pumpPatternMemory.getRecentPatterns(limit);
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get recent patterns" });
+    }
+  });
+
+  app.get("/api/patterns/type/:patternType", async (req, res) => {
+    try {
+      const { patternType } = req.params;
+      const patterns = pumpPatternMemory.getPatternsByType(patternType as any);
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get patterns by type" });
     }
   });
 

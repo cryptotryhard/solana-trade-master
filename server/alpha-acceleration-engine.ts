@@ -11,6 +11,7 @@ import { alphaDataGenerator } from './alpha-data-generator';
 import { sentimentEngine } from './sentiment-engine';
 import { adaptiveStrategyEngine } from './adaptive-strategy-engine';
 import { prePumpPredictor } from './pre-pump-predictor';
+import { pumpPatternMemory } from './pump-pattern-memory';
 
 interface AlphaToken {
   symbol: string;

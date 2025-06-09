@@ -50,6 +50,20 @@ interface PrePumpScore {
   };
 }
 
+interface PumpPatternForecast {
+  symbol: string;
+  predictedPattern: 'instant_spike' | 'delayed_pump' | 'slow_curve' | 'fakeout_dump' | 'multiple_waves' | 'no_pump';
+  confidence: number;
+  expectedROI: number;
+  expectedTimeframe: string;
+  riskLevel: 'low' | 'medium' | 'high' | 'extreme';
+  recommendedStrategy: {
+    entryMethod: string;
+    exitStrategy: string;
+    reasoning: string;
+  };
+}
+
 export function AlphaOpportunities() {
   const [highReadinessOnly, setHighReadinessOnly] = useState(false);
   const [showPrePumpScores, setShowPrePumpScores] = useState(true);
@@ -111,6 +125,56 @@ export function AlphaOpportunities() {
       }
     } catch (error) {
       console.error('Failed to analyze token:', error);
+    }
+  };
+
+  const generatePumpPatternForecast = async (token: AlphaToken, prePumpScore?: PrePumpScore) => {
+    if (!prePumpScore) return null;
+    
+    try {
+      const response = await fetch('/api/patterns/forecast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: token.symbol,
+          maturityScore: prePumpScore.maturityScore,
+          sentimentScore: token.sentimentScore || 50,
+          context: {
+            liquiditySource: 'pump_fun',
+            tokenAge: parseFloat(token.age.replace(/[^0-9.]/g, '')) || 5,
+            whaleActivity: prePumpScore.factors.whaleScore
+          }
+        })
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to generate pump pattern forecast:', error);
+    }
+    return null;
+  };
+
+  const getPumpPatternIcon = (pattern: string) => {
+    switch (pattern) {
+      case 'instant_spike': return '🚀';
+      case 'delayed_pump': return '⏳';
+      case 'slow_curve': return '📈';
+      case 'multiple_waves': return '🌊';
+      case 'fakeout_dump': return '⚠️';
+      default: return '📊';
+    }
+  };
+
+  const getPumpPatternColor = (pattern: string) => {
+    switch (pattern) {
+      case 'instant_spike': return 'text-green-600';
+      case 'delayed_pump': return 'text-blue-600';
+      case 'slow_curve': return 'text-purple-600';
+      case 'multiple_waves': return 'text-orange-600';
+      case 'fakeout_dump': return 'text-red-600';
+      default: return 'text-gray-600';
     }
   };
 
