@@ -64,6 +64,7 @@ export function AlphaControlPanel() {
 
   const [confidenceMode, setConfidenceMode] = useState<'all' | 'high_only'>('all');
   const [sentimentFilter, setSentimentFilter] = useState<'all' | 'bullish_only'>('all');
+  const [aggressiveSentimentMode, setAggressiveSentimentMode] = useState(false);
 
   const { data: alphaStatus, refetch } = useQuery<AlphaStatus>({
     queryKey: ["/api/alpha/status"],
@@ -117,6 +118,7 @@ export function AlphaControlPanel() {
       maxLayers: settings.maxLayers,
       confidenceMode: confidenceMode,
       sentimentFilter: sentimentFilter,
+      aggressiveSentimentMode: aggressiveSentimentMode,
       profitAllocation: {
         sol: 0.10,
         usdc: 0.05,
@@ -427,6 +429,29 @@ export function AlphaControlPanel() {
                   {sentimentFilter === 'bullish_only' 
                     ? 'Only show tokens with positive community sentiment' 
                     : 'Show all sentiment types'
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Aggressive Sentiment Mode Toggle */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Aggressive Sentiment Mode</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="aggressive-sentiment"
+                    checked={aggressiveSentimentMode}
+                    onCheckedChange={setAggressiveSentimentMode}
+                  />
+                  <Label htmlFor="aggressive-sentiment" className="text-sm">
+                    Enable Aggressive Mode
+                  </Label>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {aggressiveSentimentMode 
+                    ? 'Lower AI thresholds for high-sentiment tokens' 
+                    : 'Standard sentiment weighting'
                   }
                 </div>
               </div>

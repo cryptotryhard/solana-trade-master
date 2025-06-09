@@ -73,7 +73,10 @@ class AlphaAccelerationEngine {
     maxAge: 3, // minutes
     minVolumeSpike: 300, // percentage
     minUniqueWallets: 7,
-    minAIScore: 92
+    minAIScore: 92,
+    aggressiveSentimentMode: false,
+    sentimentWeight: 0.3, // Weight of sentiment in final scoring
+    ultraEarlySentimentBoost: 0.5 // Extra sentiment weight for tokens < 15min old
   };
 
   private trailingStopConfig = {
@@ -448,10 +451,49 @@ class AlphaAccelerationEngine {
   }
 
   private async validateAlphaEntry(token: AlphaToken): Promise<boolean> {
-    // AI score validation
-    if (token.aiScore < this.entryConditions.minAIScore) {
-      console.log(`❌ ${token.symbol}: AI score ${token.aiScore} below threshold ${this.entryConditions.minAIScore}`);
-      return false;
+    // Enhanced sentiment analysis for ultra-early tokens
+    try {
+      const sentiment = await sentimentEngine.analyzeSentiment(token.symbol, token.mintAddress);
+      token.hypeScore = sentiment.hypeScore;
+      token.fudScore = sentiment.fudScore;
+      token.sentimentRating = sentiment.sentimentRating;
+      token.keyIndicators = sentiment.keyIndicators;
+
+      // Calculate enhanced AI score with sentiment weighting
+      let sentimentWeight = this.entryConditions.sentimentWeight;
+      
+      // Increase sentiment weight for ultra-early tokens (< 15 minutes)
+      if (token.age < 15) {
+        sentimentWeight += this.entryConditions.ultraEarlySentimentBoost;
+        console.log(`🚀 ${token.symbol}: Ultra-early token detected, boosting sentiment weight to ${sentimentWeight}`);
+      }
+
+      // Apply sentiment boost to AI score
+      const sentimentScore = sentimentEngine.getSentimentScore(sentiment.hypeScore, sentiment.fudScore);
+      const enhancedAIScore = token.aiScore + (sentimentScore * sentimentWeight);
+      token.aiScore = Math.min(100, enhancedAIScore);
+
+      // Aggressive sentiment mode: Lower AI threshold for high sentiment tokens
+      let minAIScore = this.entryConditions.minAIScore;
+      if (this.entryConditions.aggressiveSentimentMode && sentiment.hypeScore > 75) {
+        minAIScore = Math.max(85, minAIScore - 10);
+        console.log(`⚡ ${token.symbol}: Aggressive sentiment mode - lowering AI threshold to ${minAIScore}`);
+      }
+
+      // Reject tokens with high FUD or bearish sentiment
+      if (sentiment.fudScore > 70 || sentiment.sentimentRating === 'bearish') {
+        console.log(`❌ ${token.symbol}: High FUD detected - FUD: ${sentiment.fudScore}%, Rating: ${sentiment.sentimentRating}`);
+        return false;
+      }
+
+      // AI score validation with sentiment enhancement
+      if (token.aiScore < minAIScore) {
+        console.log(`❌ ${token.symbol}: Enhanced AI score ${token.aiScore.toFixed(1)} below threshold ${minAIScore}`);
+        return false;
+      }
+
+    } catch (sentimentError) {
+      console.log(`⚠️ ${token.symbol}: Sentiment analysis failed, proceeding with technical analysis only`);
     }
 
     // Anti-rug validation
@@ -472,7 +514,8 @@ class AlphaAccelerationEngine {
       return false;
     }
 
-    console.log(`✅ ${token.symbol}: ALPHA VALIDATED - Score: ${token.aiScore}, Age: ${token.age}min, Spike: ${token.volumeSpike}%`);
+    const sentimentInfo = token.sentimentRating ? ` | Sentiment: ${token.sentimentRating} (${token.hypeScore}% hype)` : '';
+    console.log(`✅ ${token.symbol}: ALPHA VALIDATED - Enhanced Score: ${token.aiScore.toFixed(1)}, Age: ${token.age}min${sentimentInfo}`);
     return true;
   }
 
