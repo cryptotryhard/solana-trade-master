@@ -18,6 +18,7 @@ import { pumpPatternMemory } from "./pump-pattern-memory";
 import { patternPerformanceTracker } from "./pattern-performance-tracker";
 import { portfolioMetaManager } from "./portfolio-meta-manager";
 import { crashShield } from "./crash-shield";
+import { accountIntelligence } from "./account-intelligence";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -602,6 +603,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         confidence: 100,
         portfolioValue: req.body.portfolioValue || 0
       });
+
+      // Record trade with Account Intelligence for audit trail
+      await accountIntelligence.recordTrade({
+        symbol,
+        side: action,
+        price: price.toString(),
+        amount: amount.toString(),
+        pnl: '0',
+        confidence: 100,
+        signals: ['manual_trade'],
+        strategy: 'manual',
+        portfolioValue: req.body.portfolioValue || 0
+      });
       
       console.log(`📋 Manual ${action.toUpperCase()} order: ${symbol} at $${price} (Amount: ${amount})`);
       
@@ -983,6 +997,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to update trigger" });
+    }
+  });
+
+  // Account Intelligence & Audit System endpoints
+  app.get("/api/account/performance/:period", async (req, res) => {
+    try {
+      const period = req.params.period as '24h' | '7d' | '30d';
+      const metrics = await accountIntelligence.getPerformanceMetrics(period);
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get performance metrics" });
+    }
+  });
+
+  app.get("/api/account/performance-history", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const history = accountIntelligence.getPerformanceHistory(days);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get performance history" });
+    }
+  });
+
+  app.get("/api/account/token-leaderboard", async (req, res) => {
+    try {
+      const leaderboard = await accountIntelligence.getTokenPerformanceLeaderboard();
+      res.json(leaderboard);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get token leaderboard" });
+    }
+  });
+
+  app.get("/api/account/risk-events", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const events = accountIntelligence.getRiskEvents(limit);
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get risk events" });
+    }
+  });
+
+  app.get("/api/account/trade-journal", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const journal = accountIntelligence.getTradeJournal(limit);
+      res.json(journal);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get trade journal" });
+    }
+  });
+
+  app.get("/api/account/strategy-transitions", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const transitions = accountIntelligence.getStrategyTransitions(limit);
+      res.json(transitions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get strategy transitions" });
+    }
+  });
+
+  app.get("/api/account/export-journal", async (req, res) => {
+    try {
+      const format = (req.query.format as 'json' | 'csv') || 'json';
+      const exportData = await accountIntelligence.exportTradeJournal(format);
+      
+      const filename = `victoria_trade_journal_${new Date().toISOString().split('T')[0]}.${format}`;
+      const contentType = format === 'csv' ? 'text/csv' : 'application/json';
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', contentType);
+      res.send(exportData);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to export trade journal" });
+    }
+  });
+
+  app.post("/api/account/record-risk-event", async (req, res) => {
+    try {
+      const event = req.body;
+      await accountIntelligence.recordRiskEvent(event);
+      res.json({ success: true, message: "Risk event recorded" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to record risk event" });
+    }
+  });
+
+  app.post("/api/account/record-strategy-transition", async (req, res) => {
+    try {
+      const transition = req.body;
+      await accountIntelligence.recordStrategyTransition(transition);
+      res.json({ success: true, message: "Strategy transition recorded" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to record strategy transition" });
     }
   });
 

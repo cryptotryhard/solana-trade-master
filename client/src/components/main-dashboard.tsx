@@ -11,6 +11,7 @@ import { AlphaOpportunities } from './alpha-opportunities';
 import { PatternPerformanceTable } from './pattern-performance-table';
 import { PortfolioMetaDashboard } from './portfolio-meta-dashboard';
 import { CrashShieldDashboard } from './crash-shield-dashboard';
+import { AccountIntelligenceDashboard } from './account-intelligence-dashboard';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -203,6 +204,9 @@ export function MainDashboard() {
 
       {/* Crash Shield Auto-Protect */}
       <CrashShieldDashboard />
+
+      {/* Account Intelligence & Audit */}
+      <AccountIntelligenceDashboard />
     </div>
   );
 }
