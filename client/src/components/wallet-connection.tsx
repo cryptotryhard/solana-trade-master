@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, ExternalLink, AlertCircle } from "lucide-react";
+import "@/lib/buffer-polyfill";
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import "@/types/wallet";
 
