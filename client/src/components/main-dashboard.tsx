@@ -8,6 +8,7 @@ import { AdaptiveModePanel } from './adaptive-mode-panel';
 import { SignalPerformanceHeatmap } from './signal-performance-heatmap';
 import { StrategyMatrixPanel } from './strategy-matrix-panel';
 import { AlphaOpportunities } from './alpha-opportunities';
+import { PatternPerformanceTable } from './pattern-performance-table';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -191,6 +192,9 @@ export function MainDashboard() {
 
       {/* Alpha Opportunities with Pre-Pump Prediction */}
       <AlphaOpportunities />
+
+      {/* Pattern Performance Analytics */}
+      <PatternPerformanceTable />
     </div>
   );
 }
