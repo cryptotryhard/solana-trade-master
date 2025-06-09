@@ -10,6 +10,7 @@ import { StrategyMatrixPanel } from './strategy-matrix-panel';
 import { AlphaOpportunities } from './alpha-opportunities';
 import { PatternPerformanceTable } from './pattern-performance-table';
 import { PortfolioMetaDashboard } from './portfolio-meta-dashboard';
+import { CrashShieldDashboard } from './crash-shield-dashboard';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -199,6 +200,9 @@ export function MainDashboard() {
 
       {/* Portfolio Meta-Manager */}
       <PortfolioMetaDashboard />
+
+      {/* Crash Shield Auto-Protect */}
+      <CrashShieldDashboard />
     </div>
   );
 }

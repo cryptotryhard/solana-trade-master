@@ -17,6 +17,7 @@ import { prePumpPredictor } from "./pre-pump-predictor";
 import { pumpPatternMemory } from "./pump-pattern-memory";
 import { patternPerformanceTracker } from "./pattern-performance-tracker";
 import { portfolioMetaManager } from "./portfolio-meta-manager";
+import { crashShield } from "./crash-shield";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -590,6 +591,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date()
       });
       
+      // Record trade with Crash Shield for protection monitoring
+      await crashShield.recordTrade({
+        userId: 1,
+        symbol,
+        side: action,
+        price: price.toString(),
+        amount: amount.toString(),
+        pnl: '0',
+        confidence: 100,
+        portfolioValue: req.body.portfolioValue || 0
+      });
+      
       console.log(`📋 Manual ${action.toUpperCase()} order: ${symbol} at $${price} (Amount: ${amount})`);
       
       // Update portfolio if it's a sell order
@@ -869,6 +882,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Portfolio regime analysis triggered" });
     } catch (error) {
       res.status(500).json({ message: "Failed to trigger regime analysis" });
+    }
+  });
+
+  // Crash Shield Auto-Protect endpoints
+  app.get("/api/crash-shield/status", async (req, res) => {
+    try {
+      const status = crashShield.getProtectionStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get protection status" });
+    }
+  });
+
+  app.get("/api/crash-shield/threat-level", async (req, res) => {
+    try {
+      const threatLevel = await crashShield.assessThreatLevel();
+      res.json(threatLevel);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to assess threat level" });
+    }
+  });
+
+  app.get("/api/crash-shield/safe-mode", async (req, res) => {
+    try {
+      const safeModeConfig = crashShield.getSafeModeConfig();
+      res.json(safeModeConfig);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get safe mode config" });
+    }
+  });
+
+  app.get("/api/crash-shield/triggers", async (req, res) => {
+    try {
+      const triggers = crashShield.getPanicTriggers();
+      res.json(triggers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get panic triggers" });
+    }
+  });
+
+  app.get("/api/crash-shield/capital-locks", async (req, res) => {
+    try {
+      const locks = crashShield.getCapitalLocks();
+      res.json(locks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get capital locks" });
+    }
+  });
+
+  app.get("/api/crash-shield/events", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const events = crashShield.getProtectionEvents(limit);
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get protection events" });
+    }
+  });
+
+  app.post("/api/crash-shield/toggle", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      crashShield.setEnabled(enabled);
+      res.json({ success: true, enabled });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle crash shield" });
+    }
+  });
+
+  app.post("/api/crash-shield/force-safe-mode", async (req, res) => {
+    try {
+      const { reason } = req.body;
+      await crashShield.forceSafeMode(reason || "Manual activation");
+      res.json({ success: true, message: "Safe mode activated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to activate safe mode" });
+    }
+  });
+
+  app.post("/api/crash-shield/manual-recovery", async (req, res) => {
+    try {
+      await crashShield.manualRecovery();
+      res.json({ success: true, message: "Manual recovery initiated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to initiate recovery" });
+    }
+  });
+
+  app.put("/api/crash-shield/trigger/:triggerId", async (req, res) => {
+    try {
+      const { triggerId } = req.params;
+      const updates = req.body;
+      const success = crashShield.updateTrigger(triggerId, updates);
+      
+      if (success) {
+        res.json({ success: true, message: "Trigger updated" });
+      } else {
+        res.status(404).json({ message: "Trigger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update trigger" });
     }
   });
 
