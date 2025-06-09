@@ -8,6 +8,7 @@ import { dexScreenerScanner } from './dexscreener-scanner';
 import { birdeyeScanner } from './birdeye-scanner';
 import { jupiterScanner } from './jupiter-scanner';
 import { alphaDataGenerator } from './alpha-data-generator';
+import { sentimentEngine } from './sentiment-engine';
 
 interface AlphaToken {
   symbol: string;
@@ -21,6 +22,10 @@ interface AlphaToken {
   aiScore: number;
   liquidityUSD: number;
   ownershipRisk: number;
+  hypeScore?: number; // 0-100 sentiment hype score
+  fudScore?: number; // 0-100 sentiment fud score
+  sentimentRating?: 'bullish' | 'neutral' | 'bearish';
+  keyIndicators?: string[];
 }
 
 interface LayeredPosition {
@@ -120,7 +125,11 @@ class AlphaAccelerationEngine {
       liquidityUSD: token.liquidityUSD,
       ownershipRisk: token.ownershipRisk,
       dataSources: token.dataSources,
-      confidence: token.confidence
+      confidence: token.confidence,
+      hypeScore: token.hypeScore,
+      fudScore: token.fudScore,
+      sentimentRating: token.sentimentRating,
+      keyIndicators: token.keyIndicators
     }));
   }
 
@@ -331,7 +340,8 @@ class AlphaAccelerationEngine {
         const syntheticTokens = await alphaDataGenerator.getAlphaTokens();
         if (syntheticTokens.length > 0) {
           console.log(`✅ Alpha generator backup: ${syntheticTokens.length} opportunities`);
-          return syntheticTokens.map(token => ({
+          
+          const processedTokens = syntheticTokens.map(token => ({
             symbol: token.symbol,
             mintAddress: token.mintAddress,
             price: token.price,
@@ -340,10 +350,17 @@ class AlphaAccelerationEngine {
             age: token.age,
             uniqueWallets: token.uniqueWallets,
             volumeSpike: token.volumeSpike,
-            aiScore: 90,
+            aiScore: 85, // Lower score for development data
             liquidityUSD: token.liquidityUSD,
             ownershipRisk: token.ownershipRisk
           }));
+
+          // Track development tokens for UI testing
+          processedTokens.forEach(token => {
+            this.trackAlphaToken(token, ['Development']);
+          });
+
+          return [];
         }
       } catch (generatorError) {
         console.log('Alpha generator backup failed:', generatorError);
