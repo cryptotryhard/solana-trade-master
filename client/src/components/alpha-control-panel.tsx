@@ -48,6 +48,10 @@ interface AlphaToken {
   ownershipRisk: number;
   dataSources?: string[];
   confidence?: 'high' | 'medium' | 'low';
+  hypeScore?: number;
+  fudScore?: number;
+  sentimentRating?: 'bullish' | 'neutral' | 'bearish';
+  keyIndicators?: string[];
 }
 
 export function AlphaControlPanel() {
@@ -59,6 +63,7 @@ export function AlphaControlPanel() {
   });
 
   const [confidenceMode, setConfidenceMode] = useState<'all' | 'high_only'>('all');
+  const [sentimentFilter, setSentimentFilter] = useState<'all' | 'bullish_only'>('all');
 
   const { data: alphaStatus, refetch } = useQuery<AlphaStatus>({
     queryKey: ["/api/alpha/status"],
@@ -111,6 +116,7 @@ export function AlphaControlPanel() {
       minAIScore: settings.minAIScore,
       maxLayers: settings.maxLayers,
       confidenceMode: confidenceMode,
+      sentimentFilter: sentimentFilter,
       profitAllocation: {
         sol: 0.10,
         usdc: 0.05,
@@ -173,11 +179,58 @@ export function AlphaControlPanel() {
     ));
   };
 
+  const getSentimentBadge = (token: AlphaToken) => {
+    if (!token.sentimentRating && !token.hypeScore) return null;
+    
+    const rating = token.sentimentRating || 'neutral';
+    const hypeScore = token.hypeScore || 0;
+    const fudScore = token.fudScore || 0;
+    
+    const badgeConfig = {
+      bullish: { color: 'bg-green-500', icon: '📈', text: 'Bullish' },
+      neutral: { color: 'bg-yellow-500', icon: '➡️', text: 'Neutral' },
+      bearish: { color: 'bg-red-500', icon: '📉', text: 'Bearish' }
+    };
+    
+    const config = badgeConfig[rating];
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="outline" className={`${config.color} text-white border-0`}>
+              {config.icon} {config.text}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="space-y-1">
+              <p className="font-semibold">Community Sentiment</p>
+              <p className="text-sm">Hype Score: {hypeScore}%</p>
+              <p className="text-sm">FUD Score: {fudScore}%</p>
+              {token.keyIndicators && token.keyIndicators.length > 0 && (
+                <p className="text-xs">Indicators: {token.keyIndicators.join(', ')}</p>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
   const filteredTokens = alphaTokens?.filter(token => {
+    // Confidence filtering
     if (confidenceMode === 'high_only') {
       const sourceCount = token.dataSources?.length || 0;
-      return sourceCount >= 2 || token.confidence === 'high';
+      if (sourceCount < 2 && token.confidence !== 'high') return false;
     }
+    
+    // Sentiment filtering
+    if (sentimentFilter === 'bullish_only') {
+      if (token.sentimentRating !== 'bullish' && (!token.hypeScore || token.hypeScore < 70)) {
+        return false;
+      }
+    }
+    
     return true;
   }) || [];
 
@@ -356,6 +409,29 @@ export function AlphaControlPanel() {
               </div>
             </div>
 
+            {/* Sentiment Filter Toggle */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Community Sentiment Filter</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="sentiment-filter"
+                    checked={sentimentFilter === 'bullish_only'}
+                    onCheckedChange={(checked) => setSentimentFilter(checked ? 'bullish_only' : 'all')}
+                  />
+                  <Label htmlFor="sentiment-filter" className="text-sm">
+                    Bullish Sentiment Only
+                  </Label>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {sentimentFilter === 'bullish_only' 
+                    ? 'Only show tokens with positive community sentiment' 
+                    : 'Show all sentiment types'
+                  }
+                </div>
+              </div>
+            </div>
+
             {/* Scan Interval */}
             <div className="space-y-2">
               <Label className="text-sm">
@@ -458,6 +534,7 @@ export function AlphaControlPanel() {
                     <div className="flex items-center gap-3">
                       <span className="font-semibold text-lg">{token.symbol}</span>
                       {getConfidenceBadge(token.confidence, token.dataSources)}
+                      {getSentimentBadge(token)}
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-muted-foreground">AI Score</div>
