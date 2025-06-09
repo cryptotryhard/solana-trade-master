@@ -4,6 +4,7 @@ import { TrendingUp, Brain, Circle, ArrowUp, ArrowDown, Pause } from 'lucide-rea
 import { getTopTokens, getRecommendations } from '@/lib/crypto-api';
 import { PositionsBreakdown } from './positions-breakdown';
 import { DailyTradeSummary } from './daily-trade-summary';
+import { AdaptiveModePanel } from './adaptive-mode-panel';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -175,6 +176,9 @@ export function MainDashboard() {
 
       {/* Active Positions */}
       <PositionsBreakdown />
+
+      {/* Adaptive Strategy Engine */}
+      <AdaptiveModePanel />
     </div>
   );
 }

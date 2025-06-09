@@ -335,12 +335,71 @@ class AdaptiveStrategyEngine {
   private startAdaptiveLearning(): void {
     console.log('🎯 Adaptive Strategy Engine activated - Learning from every trade');
     
+    // Initialize with some sample learning data for demonstration
+    this.initializeLearningData();
+    
     // Check for rebalancing every hour
     setInterval(async () => {
       if (this.shouldRebalance()) {
         await this.rebalanceStrategy();
       }
     }, 60 * 60 * 1000);
+  }
+
+  // Initialize with sample learning data for demonstration
+  private initializeLearningData(): void {
+    // Add some sample historical trades to demonstrate learning
+    const sampleTrades: TradeOutcome[] = [
+      {
+        id: 'sample_1',
+        symbol: 'BONK',
+        mintAddress: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+        entryTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        exitTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000),
+        entryPrice: 0.000025,
+        exitPrice: 0.000032,
+        pnl: 28,
+        roi: 28,
+        signals: {
+          aiScore: 85,
+          sentimentScore: 90,
+          volumeSpike: 150,
+          momentumScore: 75,
+          sources: ['pump.fun', 'telegram']
+        },
+        outcome: 'win',
+        confidence: 'high'
+      },
+      {
+        id: 'sample_2',
+        symbol: 'PEPE',
+        mintAddress: 'So11111111111111111111111111111111111111112',
+        entryTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        exitTime: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000),
+        entryPrice: 0.00000045,
+        exitPrice: 0.00000038,
+        pnl: -15.6,
+        roi: -15.6,
+        signals: {
+          aiScore: 70,
+          sentimentScore: 45,
+          volumeSpike: 80,
+          momentumScore: 60,
+          sources: ['pump.fun']
+        },
+        outcome: 'loss',
+        confidence: 'medium'
+      }
+    ];
+
+    this.tradeHistory.push(...sampleTrades);
+    
+    // Update signal performance based on sample data
+    sampleTrades.forEach(trade => {
+      this.updateSignalPerformance(trade);
+    });
+
+    console.log('📊 Initialized with sample learning data:', sampleTrades.length, 'trades');
   }
 
   // Configure learning parameters
