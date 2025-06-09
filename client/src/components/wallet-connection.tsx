@@ -68,9 +68,38 @@ export function WalletConnection({ onWalletChange }: WalletConnectionProps) {
 
   const fetchWalletBalance = async (address: string) => {
     try {
+      console.log("Fetching balance for address:", address);
       const publicKey = new PublicKey(address);
-      const balance = await connection.getBalance(publicKey);
+      
+      // Try multiple RPC endpoints for better reliability
+      const rpcEndpoints = [
+        "https://api.mainnet-beta.solana.com",
+        "https://solana-api.projectserum.com",
+        "https://rpc.ankr.com/solana"
+      ];
+      
+      let balance = 0;
+      let success = false;
+      
+      for (const endpoint of rpcEndpoints) {
+        try {
+          const conn = new Connection(endpoint, "confirmed");
+          balance = await conn.getBalance(publicKey);
+          success = true;
+          console.log(`Successfully fetched balance from ${endpoint}:`, balance);
+          break;
+        } catch (rpcError) {
+          console.warn(`Failed to fetch from ${endpoint}:`, rpcError);
+          continue;
+        }
+      }
+      
+      if (!success) {
+        throw new Error("All RPC endpoints failed");
+      }
+      
       const solBalance = balance / LAMPORTS_PER_SOL;
+      console.log("SOL Balance:", solBalance);
       setWalletBalance(solBalance);
       
       if (onWalletChange) {
@@ -78,7 +107,11 @@ export function WalletConnection({ onWalletChange }: WalletConnectionProps) {
       }
     } catch (error) {
       console.error("Error fetching wallet balance:", error);
-      setError("Failed to fetch wallet balance");
+      setError("Failed to fetch wallet balance. Please try reconnecting.");
+      // Still call onWalletChange with 0 balance to maintain connection state
+      if (onWalletChange) {
+        onWalletChange(address, 0);
+      }
     }
   };
 
