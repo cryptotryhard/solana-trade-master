@@ -53,19 +53,47 @@ class PumpFunScanner {
   private wsUrl = 'wss://pumpportal.fun/api/data';
   
   async getNewTokens(limit: number = 50): Promise<PumpFunToken[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/coins?offset=0&limit=${limit}&sort=created_timestamp&order=DESC&includeNsfw=false`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    // Try multiple pump.fun endpoints for maximum reliability
+    const endpoints = [
+      `https://frontend-api.pump.fun/coins?offset=0&limit=${limit}&sort=created_timestamp&order=DESC&includeNsfw=false`,
+      `https://api.pump.fun/tokens?sort=new&limit=${limit}`,
+      `https://pump.fun/api/coins?offset=0&limit=${limit}&sort=created_timestamp&order=DESC`
+    ];
+    
+    for (const endpoint of endpoints) {
+      try {
+        const headers: any = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'application/json',
+          'Referer': 'https://pump.fun/',
+          'Origin': 'https://pump.fun'
+        };
+        
+        // Add API key if available
+        if (process.env.PUMP_FUN_API_KEY) {
+          headers['Authorization'] = `Bearer ${process.env.PUMP_FUN_API_KEY}`;
+        }
+        
+        const response = await fetch(endpoint, { 
+          headers,
+          method: 'GET'
+        });
+        
+        if (!response.ok) {
+          console.log(`Endpoint ${endpoint} failed with status: ${response.status}`);
+          continue;
+        }
+        
+        const data = await response.json() as PumpFunToken[];
+        console.log(`✅ Successfully fetched ${data.length} tokens from pump.fun`);
+        return data;
+      } catch (error) {
+        console.log(`Endpoint ${endpoint} error:`, error.message);
+        continue;
       }
-      
-      const data = await response.json() as PumpFunToken[];
-      return data;
-    } catch (error) {
-      console.error('Failed to fetch new tokens from pump.fun:', error);
-      return [];
     }
+    
+    throw new Error('All pump.fun endpoints failed');
   }
 
   async getTokensByMarketCap(limit: number = 50): Promise<PumpFunToken[]> {

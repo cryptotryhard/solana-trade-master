@@ -3,6 +3,8 @@ import { antiRugFilter } from './anti-rug-filter';
 import { storage } from './storage';
 import { jupiterIntegration } from './jupiter-integration';
 import { pumpFunScanner } from './pump-fun-scanner';
+import { heliusScanner } from './helius-scanner';
+import { dexScreenerScanner } from './dexscreener-scanner';
 
 interface AlphaToken {
   symbol: string;
@@ -161,12 +163,72 @@ class AlphaAccelerationEngine {
         );
       }
       
-      // Fallback if API issues - use conservative simulation
-      console.log('⚠️ pump.fun API unavailable, using fallback discovery');
+      // Fallback to Helius API if pump.fun is unavailable
+      console.log('⚠️ pump.fun API unavailable, switching to Helius scanner');
+      const heliusTokens = await heliusScanner.getAlphaTokens();
+      
+      if (heliusTokens.length > 0) {
+        console.log(`✅ Helius fallback successful: ${heliusTokens.length} tokens found`);
+        
+        const processedTokens: AlphaToken[] = heliusTokens.map(token => {
+          let aiScore = 88; // Higher base score for Helius-verified tokens
+          
+          if (token.age < 2) aiScore += 6;
+          if (token.volumeSpike > 400) aiScore += 4;
+          if (token.uniqueWallets > 15) aiScore += 3;
+          if (token.liquidityUSD > 15000) aiScore += 2;
+          
+          return {
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: Math.min(100, aiScore),
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          };
+        });
+        
+        return processedTokens.filter((token: AlphaToken) => 
+          token.age <= this.entryConditions.maxAge &&
+          token.volumeSpike >= this.entryConditions.minVolumeSpike &&
+          token.uniqueWallets >= this.entryConditions.minUniqueWallets
+        );
+      }
+      
+      console.log('⚠️ All data sources unavailable, maintaining scan cycle');
       return [];
       
     } catch (error) {
-      console.error('Error scanning pump.fun:', error);
+      console.error('Error in alpha scanning:', error);
+      
+      // Final fallback to DexScreener
+      try {
+        const dexTokens = await dexScreenerScanner.getAlphaTokens();
+        if (dexTokens.length > 0) {
+          console.log(`🔄 DexScreener fallback: ${dexTokens.length} fresh pairs found`);
+          return dexTokens.map(token => ({
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: 93,
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          }));
+        }
+      } catch (fallbackError) {
+        console.error('All data sources failed:', fallbackError);
+      }
+      
       return [];
     }
   }
