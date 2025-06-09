@@ -71,11 +71,31 @@ export function WalletConnection({ onWalletChange }: WalletConnectionProps) {
       console.log("Fetching balance for address:", address);
       const publicKey = new PublicKey(address);
       
-      // Try multiple RPC endpoints for better reliability
+      // Try server-side proxy first for better reliability
+      try {
+        console.log("Trying server proxy for balance fetch");
+        const response = await fetch(`/api/wallet/balance/${address}`);
+        if (response.ok) {
+          const data = await response.json();
+          const solBalance = data.solBalance;
+          console.log("Got balance from server proxy:", solBalance);
+          setWalletBalance(solBalance);
+          if (onWalletChange) {
+            onWalletChange(address, solBalance);
+          }
+          return;
+        }
+      } catch (proxyError) {
+        console.warn("Server proxy failed, trying direct RPC:", proxyError);
+      }
+      
+      // Enhanced RPC endpoints with better configuration
       const rpcEndpoints = [
-        "https://api.mainnet-beta.solana.com",
-        "https://solana-api.projectserum.com",
-        "https://rpc.ankr.com/solana"
+        { url: "https://api.mainnet-beta.solana.com", timeout: 10000 },
+        { url: "https://solana-mainnet.rpc.extrnode.com", timeout: 10000 },
+        { url: "https://rpc.ankr.com/solana", timeout: 10000 },
+        { url: "https://solana.public-rpc.com", timeout: 10000 },
+        { url: "https://api.mainnet-beta.solana.com", timeout: 15000 }
       ];
       
       let balance = 0;
@@ -83,23 +103,37 @@ export function WalletConnection({ onWalletChange }: WalletConnectionProps) {
       
       for (const endpoint of rpcEndpoints) {
         try {
-          const conn = new Connection(endpoint, "confirmed");
-          balance = await conn.getBalance(publicKey);
+          console.log(`Trying RPC endpoint: ${endpoint.url}`);
+          
+          // Create connection with timeout
+          const conn = new Connection(endpoint.url, {
+            commitment: "confirmed",
+            confirmTransactionInitialTimeout: endpoint.timeout,
+            disableRetryOnRateLimit: true
+          });
+          
+          // Race condition with timeout
+          const balancePromise = conn.getBalance(publicKey);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), endpoint.timeout)
+          );
+          
+          balance = await Promise.race([balancePromise, timeoutPromise]) as number;
           success = true;
-          console.log(`Successfully fetched balance from ${endpoint}:`, balance);
+          console.log(`Successfully fetched balance from ${endpoint.url}:`, balance, "lamports");
           break;
         } catch (rpcError) {
-          console.warn(`Failed to fetch from ${endpoint}:`, rpcError);
+          console.warn(`Failed to fetch from ${endpoint.url}:`, rpcError);
           continue;
         }
       }
       
       if (!success) {
-        throw new Error("All RPC endpoints failed");
+        throw new Error("All RPC endpoints failed to fetch balance");
       }
       
       const solBalance = balance / LAMPORTS_PER_SOL;
-      console.log("SOL Balance:", solBalance);
+      console.log("Final SOL Balance:", solBalance);
       setWalletBalance(solBalance);
       
       if (onWalletChange) {
@@ -107,8 +141,8 @@ export function WalletConnection({ onWalletChange }: WalletConnectionProps) {
       }
     } catch (error) {
       console.error("Error fetching wallet balance:", error);
-      setError("Failed to fetch wallet balance. Please try reconnecting.");
-      // Still call onWalletChange with 0 balance to maintain connection state
+      setError("Failed to fetch wallet balance. Network connectivity issue.");
+      setWalletBalance(0);
       if (onWalletChange) {
         onWalletChange(address, 0);
       }

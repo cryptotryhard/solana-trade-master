@@ -449,6 +449,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wallet balance proxy endpoint
+  app.get('/api/wallet/balance/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      if (!address) {
+        return res.status(400).json({ error: 'Wallet address required' });
+      }
+
+      const { Connection, PublicKey, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
+      
+      const publicKey = new PublicKey(address);
+      
+      // Try multiple reliable RPC endpoints
+      const rpcEndpoints = [
+        "https://api.mainnet-beta.solana.com",
+        "https://solana-mainnet.rpc.extrnode.com", 
+        "https://rpc.ankr.com/solana"
+      ];
+      
+      let balance = 0;
+      let success = false;
+      let usedEndpoint = '';
+      
+      for (const endpoint of rpcEndpoints) {
+        try {
+          console.log(`Trying to fetch balance from ${endpoint} for ${address}`);
+          const connection = new Connection(endpoint, 'confirmed');
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), 15000)
+          );
+          
+          const balancePromise = connection.getBalance(publicKey);
+          balance = await Promise.race([balancePromise, timeoutPromise]) as number;
+          
+          success = true;
+          usedEndpoint = endpoint;
+          console.log(`Successfully fetched balance: ${balance} lamports from ${endpoint}`);
+          break;
+        } catch (error) {
+          console.warn(`Failed to fetch from ${endpoint}:`, (error as Error).message);
+          continue;
+        }
+      }
+      
+      if (!success) {
+        return res.status(503).json({ error: 'Unable to connect to Solana network. Please check your wallet connection or try again later.' });
+      }
+      
+      const solBalance = balance / LAMPORTS_PER_SOL;
+      
+      res.json({
+        address,
+        balance,
+        solBalance,
+        endpoint: usedEndpoint
+      });
+      
+    } catch (error) {
+      console.error('Wallet balance fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet balance' });
+    }
+  });
+
   app.post("/api/strategy/auto-optimize", async (req, res) => {
     try {
       const { strategyManager } = await import('./strategy-manager');
