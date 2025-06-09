@@ -11,6 +11,7 @@ import { profitVaultEngine } from "./profit-vault-engine";
 import { alphaAccelerationEngine } from "./alpha-acceleration-engine";
 import { adaptiveStrategyEngine } from "./adaptive-strategy-engine";
 import { signalOptimizer } from "./signal-optimizer";
+import { reinforcementOptimizer } from "./reinforcement-optimizer";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -797,6 +798,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Signal weights optimized" });
     } catch (error) {
       res.status(500).json({ message: "Failed to optimize signal weights" });
+    }
+  });
+
+  // Reinforcement Optimizer endpoints
+  app.get("/api/reinforcement/status", async (req, res) => {
+    try {
+      const status = await reinforcementOptimizer.getOptimizationStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get reinforcement status" });
+    }
+  });
+
+  app.get("/api/reinforcement/history", async (req, res) => {
+    try {
+      const history = await reinforcementOptimizer.getOptimizationHistory();
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get optimization history" });
+    }
+  });
+
+  app.post("/api/reinforcement/optimize", async (req, res) => {
+    try {
+      await reinforcementOptimizer.forceOptimization();
+      res.json({ success: true, message: "Reinforcement optimization triggered" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to trigger reinforcement optimization" });
+    }
+  });
+
+  app.post("/api/reinforcement/settings", async (req, res) => {
+    try {
+      const { intervalHours, explorationRate } = req.body;
+      if (intervalHours) reinforcementOptimizer.setOptimizationInterval(intervalHours);
+      if (explorationRate !== undefined) reinforcementOptimizer.setExplorationRate(explorationRate);
+      res.json({ success: true, message: "Reinforcement settings updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update reinforcement settings" });
     }
   });
 

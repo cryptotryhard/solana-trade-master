@@ -74,7 +74,7 @@ class SentimentEngine {
         keyIndicators: pumpFunAnalysis.indicators,
         commentCount: comments.length,
         recentActivity: this.hasRecentActivity(comments) || enhancedSentiment.socialVelocity > 10,
-        detectedSignals: [...new Set(detectedSignals)] // Remove duplicates
+        detectedSignals: Array.from(new Set(detectedSignals)) // Remove duplicates
       };
     } catch (error) {
       console.log(`Enhanced sentiment analysis failed for ${symbol}:`, error);

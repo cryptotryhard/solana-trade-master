@@ -180,6 +180,9 @@ export function MainDashboard() {
 
       {/* Adaptive Strategy Engine */}
       <AdaptiveModePanel />
+
+      {/* Signal Performance Heatmap */}
+      <SignalPerformanceHeatmap />
     </div>
   );
 }
