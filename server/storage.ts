@@ -14,6 +14,7 @@ export interface IStorage {
   getTrades(userId?: number): Promise<Trade[]>;
   createTrade(trade: InsertTrade): Promise<Trade>;
   getRecentTrades(limit?: number): Promise<Trade[]>;
+  getTradesByWallet(walletAddress: string): Promise<Trade[]>;
   
   // Portfolio operations
   getPortfolio(userId: number): Promise<Portfolio | undefined>;
@@ -194,6 +195,13 @@ export class MemStorage implements IStorage {
       .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
       .slice(0, limit);
     return trades;
+  }
+
+  async getTradesByWallet(walletAddress: string): Promise<Trade[]> {
+    // For demo purposes, return trades for any connected wallet
+    // In a real implementation, this would filter by wallet address
+    return Array.from(this.trades.values())
+      .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
   }
 
   async getPortfolio(userId: number): Promise<Portfolio | undefined> {

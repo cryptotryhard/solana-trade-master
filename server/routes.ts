@@ -486,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let activeTrades = 0;
       
       if (trades && trades.length > 0) {
-        totalPnL = trades.reduce((sum, trade) => {
+        totalPnL = trades.reduce((sum: number, trade: any) => {
           const pnl = parseFloat(trade.pnl || '0');
           if (trade.side === 'sell' && pnl !== 0) {
             return sum + pnl;
