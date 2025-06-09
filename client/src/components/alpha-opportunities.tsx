@@ -94,7 +94,8 @@ export function AlphaOpportunities() {
   };
 
   const getPrePumpScore = (symbol: string): PrePumpScore | undefined => {
-    return highReadinessTokens?.find((s: PrePumpScore) => s.symbol === symbol);
+    return Array.isArray(highReadinessTokens) ? 
+      highReadinessTokens.find((s: PrePumpScore) => s.symbol === symbol) : undefined;
   };
 
   const analyzeToken = async (symbol: string, mintAddress: string) => {

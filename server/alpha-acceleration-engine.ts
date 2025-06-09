@@ -10,6 +10,7 @@ import { jupiterScanner } from './jupiter-scanner';
 import { alphaDataGenerator } from './alpha-data-generator';
 import { sentimentEngine } from './sentiment-engine';
 import { adaptiveStrategyEngine } from './adaptive-strategy-engine';
+import { prePumpPredictor } from './pre-pump-predictor';
 
 interface AlphaToken {
   symbol: string;
@@ -459,6 +460,32 @@ class AlphaAccelerationEngine {
       token.fudScore = sentiment.fudScore;
       token.sentimentRating = sentiment.sentimentRating;
       token.keyIndicators = sentiment.keyIndicators;
+
+      // Generate pre-pump prediction for token maturity scoring
+      try {
+        const pumpPrediction = await prePumpPredictor.generatePumpPrediction(
+          token.symbol, 
+          token.mintAddress, 
+          sentiment.hypeScore
+        );
+        
+        console.log(`🎯 Pre-pump prediction for ${token.symbol}: ${pumpPrediction.prePumpScore.maturityScore}/100 (${pumpPrediction.prePumpScore.pumpReadiness})`);
+        
+        // Enhanced entry validation with pre-pump scoring
+        if (pumpPrediction.prePumpScore.maturityScore > 80 && sentiment.hypeScore > 70) {
+          console.log(`🚀 ${token.symbol}: High maturity + sentiment alignment detected - priority entry`);
+          token.aiScore += 10; // Boost AI score for aligned signals
+        }
+        
+        // Skip tokens with low pump readiness unless sentiment is extremely bullish
+        if (pumpPrediction.prePumpScore.pumpReadiness === 'low' && sentiment.hypeScore < 85) {
+          console.log(`⏳ ${token.symbol}: Low pump readiness, skipping entry`);
+          return false;
+        }
+        
+      } catch (pumpError) {
+        console.log(`⚠️ ${token.symbol}: Pre-pump analysis failed, proceeding with sentiment only`);
+      }
 
       // Calculate enhanced AI score with sentiment weighting
       let sentimentWeight = this.entryConditions.sentimentWeight;

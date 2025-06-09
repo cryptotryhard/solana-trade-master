@@ -210,7 +210,8 @@ class PrePumpPredictor {
       'unknown': 0.8
     };
     
-    return Math.min(100, baseScore * (sourceBonuses[source] || 1.0));
+    const sourceBonus = sourceBonuses[source as keyof typeof sourceBonuses] || 1.0;
+    return Math.min(100, baseScore * sourceBonus);
   }
 
   private calculateHolderScore(holders: number): number {
