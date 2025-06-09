@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Zap, Target, Layers, Crown, TrendingUp, Activity } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Zap, Target, Layers, Crown, TrendingUp, Activity, Shield, AlertTriangle, CheckCircle2, Database } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AlphaStatus {
@@ -28,6 +29,25 @@ interface LayeredPosition {
   totalAmount: number;
   averageEntry: number;
   currentProfit: number;
+  dataSources?: string[];
+  aiScore?: number;
+  confidence?: 'high' | 'medium' | 'low';
+}
+
+interface AlphaToken {
+  symbol: string;
+  mintAddress: string;
+  price: number;
+  volume24h: number;
+  marketCap: number;
+  age: number;
+  uniqueWallets: number;
+  volumeSpike: number;
+  aiScore: number;
+  liquidityUSD: number;
+  ownershipRisk: number;
+  dataSources?: string[];
+  confidence?: 'high' | 'medium' | 'low';
 }
 
 export function AlphaControlPanel() {
@@ -38,6 +58,8 @@ export function AlphaControlPanel() {
     reinvestmentRatio: 85
   });
 
+  const [confidenceMode, setConfidenceMode] = useState<'all' | 'high_only'>('all');
+
   const { data: alphaStatus, refetch } = useQuery<AlphaStatus>({
     queryKey: ["/api/alpha/status"],
     refetchInterval: 5000
@@ -46,6 +68,11 @@ export function AlphaControlPanel() {
   const { data: positions } = useQuery<LayeredPosition[]>({
     queryKey: ["/api/alpha/positions"],
     refetchInterval: 10000
+  });
+
+  const { data: alphaTokens } = useQuery<AlphaToken[]>({
+    queryKey: ["/api/alpha/tokens"],
+    refetchInterval: 5000
   });
 
   const activateAlphaMutation = useMutation({
@@ -83,6 +110,7 @@ export function AlphaControlPanel() {
       scanInterval: settings.scanInterval,
       minAIScore: settings.minAIScore,
       maxLayers: settings.maxLayers,
+      confidenceMode: confidenceMode,
       profitAllocation: {
         sol: 0.10,
         usdc: 0.05,
@@ -90,6 +118,68 @@ export function AlphaControlPanel() {
       }
     });
   };
+
+  const getConfidenceBadge = (confidence?: 'high' | 'medium' | 'low', dataSources?: string[]) => {
+    if (!confidence && !dataSources) return null;
+    
+    const sourceCount = dataSources?.length || 0;
+    const actualConfidence = confidence || (sourceCount >= 2 ? 'high' : sourceCount === 1 ? 'medium' : 'low');
+    
+    const badgeConfig = {
+      high: { color: 'bg-green-500', icon: CheckCircle2, text: 'High Confidence' },
+      medium: { color: 'bg-yellow-500', icon: AlertTriangle, text: 'Medium Confidence' },
+      low: { color: 'bg-red-500', icon: Shield, text: 'Low Confidence' }
+    };
+    
+    const config = badgeConfig[actualConfidence];
+    const Icon = config.icon;
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="outline" className={`${config.color} text-white border-0`}>
+              <Icon className="h-3 w-3 mr-1" />
+              {actualConfidence.toUpperCase()}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="space-y-1">
+              <p className="font-semibold">{config.text}</p>
+              {dataSources && dataSources.length > 0 && (
+                <p className="text-sm">Sources: {dataSources.join(', ')}</p>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
+  const getDataSourceBadges = (dataSources?: string[]) => {
+    if (!dataSources || dataSources.length === 0) {
+      return (
+        <Badge variant="outline" className="bg-gray-500 text-white border-0">
+          <Database className="h-3 w-3 mr-1" />
+          Synthetic
+        </Badge>
+      );
+    }
+    
+    return dataSources.map((source, index) => (
+      <Badge key={index} variant="outline" className="bg-blue-500 text-white border-0 mr-1">
+        {source}
+      </Badge>
+    ));
+  };
+
+  const filteredTokens = alphaTokens?.filter(token => {
+    if (confidenceMode === 'high_only') {
+      const sourceCount = token.dataSources?.length || 0;
+      return sourceCount >= 2 || token.confidence === 'high';
+    }
+    return true;
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -243,6 +333,29 @@ export function AlphaControlPanel() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* Confidence Mode Toggle */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Data Confidence Mode</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="confidence-mode"
+                    checked={confidenceMode === 'high_only'}
+                    onCheckedChange={(checked) => setConfidenceMode(checked ? 'high_only' : 'all')}
+                  />
+                  <Label htmlFor="confidence-mode" className="text-sm">
+                    High-Confidence Only
+                  </Label>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {confidenceMode === 'high_only' 
+                    ? 'Only show tokens verified by 2+ sources' 
+                    : 'Show all detected opportunities'
+                  }
+                </div>
+              </div>
+            </div>
+
             {/* Scan Interval */}
             <div className="space-y-2">
               <Label className="text-sm">
@@ -321,6 +434,104 @@ export function AlphaControlPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Alpha Opportunities with Confidence Overlay */}
+      {filteredTokens.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Alpha Opportunities
+              </div>
+              <Badge variant="outline">
+                {filteredTokens.length} {confidenceMode === 'high_only' ? 'High-Confidence' : 'Total'}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {filteredTokens.map((token) => (
+                <div key={token.mintAddress} className="border rounded-lg p-4 space-y-3">
+                  {/* Token Header */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-lg">{token.symbol}</span>
+                      {getConfidenceBadge(token.confidence, token.dataSources)}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">AI Score</div>
+                      <Badge variant={token.aiScore >= 95 ? "default" : token.aiScore >= 90 ? "secondary" : "outline"}>
+                        {token.aiScore}/100
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Data Sources */}
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-xs text-muted-foreground mr-2">Sources:</span>
+                    {getDataSourceBadges(token.dataSources)}
+                  </div>
+
+                  {/* Token Metrics */}
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Price:</span>
+                      <div className="font-medium">${token.price.toFixed(8)}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Volume 24h:</span>
+                      <div className="font-medium">${token.volume24h.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Market Cap:</span>
+                      <div className="font-medium">${token.marketCap.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Age:</span>
+                      <div className="font-medium">{token.age.toFixed(1)}m</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Wallets:</span>
+                      <div className="font-medium">{token.uniqueWallets}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Volume Spike:</span>
+                      <div className="font-medium text-green-500">+{token.volumeSpike.toFixed(0)}%</div>
+                    </div>
+                  </div>
+
+                  {/* Risk Indicators */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Risk:</span>
+                      <Badge variant={token.ownershipRisk < 10 ? "default" : token.ownershipRisk < 25 ? "secondary" : "destructive"}>
+                        {token.ownershipRisk.toFixed(1)}%
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Liquidity:</span>
+                      <span className="text-sm font-medium">${token.liquidityUSD.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No Opportunities Message */}
+      {filteredTokens.length === 0 && alphaTokens && alphaTokens.length > 0 && confidenceMode === 'high_only' && (
+        <Card className="border-yellow-500/30">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              No high-confidence opportunities found. Switch to "All Signals" mode to see more opportunities.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
