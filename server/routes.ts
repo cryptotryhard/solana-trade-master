@@ -9,6 +9,7 @@ import { profitTracker } from "./profit-tracker";
 import { achievementsSystem } from "./achievements-system";
 import { profitVaultEngine } from "./profit-vault-engine";
 import { alphaAccelerationEngine } from "./alpha-acceleration-engine";
+import { adaptiveStrategyEngine } from "./adaptive-strategy-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -696,6 +697,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(simulation);
     } catch (error) {
       res.status(500).json({ message: "Failed to simulate vault growth" });
+    }
+  });
+
+  // Adaptive Strategy Engine endpoints
+  app.get("/api/adaptive/metrics", async (req, res) => {
+    try {
+      const metrics = await adaptiveStrategyEngine.getAdaptiveMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get adaptive metrics" });
+    }
+  });
+
+  app.get("/api/adaptive/weights", async (req, res) => {
+    try {
+      const weights = adaptiveStrategyEngine.getCurrentWeights();
+      res.json(weights);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get strategy weights" });
+    }
+  });
+
+  app.get("/api/adaptive/signals", async (req, res) => {
+    try {
+      const signals = adaptiveStrategyEngine.getSignalSources();
+      res.json(signals);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get signal sources" });
+    }
+  });
+
+  app.post("/api/adaptive/exit-trade", async (req, res) => {
+    try {
+      const { tradeId, exitPrice, reason } = req.body;
+      await adaptiveStrategyEngine.recordTradeExit(tradeId, exitPrice, reason);
+      res.json({ success: true, message: "Trade exit recorded" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to record trade exit" });
+    }
+  });
+
+  app.post("/api/adaptive/settings", async (req, res) => {
+    try {
+      const { minTradesForLearning, rebalanceInterval, learningMode } = req.body;
+      adaptiveStrategyEngine.setLearningParameters({
+        minTradesForLearning,
+        rebalanceInterval,
+        learningMode
+      });
+      res.json({ success: true, message: "Learning parameters updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update learning parameters" });
     }
   });
 

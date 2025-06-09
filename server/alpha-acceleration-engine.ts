@@ -9,6 +9,7 @@ import { birdeyeScanner } from './birdeye-scanner';
 import { jupiterScanner } from './jupiter-scanner';
 import { alphaDataGenerator } from './alpha-data-generator';
 import { sentimentEngine } from './sentiment-engine';
+import { adaptiveStrategyEngine } from './adaptive-strategy-engine';
 
 interface AlphaToken {
   symbol: string;
