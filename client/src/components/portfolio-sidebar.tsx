@@ -13,16 +13,24 @@ import { AlphaControlPanel } from './alpha-control-panel';
 
 interface PortfolioSidebarProps {
   userId: number;
+  walletAddress?: string;
+  walletBalance?: number;
 }
 
-export function PortfolioSidebar({ userId }: PortfolioSidebarProps) {
+export function PortfolioSidebar({ userId, walletAddress, walletBalance }: PortfolioSidebarProps) {
   const [maxTradeSize, setMaxTradeSize] = useState([5]);
   const [stopLoss, setStopLoss] = useState([8]);
   const { toast } = useToast();
 
   const { data: portfolio, isLoading } = useQuery({
-    queryKey: ['/api/portfolio', userId],
-    queryFn: () => getPortfolio(userId),
+    queryKey: ['/api/portfolio/live', walletAddress],
+    queryFn: async () => {
+      if (!walletAddress) return null;
+      const response = await apiRequest('GET', `/api/portfolio/live/${walletAddress}`);
+      return response.json();
+    },
+    enabled: !!walletAddress,
+    refetchInterval: 10000, // Refresh every 10 seconds when wallet is connected
   });
 
   const { data: botStatus } = useQuery({
@@ -92,23 +100,34 @@ export function PortfolioSidebar({ userId }: PortfolioSidebarProps) {
           <div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-muted-foreground text-sm">Total Balance</span>
-              <span className="text-xs bg-green-500/20 text-green-500 px-2 py-1 rounded">+2,847%</span>
+              {walletAddress && (
+                <span className="text-xs bg-blue-500/20 text-blue-500 px-2 py-1 rounded">Live</span>
+              )}
             </div>
-            <div className="text-2xl font-bold font-mono">${portfolio.totalBalance}</div>
+            <div className="text-2xl font-bold font-mono">
+              {portfolio ? `$${portfolio.totalValueUSD?.toFixed(2)}` : 'No Wallet Connected'}
+            </div>
+            {portfolio && (
+              <div className="text-sm text-muted-foreground">
+                {portfolio.solBalance?.toFixed(3)} SOL @ ${portfolio.solPrice?.toFixed(2)}
+              </div>
+            )}
           </div>
           
           <div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-muted-foreground text-sm">24h P&L</span>
             </div>
-            <div className="text-lg font-mono text-green-500">+${portfolio.dailyPnl}</div>
+            <div className={`text-lg font-mono ${portfolio?.dailyPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {portfolio ? `${portfolio.dailyPnL >= 0 ? '+' : ''}$${portfolio.dailyPnL?.toFixed(2)}` : '$0.00'}
+            </div>
           </div>
           
           <div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-muted-foreground text-sm">Active Positions</span>
             </div>
-            <div className="text-lg font-mono">{portfolio.activePositions}</div>
+            <div className="text-lg font-mono">{portfolio?.activeTrades || 0}</div>
           </div>
         </CardContent>
       </Card>

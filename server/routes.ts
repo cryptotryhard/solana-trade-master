@@ -449,6 +449,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real-time portfolio endpoint for connected wallet
+  app.get('/api/portfolio/live/:walletAddress', async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address required' });
+      }
+
+      // Get wallet SOL balance
+      const balanceResponse = await fetch(`${req.protocol}://${req.get('host')}/api/wallet/balance/${walletAddress}`);
+      let solBalance = 0;
+      
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        solBalance = balanceData.solBalance;
+      }
+
+      // Get SOL price in USD
+      const priceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+      let solPrice = 0;
+      
+      if (priceResponse.ok) {
+        const priceData = await priceResponse.json();
+        solPrice = priceData.solana.usd;
+      }
+
+      const totalValueUSD = solBalance * solPrice;
+
+      // Get recent trades for this wallet (if any)
+      const trades = await storage.getTradesByWallet(walletAddress);
+      
+      // Calculate P&L from trades
+      let totalPnL = 0;
+      let activeTrades = 0;
+      
+      if (trades && trades.length > 0) {
+        totalPnL = trades.reduce((sum, trade) => {
+          const pnl = parseFloat(trade.pnl || '0');
+          if (trade.side === 'sell' && pnl !== 0) {
+            return sum + pnl;
+          }
+          if (trade.side === 'buy') {
+            activeTrades++;
+          }
+          return sum;
+        }, 0);
+      }
+
+      const portfolio = {
+        walletAddress,
+        solBalance,
+        solPrice,
+        totalValueUSD,
+        dailyPnL: totalPnL,
+        activeTrades,
+        lastUpdated: new Date().toISOString()
+      };
+
+      res.json(portfolio);
+      
+    } catch (error) {
+      console.error('Live portfolio fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch live portfolio data' });
+    }
+  });
+
   // Wallet balance proxy endpoint
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {

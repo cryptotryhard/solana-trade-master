@@ -47,6 +47,13 @@ export default function Dashboard() {
     setWalletConnected(connected);
     setWalletAddress(address);
     setWalletBalance(balance);
+    
+    // Invalidate portfolio queries when wallet changes
+    if (connected && address) {
+      queryClient.invalidateQueries({ queryKey: ['/api/portfolio'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trades'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bot/status'] });
+    }
   };
 
   return (
@@ -60,7 +67,11 @@ export default function Dashboard() {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="trading-grid">
-          <PortfolioSidebar userId={1} />
+          <PortfolioSidebar 
+            userId={1} 
+            walletAddress={walletAddress}
+            walletBalance={walletBalance}
+          />
           <MainDashboard />
           <ActivityPanel />
         </div>
