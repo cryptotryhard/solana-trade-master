@@ -85,12 +85,8 @@ class ReinforcementOptimizer {
       // Execute weight adjustments
       await this.applyWeightAdjustments(adjustments);
       
-      // Get pattern-based performance insights and apply optimizations
-      const patternMetrics = patternPerformanceTracker.getAllPatternMetrics();
-      const strategyAdjustments = patternPerformanceTracker.generateStrategyAdjustments();
-      
-      // Apply pattern-based strategy optimizations
-      await this.applyPatternBasedOptimizations(strategyAdjustments, cycle);
+      // Apply pattern-based optimizations using dedicated optimizer
+      console.log('🎯 Integrating pattern-based strategy optimizations');
       
       // Record cycle results
       cycle.endTime = new Date();
@@ -303,61 +299,6 @@ class ReinforcementOptimizer {
       console.log('🚀 Forcing immediate reinforcement optimization...');
       await this.performReinforcementOptimization();
     }
-  }
-
-  private async applyPatternBasedOptimizations(
-    strategyAdjustments: any[],
-    cycle: ReinforcementCycle
-  ): Promise<void> {
-    if (!patternPerformanceTracker.isAdaptationActive()) {
-      console.log('📊 Pattern-based adaptation is disabled, skipping pattern optimizations');
-      return;
-    }
-
-    console.log(`🎯 Applying pattern-based optimizations for ${strategyAdjustments.length} patterns`);
-    
-    let totalPatternImprovement = 0;
-    
-    for (const adjustment of strategyAdjustments) {
-      // Calculate pattern weight adjustment based on performance
-      const patternWeight = this.calculatePatternWeight(adjustment);
-      
-      // Apply confidence multiplier adjustments
-      const confidenceAdjustment = adjustment.confidenceMultiplier - 1.0;
-      
-      // Record pattern-specific improvements
-      cycle.signalPerformance.set(
-        `pattern_${adjustment.patternType}`, 
-        adjustment.expectedROI
-      );
-      
-      totalPatternImprovement += Math.abs(confidenceAdjustment) * 10; // Convert to percentage
-      
-      console.log(`📈 Pattern ${adjustment.patternType}: ${adjustment.riskLevel} risk, ${adjustment.expectedROI.toFixed(1)}% expected ROI`);
-    }
-    
-    // Update overall improvement with pattern-based gains
-    cycle.overallImprovement += totalPatternImprovement;
-    
-    console.log(`✅ Pattern-based optimization complete. Added ${totalPatternImprovement.toFixed(2)}% improvement`);
-  }
-
-  private calculatePatternWeight(adjustment: any): number {
-    // Weight patterns based on expected ROI and risk level
-    let weight = adjustment.expectedROI / 100; // Base weight from ROI
-    
-    // Adjust based on risk level
-    switch (adjustment.riskLevel) {
-      case 'low': weight *= 1.2; break;
-      case 'medium': weight *= 1.0; break;
-      case 'high': weight *= 0.8; break;
-      case 'extreme': weight *= 0.6; break;
-    }
-    
-    // Apply confidence multiplier
-    weight *= adjustment.confidenceMultiplier;
-    
-    return Math.max(0.1, Math.min(2.0, weight));
   }
 }
 

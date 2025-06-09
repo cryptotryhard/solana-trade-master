@@ -54,18 +54,18 @@ export function PatternPerformanceTable() {
   const [adaptationEnabled, setAdaptationEnabled] = useState(true);
   const [showAdjustments, setShowAdjustments] = useState(false);
 
-  const { data: patternMetrics, isLoading: metricsLoading } = useQuery({
+  const { data: patternMetrics = [], isLoading: metricsLoading } = useQuery({
     queryKey: ['/api/pattern-performance/metrics'],
     refetchInterval: 30000,
   });
 
-  const { data: strategyAdjustments, isLoading: adjustmentsLoading } = useQuery({
+  const { data: strategyAdjustments = [], isLoading: adjustmentsLoading } = useQuery({
     queryKey: ['/api/pattern-performance/adjustments'],
     refetchInterval: 60000,
     enabled: showAdjustments,
   });
 
-  const { data: topPerformers } = useQuery({
+  const { data: topPerformers = [] } = useQuery({
     queryKey: ['/api/pattern-performance/top-performers'],
     refetchInterval: 30000,
   });
@@ -145,7 +145,7 @@ export function PatternPerformanceTable() {
   return (
     <div className="space-y-6">
       {/* Top Performers Summary */}
-      {topPerformers && topPerformers.length > 0 && (
+      {topPerformers.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -215,7 +215,7 @@ export function PatternPerformanceTable() {
           </div>
         </CardHeader>
         <CardContent>
-          {patternMetrics && patternMetrics.length > 0 ? (
+          {patternMetrics.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
