@@ -15,6 +15,7 @@ import { reinforcementOptimizer } from "./reinforcement-optimizer";
 import { adaptiveTradingStrategies } from "./adaptive-trading-strategies";
 import { prePumpPredictor } from "./pre-pump-predictor";
 import { pumpPatternMemory } from "./pump-pattern-memory";
+import { patternPerformanceTracker } from "./pattern-performance-tracker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -730,6 +731,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(patterns);
     } catch (error) {
       res.status(500).json({ message: "Failed to get patterns by type" });
+    }
+  });
+
+  // Pattern Performance endpoints
+  app.get("/api/pattern-performance/metrics", async (req, res) => {
+    try {
+      const metrics = patternPerformanceTracker.getAllPatternMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get pattern performance metrics" });
+    }
+  });
+
+  app.get("/api/pattern-performance/top-performers", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 3;
+      const topPerformers = patternPerformanceTracker.getTopPerformingPatterns(limit);
+      res.json(topPerformers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get top performing patterns" });
+    }
+  });
+
+  app.get("/api/pattern-performance/adjustments", async (req, res) => {
+    try {
+      const marketCondition = (req.query.market as string) || 'trending';
+      const adjustments = patternPerformanceTracker.generateStrategyAdjustments(marketCondition as any);
+      res.json(adjustments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate strategy adjustments" });
+    }
+  });
+
+  app.post("/api/pattern-performance/toggle-adaptation", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      patternPerformanceTracker.setAdaptationEnabled(enabled);
+      res.json({ adaptationEnabled: enabled });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle pattern adaptation" });
+    }
+  });
+
+  app.get("/api/pattern-performance/recent-trades", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const recentTrades = patternPerformanceTracker.getRecentTrades(limit);
+      res.json(recentTrades);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get recent trades" });
     }
   });
 

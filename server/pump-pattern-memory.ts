@@ -165,6 +165,20 @@ class PumpPatternMemory {
       this.patterns.set(pattern.id, pattern);
       await this.updatePatternStats(pattern);
       
+      // Record performance data for reinforcement learning
+      const holdDuration = (completeContext.exitTime!.getTime() - completeContext.entryTime.getTime()) / (1000 * 60);
+      const roi = ((completeContext.exitPrice! - completeContext.entryPrice) / completeContext.entryPrice) * 100;
+      
+      await patternPerformanceTracker.recordTradePerformance(
+        pattern.patternType,
+        roi,
+        holdDuration,
+        0.5, // Default slippage estimate
+        completeContext.entryMethod,
+        exitStrategy,
+        'trending' // Default market condition
+      );
+      
       console.log(`🎯 Classified ${symbol} as ${pattern.patternType} (${pattern.characteristics.maxGainPercent.toFixed(1)}% max gain)`);
     }
 
@@ -542,3 +556,6 @@ class PumpPatternMemory {
 }
 
 export const pumpPatternMemory = new PumpPatternMemory();
+
+// Import pattern performance tracker for integration
+import { patternPerformanceTracker } from "./pattern-performance-tracker";
