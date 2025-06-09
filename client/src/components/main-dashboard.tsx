@@ -196,6 +196,9 @@ export function MainDashboard() {
 
       {/* Pattern Performance Analytics */}
       <PatternPerformanceTable />
+
+      {/* Portfolio Meta-Manager */}
+      <PortfolioMetaDashboard />
     </div>
   );
 }
