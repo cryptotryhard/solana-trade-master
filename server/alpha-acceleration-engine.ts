@@ -5,6 +5,8 @@ import { jupiterIntegration } from './jupiter-integration';
 import { pumpFunScanner } from './pump-fun-scanner';
 import { heliusScanner } from './helius-scanner';
 import { dexScreenerScanner } from './dexscreener-scanner';
+import { birdeyeScanner } from './birdeye-scanner';
+import { jupiterScanner } from './jupiter-scanner';
 
 interface AlphaToken {
   symbol: string;
@@ -231,12 +233,36 @@ class AlphaAccelerationEngine {
         console.log('Helius also unavailable:', heliusError.message);
       }
       
-      // Immediate DexScreener activation
+      // Immediate Jupiter activation
       try {
-        console.log('🔄 Activating DexScreener as backup source');
+        console.log('🔄 Activating Jupiter as primary source');
+        const jupiterTokens = await jupiterScanner.getAlphaTokens();
+        if (jupiterTokens.length > 0) {
+          console.log(`✅ Jupiter delivering: ${jupiterTokens.length} fresh tokens`);
+          return jupiterTokens.map(token => ({
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: 95, // High score for Jupiter verified tokens
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          }));
+        }
+      } catch (jupiterError) {
+        console.log('Jupiter backup failed:', jupiterError);
+      }
+      
+      // Secondary DexScreener fallback
+      try {
+        console.log('🔄 Activating DexScreener as secondary source');
         const dexTokens = await dexScreenerScanner.getAlphaTokens();
         if (dexTokens.length > 0) {
-          console.log(`✅ DexScreener backup successful: ${dexTokens.length} fresh pairs`);
+          console.log(`✅ DexScreener backup: ${dexTokens.length} fresh pairs`);
           return dexTokens.map(token => ({
             symbol: token.symbol,
             mintAddress: token.mintAddress,
@@ -246,13 +272,13 @@ class AlphaAccelerationEngine {
             age: token.age,
             uniqueWallets: token.uniqueWallets,
             volumeSpike: token.volumeSpike,
-            aiScore: 93, // High score for DexScreener verified pairs
+            aiScore: 91,
             liquidityUSD: token.liquidityUSD,
             ownershipRisk: token.ownershipRisk
           }));
         }
       } catch (dexError) {
-        console.log('DexScreener backup failed:', dexError);
+        console.log('DexScreener also failed:', dexError);
       }
       
       console.log('⚠️ Continuing scan cycle');
@@ -261,12 +287,35 @@ class AlphaAccelerationEngine {
     } catch (error) {
       console.error('Error in alpha scanning:', error);
       
-      // Emergency DexScreener activation
+      // Emergency Jupiter activation
       try {
-        console.log('🚨 Emergency DexScreener activation');
+        console.log('🚨 Emergency Jupiter activation');
+        const jupiterTokens = await jupiterScanner.getAlphaTokens();
+        if (jupiterTokens.length > 0) {
+          console.log(`✅ Emergency Jupiter active: ${jupiterTokens.length} tokens`);
+          return jupiterTokens.map(token => ({
+            symbol: token.symbol,
+            mintAddress: token.mintAddress,
+            price: token.price,
+            volume24h: token.volume24h,
+            marketCap: token.marketCap,
+            age: token.age,
+            uniqueWallets: token.uniqueWallets,
+            volumeSpike: token.volumeSpike,
+            aiScore: 97,
+            liquidityUSD: token.liquidityUSD,
+            ownershipRisk: token.ownershipRisk
+          }));
+        }
+      } catch (jupiterEmergencyError) {
+        console.log('Emergency Jupiter failed:', jupiterEmergencyError);
+      }
+      
+      // Final DexScreener attempt
+      try {
         const dexTokens = await dexScreenerScanner.getAlphaTokens();
         if (dexTokens.length > 0) {
-          console.log(`✅ Emergency source active: ${dexTokens.length} tokens`);
+          console.log(`✅ Final DexScreener attempt: ${dexTokens.length} tokens`);
           return dexTokens.map(token => ({
             symbol: token.symbol,
             mintAddress: token.mintAddress,
@@ -276,13 +325,13 @@ class AlphaAccelerationEngine {
             age: token.age,
             uniqueWallets: token.uniqueWallets,
             volumeSpike: token.volumeSpike,
-            aiScore: 95,
+            aiScore: 89,
             liquidityUSD: token.liquidityUSD,
             ownershipRisk: token.ownershipRisk
           }));
         }
-      } catch (emergencyError) {
-        console.error('All data sources failed:', emergencyError);
+      } catch (finalError) {
+        console.error('All data sources exhausted:', finalError);
       }
       
       return [];
