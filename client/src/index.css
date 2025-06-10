@@ -108,10 +108,35 @@
 
 /* Dashboard Main Container */
 .dashboard-main {
-  overflow-y: auto;
-  max-height: calc(100vh - 4rem);
-  padding: 1rem;
+  overflow-y: visible;
+  min-height: calc(100vh - 6rem);
+  padding: 0;
   background: transparent;
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix tab content overlapping */
+[data-state="active"] {
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure proper spacing between components */
+.space-y-6 > * {
+  margin-bottom: 1.5rem;
+}
+
+.space-y-6 > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Tab panels styling */
+[role="tabpanel"] {
+  position: relative;
+  z-index: 5;
+  background: transparent;
+  padding-top: 1rem;
 }
 
 /* Component Spacing */

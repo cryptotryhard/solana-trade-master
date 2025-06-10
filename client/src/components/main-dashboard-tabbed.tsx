@@ -90,11 +90,31 @@ export function MainDashboard() {
   return (
     <div className="dashboard-main">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Portfolio Overview</TabsTrigger>
-          <TabsTrigger value="trade-log">Alpha Trade Log</TabsTrigger>
-          <TabsTrigger value="alpha-heat">Alpha Heat</TabsTrigger>
-          <TabsTrigger value="system">System Status</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 mb-6 bg-slate-800/50 border border-slate-700 h-12">
+          <TabsTrigger 
+            value="overview" 
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 font-medium"
+          >
+            Portfolio Overview
+          </TabsTrigger>
+          <TabsTrigger 
+            value="trade-log" 
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 font-medium"
+          >
+            Alpha Trade Log
+          </TabsTrigger>
+          <TabsTrigger 
+            value="alpha-heat" 
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 font-medium"
+          >
+            Alpha Heat
+          </TabsTrigger>
+          <TabsTrigger 
+            value="system" 
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 font-medium"
+          >
+            System Status
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
