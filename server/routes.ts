@@ -29,6 +29,7 @@ import { liquidityTrapPredictor } from "./liquidity-trap-predictor";
 import { tradeExplanationGenerator } from "./trade-explanation-generator";
 import { alphaAutoFollowEngine } from "./alpha-auto-follow";
 import { simulationModeEngine } from "./simulation-mode";
+import { systemChecker } from "./system-checker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -2416,6 +2417,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(tokens);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get token heatmap data' });
+    }
+  });
+
+  // System Check Routes
+  app.get('/api/system-check', async (req, res) => {
+    try {
+      console.log('🔍 System check initiated via API');
+      const result = await systemChecker.runFullSystemCheck();
+      
+      // Send deployment notification if ready
+      if (result.deployment_ready) {
+        await systemChecker.sendDeploymentNotification(result);
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('System check failed:', error);
+      res.status(500).json({ 
+        status: 'error',
+        ready: false,
+        errors: [`System check failed: ${error.message}`],
+        warnings: [],
+        components: {},
+        deployment_ready: false,
+        timestamp: new Date()
+      });
     }
   });
 

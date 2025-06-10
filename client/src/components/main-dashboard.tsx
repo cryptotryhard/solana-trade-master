@@ -16,6 +16,7 @@ import { AdaptiveEngineDashboard } from './adaptive-engine-dashboard';
 import { LearningDashboard } from './learning-dashboard';
 import { CopyTradingDashboard } from './copytrading-dashboard';
 import { AlphaHeatDashboard } from './alpha-heat-dashboard';
+import { SystemStatusPanel } from './system-status-panel';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -220,6 +221,9 @@ export function MainDashboard() {
 
       {/* Smart Wallet Copytrading */}
       <CopyTradingDashboard />
+
+      {/* System Status Panel */}
+      <SystemStatusPanel />
 
       {/* Alpha Heat Dashboard */}
       <AlphaHeatDashboard />
