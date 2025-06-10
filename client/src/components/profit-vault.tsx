@@ -428,9 +428,9 @@ export function ProfitVault() {
               <p>Percentage of profits automatically reinvested for compound growth</p>
             </TooltipContent>
           </Tooltip>
-      </div>
+        </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1 rounded-lg">
           <TabsTrigger 
             value="overview"
@@ -721,120 +721,120 @@ export function ProfitVault() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
 
-      {/* Cumulative Profit Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LineChart className="h-5 w-5" />
-            Cumulative Growth Curve
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#10b981" 
-                  fill="#10b981" 
-                  fillOpacity={0.2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              Journey from $500 to $1B • Current: {formatCurrency(displayMetrics.totalValue)}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Cumulative Profit Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LineChart className="h-5 w-5" />
+              Cumulative Growth Curve
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis />
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#10b981" 
+                    fill="#10b981" 
+                    fillOpacity={0.2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Journey from $500 to $1B • Current: {formatCurrency(displayMetrics.totalValue)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* P&L Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Vault P&L Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h4 className="font-medium mb-3">Last 24 Hours</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-green-600">Profits</span>
-                  <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['24h'].profits)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-red-600">Losses</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['24h'].losses)}</span>
-                </div>
-                <div className="border-t pt-2">
+        {/* P&L Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Vault P&L Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h4 className="font-medium mb-3">Last 24 Hours</h4>
+                <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="font-medium">Net P&L</span>
-                    <span className={`font-bold ${pnlBreakdown['24h'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {pnlBreakdown['24h'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['24h'].net)}
-                    </span>
+                    <span className="text-sm text-green-600">Profits</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['24h'].profits)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-red-600">Losses</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['24h'].losses)}</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Net P&L</span>
+                      <span className={`font-bold ${pnlBreakdown['24h'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {pnlBreakdown['24h'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['24h'].net)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Last 7 Days</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-600">Profits</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['7d'].profits)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-red-600">Losses</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['7d'].losses)}</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Net P&L</span>
+                      <span className={`font-bold ${pnlBreakdown['7d'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {pnlBreakdown['7d'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['7d'].net)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-3">Last 30 Days</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-green-600">Profits</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['30d'].profits)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-red-600">Losses</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['30d'].losses)}</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Net P&L</span>
+                      <span className={`font-bold ${pnlBreakdown['30d'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {pnlBreakdown['30d'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['30d'].net)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            <div>
-              <h4 className="font-medium mb-3">Last 7 Days</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-green-600">Profits</span>
-                  <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['7d'].profits)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-red-600">Losses</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['7d'].losses)}</span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Net P&L</span>
-                    <span className={`font-bold ${pnlBreakdown['7d'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {pnlBreakdown['7d'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['7d'].net)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-3">Last 30 Days</h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-green-600">Profits</span>
-                  <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['30d'].profits)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-red-600">Losses</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['30d'].losses)}</span>
-                </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Net P&L</span>
-                    <span className={`font-bold ${pnlBreakdown['30d'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {pnlBreakdown['30d'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['30d'].net)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      </div>
+          </CardContent>
+        </Card>
+    </div>
     </TooltipProvider>
   );
 }
