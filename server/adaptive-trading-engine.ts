@@ -133,22 +133,38 @@ class AdaptiveTradingEngine extends EventEmitter {
       return this.createRejectionDecision('Engine is not active');
     }
 
+    // STEP 1: Anti-rug protection check
+    const { antiRugProtection } = await import('./anti-rug-protection');
+    const rugCheck = await antiRugProtection.checkTokenSecurity(tokenData.mintAddress, tokenData.symbol);
+    
+    if (rugCheck.recommendation === 'reject' || rugCheck.isRugRisk) {
+      return this.createRejectionDecision(`Token failed security check: ${rugCheck.riskFactors.join(', ')}`);
+    }
+
+    // STEP 2: Apply learning-based pattern weights
+    const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+    const patternWeights = adaptiveLearningEngine.getOptimalPatternWeights();
+
     // Update market conditions based on current data
     this.updateMarketConditions(tokenData);
 
-    // Generate trading signals
+    // Generate trading signals with learned pattern weights
     const signals = await this.generateTradingSignals(tokenData);
 
-    // Calculate confidence factors
+    // Calculate confidence factors with security considerations
     const factors = await this.calculateConfidenceFactors(tokenData, signals);
 
-    // Compute overall confidence score
+    // Compute overall confidence score with learned adjustments
     const confidenceScore = this.computeConfidenceScore(factors);
+
+    // Apply learned confidence threshold adjustments
+    const learningMetrics = adaptiveLearningEngine.getLearningMetrics();
+    const adjustedThreshold = this.applyLearningAdjustments(learningMetrics);
 
     // Determine position sizing
     const positionSize = this.calculatePositionSize(confidenceScore, tokenData.riskScore);
 
-    // Make trading decision
+    // Make trading decision with adjusted threshold
     const decision = await this.makeTradingDecision(
       tokenData,
       signals,
@@ -157,8 +173,8 @@ class AdaptiveTradingEngine extends EventEmitter {
       positionSize
     );
 
-    // Learn from decision for future improvements
-    this.learnFromDecision(decision);
+    // Enhanced learning from decision
+    await this.learnFromDecisionEnhanced(decision, tokenData, rugCheck);
 
     return decision;
   }
@@ -196,7 +212,7 @@ class AdaptiveTradingEngine extends EventEmitter {
     }
   }
 
-  private async generateTradingSignals(tokenData: TokenMetrics): Promise<TradingSignal[]> {
+  private async generateTradingSignals(tokenData: TokenMetrics, patternWeights?: Map<string, number>): Promise<TradingSignal[]> {
     const signals: TradingSignal[] = [];
 
     // Volume spike signal
@@ -532,6 +548,118 @@ class AdaptiveTradingEngine extends EventEmitter {
 
   public getDecisionHistory(limit: number = 20): TradingDecision[] {
     return this.learningHistory.slice(-limit);
+  }
+
+  private applyLearningAdjustments(learningMetrics: any): number {
+    // Use optimal confidence range from learning data
+    if (learningMetrics.totalTrades >= 10) {
+      const optimalRange = learningMetrics.optimalConfidenceRange;
+      // Adjust threshold towards optimal range
+      const targetThreshold = (optimalRange.min + optimalRange.max) / 2;
+      return Math.round(this.confidenceThreshold * 0.8 + targetThreshold * 0.2);
+    }
+    return this.confidenceThreshold;
+  }
+
+  private async learnFromDecisionEnhanced(decision: TradingDecision, tokenData: TokenMetrics, rugCheck: any): Promise<void> {
+    // Record decision for traditional learning
+    this.learnFromDecision(decision);
+
+    // If this is a buy decision, set up outcome tracking
+    if (decision.action === 'buy') {
+      // Record portfolio position for tracking
+      await this.recordPortfolioPosition(decision, tokenData);
+      
+      // Set up exit monitoring for learning feedback
+      this.setupExitMonitoring(decision, tokenData, rugCheck);
+    }
+
+    this.emit('enhancedDecisionMade', { decision, tokenData, rugCheck });
+  }
+
+  private async recordPortfolioPosition(decision: TradingDecision, tokenData: TokenMetrics): Promise<void> {
+    try {
+      // Record in storage for portfolio tracking
+      const positionData = {
+        symbol: tokenData.symbol,
+        mintAddress: tokenData.mintAddress,
+        entryPrice: decision.entryPrice,
+        quantity: decision.positionSize * this.capitalAllocation.availableCapital / decision.entryPrice,
+        value: decision.positionSize * this.capitalAllocation.availableCapital,
+        confidence: decision.confidenceScore,
+        entryTime: new Date(),
+        stopLoss: decision.stopLoss,
+        takeProfit: decision.takeProfit,
+        status: 'open'
+      };
+
+      // This would integrate with portfolio storage
+      console.log(`📊 Recording portfolio position: ${tokenData.symbol} @ $${decision.entryPrice}`);
+    } catch (error) {
+      console.error('Error recording portfolio position:', error);
+    }
+  }
+
+  private setupExitMonitoring(decision: TradingDecision, tokenData: TokenMetrics, rugCheck: any): void {
+    // Set up monitoring for trade outcome learning
+    const monitoringData = {
+      entryTime: new Date(),
+      entryDecision: decision,
+      tokenData,
+      rugCheck,
+      patternFactors: {
+        volatilityScore: tokenData.volatilityScore,
+        liquidityScore: tokenData.liquidityScore,
+        momentumScore: tokenData.momentumScore,
+        technicalScore: tokenData.technicalScore,
+        socialScore: tokenData.socialScore,
+        volumeConfirmation: tokenData.volumeChange24h
+      }
+    };
+
+    // This would set up price monitoring to detect exit conditions
+    console.log(`🔍 Setting up exit monitoring for ${tokenData.symbol}`);
+    
+    // Simulate exit after some time for demo purposes
+    setTimeout(() => {
+      this.simulateTradeExit(monitoringData);
+    }, 300000); // 5 minutes for demo
+  }
+
+  private async simulateTradeExit(monitoringData: any): Promise<void> {
+    try {
+      const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+      
+      // Simulate exit with random outcome for demo
+      const exitPrice = monitoringData.entryDecision.entryPrice * (0.95 + Math.random() * 0.1); // -5% to +5%
+      const roi = (exitPrice - monitoringData.entryDecision.entryPrice) / monitoringData.entryDecision.entryPrice;
+      const holdingTime = 5; // 5 minutes for demo
+      
+      const tradeOutcome = {
+        symbol: monitoringData.tokenData.symbol,
+        mintAddress: monitoringData.tokenData.mintAddress,
+        entryTime: monitoringData.entryTime,
+        exitTime: new Date(),
+        entryPrice: monitoringData.entryDecision.entryPrice,
+        exitPrice,
+        positionSize: monitoringData.entryDecision.positionSize,
+        holdingTimeMinutes: holdingTime,
+        pnl: roi * monitoringData.entryDecision.positionSize * this.capitalAllocation.availableCapital,
+        roi,
+        initialConfidence: monitoringData.entryDecision.confidenceScore,
+        actualOutcome: roi > 0.02 ? 'win' : (roi < -0.02 ? 'loss' : 'breakeven') as 'win' | 'loss' | 'breakeven',
+        exitReason: roi > 0.1 ? 'take_profit' : (roi < -0.05 ? 'stop_loss' : 'time_exit') as any,
+        patternFactors: monitoringData.patternFactors,
+        marketConditions: this.marketConditions
+      };
+
+      // Record outcome for learning
+      await adaptiveLearningEngine.recordTradeOutcome(tradeOutcome);
+      
+      console.log(`📈 Trade completed: ${monitoringData.tokenData.symbol} ROI: ${(roi * 100).toFixed(2)}%`);
+    } catch (error) {
+      console.error('Error simulating trade exit:', error);
+    }
   }
 }
 

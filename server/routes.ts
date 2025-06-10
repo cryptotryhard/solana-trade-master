@@ -629,6 +629,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Learning Engine endpoints
+  app.get('/api/learning/metrics', async (req, res) => {
+    try {
+      const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+      const metrics = adaptiveLearningEngine.getLearningMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get learning metrics' });
+    }
+  });
+
+  app.get('/api/learning/patterns', async (req, res) => {
+    try {
+      const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+      const patterns = adaptiveLearningEngine.getPatternPerformance();
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get pattern performance' });
+    }
+  });
+
+  app.get('/api/learning/confidence-history', async (req, res) => {
+    try {
+      const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+      const history = adaptiveLearningEngine.getConfidenceThresholdHistory();
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get confidence history' });
+    }
+  });
+
+  app.post('/api/learning/record-outcome', async (req, res) => {
+    try {
+      const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+      const outcome = req.body;
+      
+      await adaptiveLearningEngine.recordTradeOutcome(outcome);
+      res.json({ status: 'Outcome recorded successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to record trade outcome' });
+    }
+  });
+
+  // Anti-rug protection endpoints
+  app.post('/api/security/check-token', async (req, res) => {
+    try {
+      const { antiRugProtection } = await import('./anti-rug-protection');
+      const { mintAddress, symbol } = req.body;
+      
+      if (!mintAddress) {
+        return res.status(400).json({ error: 'Missing mint address' });
+      }
+
+      const rugCheck = await antiRugProtection.checkTokenSecurity(mintAddress, symbol);
+      res.json(rugCheck);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to check token security' });
+    }
+  });
+
+  app.get('/api/security/blacklist', async (req, res) => {
+    try {
+      const { antiRugProtection } = await import('./anti-rug-protection');
+      const blacklist = antiRugProtection.getBlacklistedAddresses();
+      res.json(blacklist);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get blacklist' });
+    }
+  });
+
+  app.post('/api/security/blacklist/add', async (req, res) => {
+    try {
+      const { antiRugProtection } = await import('./anti-rug-protection');
+      const { mintAddress } = req.body;
+      
+      if (!mintAddress) {
+        return res.status(400).json({ error: 'Missing mint address' });
+      }
+
+      antiRugProtection.addToBlacklist(mintAddress);
+      res.json({ status: 'Address added to blacklist' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to add to blacklist' });
+    }
+  });
+
   // Wallet balance proxy endpoint
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {
