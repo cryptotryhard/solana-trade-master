@@ -35,6 +35,10 @@ import { liveTradingEngine } from "./live-trading-engine";
 import { enhancedBirdeyeIntegration } from "./enhanced-birdeye-integration";
 import { dexscreenerIntegration } from "./dexscreener-integration";
 import { pumpFunIntegration } from "./pumpfun-integration";
+import { livePortfolioTracker } from "./live-portfolio-tracker";
+import { tradeLogger } from "./trade-logger";
+import { dynamicReinvestmentEngine } from "./dynamic-reinvestment-engine";
+import { alphaWatchlistManager } from "./alpha-watchlist-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -3025,6 +3029,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, id: tradeId });
     } catch (error) {
       res.status(500).json({ error: 'Failed to record trade' });
+    }
+  });
+
+  // Live Portfolio Tracking API Routes
+  app.get("/api/portfolio/snapshot/:walletAddress", async (req, res) => {
+    try {
+      const snapshot = await livePortfolioTracker.getPortfolioSnapshot(req.params.walletAddress);
+      res.json(snapshot);
+    } catch (error) {
+      console.error("Error getting portfolio snapshot:", error);
+      res.status(500).json({ error: "Failed to get portfolio snapshot" });
+    }
+  });
+
+  app.get("/api/portfolio/performance/:walletAddress", async (req, res) => {
+    try {
+      const metrics = livePortfolioTracker.getPerformanceMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error getting performance metrics:", error);
+      res.status(500).json({ error: "Failed to get performance metrics" });
+    }
+  });
+
+  // Trade Logging API Routes
+  app.get("/api/trades/log", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const trades = tradeLogger.getFormattedTradeLog(limit);
+      res.json(trades);
+    } catch (error) {
+      console.error("Error getting trade log:", error);
+      res.status(500).json({ error: "Failed to get trade log" });
+    }
+  });
+
+  app.get("/api/trades/summary", async (req, res) => {
+    try {
+      const summary = tradeLogger.getTradeSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error getting trade summary:", error);
+      res.status(500).json({ error: "Failed to get trade summary" });
+    }
+  });
+
+  app.get("/api/trades/export", async (req, res) => {
+    try {
+      const history = tradeLogger.exportTradeHistory();
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename=trade-history.json');
+      res.send(history);
+    } catch (error) {
+      console.error("Error exporting trade history:", error);
+      res.status(500).json({ error: "Failed to export trade history" });
+    }
+  });
+
+  // Dynamic Reinvestment API Routes
+  app.get("/api/reinvestment/status", async (req, res) => {
+    try {
+      const status = dynamicReinvestmentEngine.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting reinvestment status:", error);
+      res.status(500).json({ error: "Failed to get reinvestment status" });
+    }
+  });
+
+  app.get("/api/reinvestment/opportunity", async (req, res) => {
+    try {
+      const opportunity = await dynamicReinvestmentEngine.findReinvestmentOpportunity();
+      res.json(opportunity);
+    } catch (error) {
+      console.error("Error finding reinvestment opportunity:", error);
+      res.status(500).json({ error: "Failed to find reinvestment opportunity" });
+    }
+  });
+
+  app.post("/api/reinvestment/execute", async (req, res) => {
+    try {
+      const opportunity = await dynamicReinvestmentEngine.checkAndExecuteReinvestment();
+      res.json({ success: true, opportunity });
+    } catch (error) {
+      console.error("Error executing reinvestment:", error);
+      res.status(500).json({ error: "Failed to execute reinvestment" });
+    }
+  });
+
+  // Alpha Watchlist API Routes
+  app.get("/api/watchlist", async (req, res) => {
+    try {
+      const watchlist = alphaWatchlistManager.getWatchlist();
+      res.json(watchlist);
+    } catch (error) {
+      console.error("Error getting watchlist:", error);
+      res.status(500).json({ error: "Failed to get watchlist" });
+    }
+  });
+
+  app.get("/api/watchlist/active", async (req, res) => {
+    try {
+      const activeWatchlist = alphaWatchlistManager.getActiveWatchlist();
+      res.json(activeWatchlist);
+    } catch (error) {
+      console.error("Error getting active watchlist:", error);
+      res.status(500).json({ error: "Failed to get active watchlist" });
+    }
+  });
+
+  app.get("/api/watchlist/summary", async (req, res) => {
+    try {
+      const summary = alphaWatchlistManager.getWatchlistSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Error getting watchlist summary:", error);
+      res.status(500).json({ error: "Failed to get watchlist summary" });
+    }
+  });
+
+  app.get("/api/watchlist/next-trade", async (req, res) => {
+    try {
+      const nextTrade = await alphaWatchlistManager.getNextTradePreview();
+      res.json(nextTrade);
+    } catch (error) {
+      console.error("Error getting next trade preview:", error);
+      res.status(500).json({ error: "Failed to get next trade preview" });
+    }
+  });
+
+  app.post("/api/watchlist/add", async (req, res) => {
+    try {
+      alphaWatchlistManager.addToWatchlist(req.body);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error adding to watchlist:", error);
+      res.status(500).json({ error: "Failed to add to watchlist" });
+    }
+  });
+
+  app.delete("/api/watchlist/:mintAddress", async (req, res) => {
+    try {
+      const removed = alphaWatchlistManager.removeFromWatchlist(req.params.mintAddress);
+      res.json({ success: removed });
+    } catch (error) {
+      console.error("Error removing from watchlist:", error);
+      res.status(500).json({ error: "Failed to remove from watchlist" });
     }
   });
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Header } from '@/components/header';
 import { PortfolioSidebar } from '@/components/portfolio-sidebar';
 import { MainDashboard } from '@/components/main-dashboard-tabbed';
+import { LivePortfolioDashboard } from '@/components/live-portfolio-dashboard';
 import { ActivityPanel } from '@/components/activity-panel';
 import { useWebSocket } from '@/lib/websocket';
 import { useToast } from '@/hooks/use-toast';
