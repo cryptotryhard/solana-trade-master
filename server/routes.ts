@@ -1344,6 +1344,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profit Vault endpoints
+  app.get("/api/vault/metrics", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const metrics = await profitVaultEngine.getVaultMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get vault metrics" });
+    }
+  });
+
+  app.get("/api/vault/history", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const history = await profitVaultEngine.getProfitHistory();
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get vault history" });
+    }
+  });
+
+  app.post("/api/vault/settings", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      await profitVaultEngine.updateSettings(req.body);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update vault settings" });
+    }
+  });
+
+  app.post("/api/vault/withdraw", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      const { amount } = req.body;
+      await profitVaultEngine.withdrawProfits(amount);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to withdraw profits" });
+    }
+  });
+
+  app.post("/api/vault/emergency-stop", async (req, res) => {
+    try {
+      const { profitVaultEngine } = await import('./profit-vault-engine');
+      await profitVaultEngine.emergencyStop();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to execute emergency stop" });
+    }
+  });
+
   // AI suggestion endpoint
   app.post("/api/ai/suggestion", async (req, res) => {
     try {
