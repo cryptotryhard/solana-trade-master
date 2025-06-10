@@ -1,8 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Brain, TrendingUp, Shield, Target, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
+import { Brain, TrendingUp, Shield, Target, AlertTriangle, CheckCircle, Settings, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface LearningMetrics {
   totalTrades: number;
@@ -33,6 +38,10 @@ interface ConfidenceHistory {
 }
 
 export function LearningDashboard() {
+  const [editingWeights, setEditingWeights] = useState(false);
+  const [patternWeights, setPatternWeights] = useState<Record<string, number>>({});
+  const queryClient = useQueryClient();
+
   const { data: learningMetrics, isLoading: metricsLoading } = useQuery<LearningMetrics>({
     queryKey: ['/api/learning/metrics'],
     refetchInterval: 30000
@@ -47,6 +56,64 @@ export function LearningDashboard() {
     queryKey: ['/api/learning/confidence-history'],
     refetchInterval: 60000
   });
+
+  const optimizeWeightsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/learning/optimize-weights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning/patterns'] });
+    }
+  });
+
+  const updateWeightsMutation = useMutation({
+    mutationFn: async (weights: Record<string, number>) => {
+      const response = await fetch('/api/learning/update-weights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ weights })
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/learning/patterns'] });
+      setEditingWeights(false);
+    }
+  });
+
+  // Initialize weights when patterns load
+  useEffect(() => {
+    if (patterns && !editingWeights) {
+      const weights: Record<string, number> = {};
+      patterns.forEach(pattern => {
+        weights[pattern.patternId] = pattern.weight;
+      });
+      setPatternWeights(weights);
+    }
+  }, [patterns, editingWeights]);
+
+  const handleWeightChange = (patternId: string, value: number[]) => {
+    setPatternWeights(prev => ({
+      ...prev,
+      [patternId]: value[0]
+    }));
+  };
+
+  const handleSaveWeights = () => {
+    updateWeightsMutation.mutate(patternWeights);
+  };
+
+  const handleOptimizeWeights = () => {
+    optimizeWeightsMutation.mutate();
+  };
 
   const getPerformanceColor = (value: number, type: 'success' | 'roi' | 'confidence') => {
     switch (type) {
@@ -146,11 +213,41 @@ export function LearningDashboard() {
 
       {/* Pattern Performance Analysis */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
             Pattern Performance Matrix
           </CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditingWeights(!editingWeights)}
+              disabled={!patterns || patterns.length === 0}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              {editingWeights ? 'Cancel' : 'Edit Weights'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOptimizeWeights}
+              disabled={optimizeWeightsMutation.isPending || !patterns || patterns.length === 0}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              {optimizeWeightsMutation.isPending ? 'Optimizing...' : 'Optimize Weights'}
+            </Button>
+            {editingWeights && (
+              <Button
+                size="sm"
+                onClick={handleSaveWeights}
+                disabled={updateWeightsMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {updateWeightsMutation.isPending ? 'Saving...' : 'Save'}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {patternsLoading ? (
