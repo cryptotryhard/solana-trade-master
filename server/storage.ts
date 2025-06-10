@@ -23,6 +23,10 @@ export interface IStorage {
   // AI Recommendations
   getRecommendations(): Promise<AIRecommendation[]>;
   createRecommendation(recommendation: InsertRecommendation): Promise<AIRecommendation>;
+  
+  // Live Trading Status
+  getLiveTradingStatus?(): boolean;
+  setLiveTradingStatus?(active: boolean): void;
 }
 
 export class MemStorage implements IStorage {
@@ -34,6 +38,7 @@ export class MemStorage implements IStorage {
   private currentTradeId: number;
   private currentPortfolioId: number;
   private currentRecommendationId: number;
+  private liveTradingActive: boolean;
 
   constructor() {
     this.users = new Map();
@@ -44,6 +49,7 @@ export class MemStorage implements IStorage {
     this.currentTradeId = 1;
     this.currentPortfolioId = 1;
     this.currentRecommendationId = 1;
+    this.liveTradingActive = false; // Start in simulation mode
     
     // Initialize with demo data
     this.initializeDemoData();
@@ -245,6 +251,16 @@ export class MemStorage implements IStorage {
     };
     this.recommendations.set(id, recommendation);
     return recommendation;
+  }
+
+  // Live trading status methods
+  getLiveTradingStatus(): boolean {
+    return this.liveTradingActive;
+  }
+
+  setLiveTradingStatus(active: boolean): void {
+    this.liveTradingActive = active;
+    console.log(`Live trading status changed to: ${active ? 'ACTIVE' : 'SIMULATION'}`);
   }
 }
 

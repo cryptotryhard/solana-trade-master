@@ -2446,5 +2446,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live trading activation routes
+  app.get('/api/live-trading/status', (req, res) => {
+    try {
+      // Check current live trading status from storage or environment
+      const liveTradingActive = storage.getLiveTradingStatus ? storage.getLiveTradingStatus() : false;
+      
+      res.json({
+        active: liveTradingActive,
+        timestamp: new Date(),
+        mode: liveTradingActive ? 'live' : 'simulation'
+      });
+    } catch (error) {
+      console.error('Error getting live trading status:', error);
+      res.status(500).json({ 
+        error: 'Failed to get live trading status',
+        active: false,
+        mode: 'simulation'
+      });
+    }
+  });
+
+  app.post('/api/live-trading/activate', (req, res) => {
+    try {
+      // Activate live trading mode
+      if (storage.setLiveTradingStatus) {
+        storage.setLiveTradingStatus(true);
+      }
+      
+      console.log('🚀 LIVE TRADING ACTIVATED - VICTORIA IS NOW TRADING WITH REAL FUNDS');
+      
+      // Send webhook notification
+      webhookNotifier.sendNotification(
+        '🚀 LIVE TRADING ACTIVATED',
+        '🚀 VICTORIA has been activated for live trading with real SOL funds.',
+        'SUCCESS',
+        {
+          system: 'VICTORIA Trading AI',
+          event: 'live_trading_activated',
+          timestamp: new Date().toISOString(),
+          mode: 'live',
+          action_required: 'Monitor performance carefully'
+        }
+      );
+
+      res.json({
+        success: true,
+        active: true,
+        mode: 'live',
+        message: 'Live trading activated successfully',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Error activating live trading:', error);
+      res.status(500).json({ 
+        error: 'Failed to activate live trading',
+        active: false,
+        mode: 'simulation'
+      });
+    }
+  });
+
+  app.post('/api/live-trading/deactivate', (req, res) => {
+    try {
+      // Deactivate live trading mode
+      if (storage.setLiveTradingStatus) {
+        storage.setLiveTradingStatus(false);
+      }
+      
+      console.log('⏸️ LIVE TRADING DEACTIVATED - VICTORIA SWITCHED TO SIMULATION MODE');
+      
+      // Send webhook notification
+      webhookNotifier.sendNotification(
+        '⏸️ LIVE TRADING DEACTIVATED',
+        '⏸️ VICTORIA has been switched to simulation mode.',
+        'INFO',
+        {
+          system: 'VICTORIA Trading AI',
+          event: 'live_trading_deactivated',
+          timestamp: new Date().toISOString(),
+          mode: 'simulation',
+          action_required: 'None - simulation mode active'
+        }
+      );
+
+      res.json({
+        success: true,
+        active: false,
+        mode: 'simulation',
+        message: 'Live trading deactivated successfully',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Error deactivating live trading:', error);
+      res.status(500).json({ 
+        error: 'Failed to deactivate live trading',
+        active: true,
+        mode: 'live'
+      });
+    }
+  });
+
   return httpServer;
 }
