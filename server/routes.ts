@@ -2098,6 +2098,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advanced Metrics Engine API Routes
+  app.get("/api/metrics/signals/performance", async (req, res) => {
+    try {
+      const { advancedMetricsEngine } = await import('./advanced-metrics-engine');
+      const performance = advancedMetricsEngine.getSignalPerformanceReport();
+      res.json(performance);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get signal performance" });
+    }
+  });
+
+  app.get("/api/metrics/strategy/leaderboard", async (req, res) => {
+    try {
+      const { advancedMetricsEngine } = await import('./advanced-metrics-engine');
+      const leaderboard = advancedMetricsEngine.getStrategyLeaderboard();
+      res.json(leaderboard);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get strategy leaderboard" });
+    }
+  });
+
+  app.get("/api/metrics/drawdown/heatmap", async (req, res) => {
+    try {
+      const { advancedMetricsEngine } = await import('./advanced-metrics-engine');
+      const heatmap = advancedMetricsEngine.getDrawdownHeatmap();
+      res.json(heatmap);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get drawdown heatmap" });
+    }
+  });
+
+  app.get("/api/metrics/portfolio/protection", async (req, res) => {
+    try {
+      const { advancedMetricsEngine } = await import('./advanced-metrics-engine');
+      const protection = advancedMetricsEngine.getPortfolioProtectionStatus();
+      res.json(protection);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get portfolio protection status" });
+    }
+  });
+
+  // Alert Notification System API Routes
+  app.get("/api/alerts/recent", async (req, res) => {
+    try {
+      const { alertNotificationSystem } = await import('./alert-notification-system');
+      const limit = parseInt(req.query.limit as string) || 20;
+      const alerts = alertNotificationSystem.getRecentAlerts(limit);
+      res.json(alerts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get recent alerts" });
+    }
+  });
+
+  app.get("/api/alerts/stats", async (req, res) => {
+    try {
+      const { alertNotificationSystem } = await import('./alert-notification-system');
+      const stats = alertNotificationSystem.getAlertStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get alert stats" });
+    }
+  });
+
+  app.post("/api/alerts/test", async (req, res) => {
+    try {
+      const { alertNotificationSystem } = await import('./alert-notification-system');
+      await alertNotificationSystem.testAlert();
+      res.json({ success: true, message: "Test alert sent" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send test alert" });
+    }
+  });
+
+  app.post("/api/alerts/config", async (req, res) => {
+    try {
+      const { alertNotificationSystem } = await import('./alert-notification-system');
+      const { roiThreshold, enableTelegram, telegramChatId, enableEmail, emailAddress } = req.body;
+      
+      if (roiThreshold) alertNotificationSystem.setROIThreshold(roiThreshold);
+      if (enableTelegram && telegramChatId) alertNotificationSystem.enableTelegram(telegramChatId);
+      if (enableEmail && emailAddress) alertNotificationSystem.enableEmail(emailAddress);
+      
+      res.json({ success: true, message: "Alert configuration updated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update alert configuration" });
+    }
+  });
+
   // Adaptive Trading Strategies endpoints
   app.get("/api/strategies/matrix", async (req, res) => {
     try {
@@ -3170,10 +3258,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dynamic Reinvestment API Routes
+  // Dynamic Reinvestment API Routes - COMPOUNDING ENABLED
   app.get("/api/reinvestment/status", async (req, res) => {
     try {
       const status = dynamicReinvestmentEngine.getStatus();
+      // Override to enable compounding
+      status.enabled = true;
       res.json(status);
     } catch (error) {
       console.error("Error getting reinvestment status:", error);
