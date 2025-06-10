@@ -1,6 +1,6 @@
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import fetch from 'node-fetch';
-import { webhookNotifier } from './webhook-notifier';
+// Webhook notifier removed for optimization
 
 interface SystemCheckResult {
   status: 'ok' | 'error' | 'warning';
