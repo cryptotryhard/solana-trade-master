@@ -1,5 +1,6 @@
 import { Bot, Circle } from 'lucide-react';
 import { WalletConnection } from './wallet-connection';
+import { MarketSentimentGradient } from './market-sentiment-gradient';
 
 interface HeaderProps {
   walletConnected: boolean;
@@ -28,8 +29,13 @@ export function Header({ onWalletConnect }: HeaderProps) {
             </div>
           </div>
 
-          {/* Network Status & Wallet */}
+          {/* Market Sentiment & Network Status & Wallet */}
           <div className="flex items-center space-x-4">
+            {/* Market Sentiment Indicator */}
+            <div className="hidden lg:block">
+              <MarketSentimentGradient compact={true} className="text-xs" />
+            </div>
+            
             <div className="hidden sm:flex items-center space-x-2 text-sm">
               <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
               <span className="text-muted-foreground">Solana Mainnet</span>

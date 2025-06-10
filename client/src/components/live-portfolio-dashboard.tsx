@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, DollarSign, Activity, Target, Zap, Clock, AlertTriangle } from "lucide-react";
+import { MarketSentimentGradient } from "./market-sentiment-gradient";
 
 interface PortfolioSnapshot {
   totalValue: number;

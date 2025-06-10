@@ -1948,6 +1948,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Market sentiment endpoints
+  app.get("/api/sentiment/market", async (req, res) => {
+    try {
+      const { marketSentimentEngine } = await import('./market-sentiment-engine');
+      const sentiment = marketSentimentEngine.getCurrentSentiment();
+      res.json(sentiment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get market sentiment" });
+    }
+  });
+
+  app.get("/api/sentiment/token/:symbol", async (req, res) => {
+    try {
+      const { marketSentimentEngine } = await import('./market-sentiment-engine');
+      const { symbol } = req.params;
+      const { mintAddress } = req.query;
+      const tokenSentiment = await marketSentimentEngine.analyzeTokenSentiment(symbol, mintAddress as string);
+      res.json(tokenSentiment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to analyze token sentiment" });
+    }
+  });
+
+  app.get("/api/sentiment/history", async (req, res) => {
+    try {
+      const { marketSentimentEngine } = await import('./market-sentiment-engine');
+      const hours = parseInt(req.query.hours as string) || 24;
+      const history = marketSentimentEngine.getSentimentHistory(hours);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get sentiment history" });
+    }
+  });
+
+  app.get("/api/sentiment/alert", async (req, res) => {
+    try {
+      const { marketSentimentEngine } = await import('./market-sentiment-engine');
+      const alert = marketSentimentEngine.getSentimentAlert();
+      res.json(alert);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get sentiment alert" });
+    }
+  });
+
   app.get("/api/signals/combinations", async (req, res) => {
     try {
       const { limit = 10 } = req.query;
