@@ -39,15 +39,20 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
   
-  // Auto-activate Alpha Acceleration Mode and Adaptive Engine
+  // Auto-activate Alpha Acceleration Mode and Live Trading Engine
   setTimeout(async () => {
     const { alphaAccelerationEngine } = await import('./alpha-acceleration-engine');
+    const { liveTradingEngine } = await import('./live-trading-engine');
+    
     await alphaAccelerationEngine.startAlphaMode();
+    await liveTradingEngine.activate();
+    
     console.log('⚡ VICTORIA ALPHA ACCELERATION MODE AUTO-ACTIVATED ⚡');
     console.log('🎯 Target: Exponential Growth to $1B Portfolio');
     console.log('🔥 Ultra-aggressive scanning: pump.fun every 20 seconds');
     console.log('📈 Layered position stacking: Up to 3 layers per token');
     console.log('💎 Auto-compounding: 85% profit reinvestment');
+    console.log('🚀 LIVE TRADING ENGINE ACTIVATED - Real Jupiter swaps enabled');
     console.log('👥 Shadow trading: Top 50 wallets monitored');
     
     // Start adaptive trading engine

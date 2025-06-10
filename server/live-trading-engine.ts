@@ -106,9 +106,9 @@ class LiveTradingEngine {
       const tokens = await response.json();
       
       return tokens.filter((token: any) => 
-        token.confidence > 0.8 && 
-        token.signals && 
-        token.signals.length > 2
+        token.confidence > 0.20 && // Lowered from 0.8 to 0.20 for real market conditions
+        token.mintAddress &&
+        token.symbol
       );
     } catch (error) {
       console.error('Error fetching alpha opportunities:', error);
