@@ -90,9 +90,43 @@ class LiveExecutionEngine {
         return trade;
       }
 
-      // Real trading implementation would go here
-      // For now, keeping simulation until wallet integration is confirmed
-      throw new Error('Real trading not yet enabled - use test mode');
+      // Real Jupiter API trading execution
+      try {
+        const swapResult = await jupiterSwapEngine.swapSolToToken(
+          mintAddress,
+          amountSOL,
+          this.settings.maxSlippage
+        );
+
+        if (swapResult.success && swapResult.txHash) {
+          trade.actualPrice = swapResult.actualPrice;
+          trade.txHash = swapResult.txHash;
+          trade.status = 'completed';
+          
+          // Record real trade
+          realPortfolioTracker.recordRealTrade({
+            timestamp: new Date(),
+            symbol,
+            side: 'buy',
+            amount: swapResult.outputAmount || 0,
+            priceUSD: swapResult.actualPrice || 0,
+            totalUSD: amountSOL,
+            txHash: swapResult.txHash
+          });
+
+          console.log(`✅ REAL BUY EXECUTED: ${symbol} - ${swapResult.outputAmount} tokens - TX: ${swapResult.txHash}`);
+        } else {
+          trade.status = 'failed';
+          console.log(`❌ REAL BUY FAILED: ${symbol} - ${swapResult.error}`);
+        }
+      } catch (error) {
+        trade.status = 'failed';
+        console.log(`❌ REAL BUY ERROR: ${symbol} - ${error.message}`);
+      }
+
+      this.activeTrades.delete(tradeId);
+      this.completedTrades.push(trade);
+      return trade;
 
     } catch (error) {
       console.error(`❌ BUY ORDER FAILED: ${symbol} - ${error.message}`);

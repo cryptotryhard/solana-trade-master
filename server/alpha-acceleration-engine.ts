@@ -302,21 +302,47 @@ class AlphaAccelerationEngine {
         socialScore: token.hypeScore || 75
       };
 
-      // Simulate trading decision for optimized system
-      const decision = {
-        action: 'buy' as const,
-        reasoning: `High advantage opportunity: ${token.advantage?.toFixed(1) || 'N/A'}%`,
-        confidence: token.confidence || 85,
-        positionSize: 0.05
-      };
+      // Calculate aggressive position size based on advantage and confidence
+      const basePosition = 25; // $25 SOL per trade
+      const advantageMultiplier = Math.min((token.advantage || 100) / 100, 3); // Up to 3x for high advantage
+      const confidenceMultiplier = (token.confidence || 85) / 100;
+      const positionSizeSOL = basePosition * advantageMultiplier * confidenceMultiplier;
+      
+      // Import execution and scaling engines for real trading
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      
+      // Execute real buy order
+      const trade = await liveExecutionEngine.executeBuyOrder(
+        token.symbol,
+        token.mintAddress,
+        positionSizeSOL
+      );
 
-      if (decision.action === 'buy') {
-        console.log(`✅ ALPHA ENTRY EXECUTED: ${token.symbol} - ${decision.reasoning}`);
+      if (trade.status === 'completed') {
+        console.log(`✅ ALPHA ENTRY EXECUTED: ${token.symbol} - TX: ${trade.txHash}`);
         
-        // Record successful entry
-        await this.recordAlphaEntry(token, decision);
+        // Record in aggressive capital scaling for monitoring and scaling
+        await aggressiveCapitalScaling.recordHighAdvantageEntry(
+          token.symbol,
+          token.mintAddress,
+          trade.actualPrice || token.price,
+          positionSizeSOL,
+          token.advantage || 100,
+          token.confidence || 85
+        );
+        
+        // Record successful entry with real transaction details
+        await this.recordAlphaEntry(token, {
+          action: 'buy',
+          reasoning: `Live execution: ${positionSizeSOL} SOL, Advantage: ${token.advantage?.toFixed(1)}%`,
+          confidence: token.confidence || 85,
+          positionSize: positionSizeSOL,
+          txHash: trade.txHash,
+          actualPrice: trade.actualPrice
+        });
       } else {
-        console.log(`⚠️ ALPHA ENTRY DEFERRED: ${token.symbol} - ${decision.reasoning}`);
+        console.log(`❌ ALPHA ENTRY FAILED: ${token.symbol} - ${trade.status}`);
       }
 
     } catch (error) {

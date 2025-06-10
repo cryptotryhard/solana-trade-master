@@ -369,6 +369,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live Execution Engine Routes
+  app.get('/api/execution/status', async (req, res) => {
+    try {
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      const activeTrades = liveExecutionEngine.getActiveTrades();
+      const metrics = liveExecutionEngine.getTradeMetrics();
+      const settings = liveExecutionEngine.getSettings();
+      
+      res.json({
+        activeTrades,
+        metrics,
+        settings,
+        isLive: !settings.testMode
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get execution status' });
+    }
+  });
+
+  app.get('/api/execution/trades', async (req, res) => {
+    try {
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      const limit = parseInt(req.query.limit as string) || 50;
+      const trades = liveExecutionEngine.getCompletedTrades(limit);
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get trades' });
+    }
+  });
+
+  app.post('/api/execution/buy', async (req, res) => {
+    try {
+      const { symbol, mintAddress, amountSOL } = req.body;
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      
+      const trade = await liveExecutionEngine.executeBuyOrder(symbol, mintAddress, amountSOL);
+      res.json(trade);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to execute buy order' });
+    }
+  });
+
+  app.post('/api/execution/sell', async (req, res) => {
+    try {
+      const { symbol, mintAddress, percentage } = req.body;
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      
+      const trade = await liveExecutionEngine.executeSellOrder(symbol, mintAddress, percentage);
+      res.json(trade);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to execute sell order' });
+    }
+  });
+
+  app.post('/api/execution/enable-live', async (req, res) => {
+    try {
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      liveExecutionEngine.enableLiveTrading();
+      res.json({ 
+        success: true, 
+        message: 'Live trading enabled',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to enable live trading' });
+    }
+  });
+
+  app.post('/api/execution/enable-test', async (req, res) => {
+    try {
+      const { liveExecutionEngine } = await import('./live-execution-engine');
+      liveExecutionEngine.enableTestMode();
+      res.json({ 
+        success: true, 
+        message: 'Test mode enabled',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to enable test mode' });
+    }
+  });
+
+  // Aggressive Capital Scaling Routes
+  app.get('/api/scaling/metrics', async (req, res) => {
+    try {
+      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      const metrics = aggressiveCapitalScaling.getCapitalMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get scaling metrics' });
+    }
+  });
+
+  app.get('/api/scaling/positions', async (req, res) => {
+    try {
+      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      const positions = aggressiveCapitalScaling.getActivePositions();
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get scaling positions' });
+    }
+  });
+
+  app.get('/api/scaling/top-performers', async (req, res) => {
+    try {
+      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      const limit = parseInt(req.query.limit as string) || 5;
+      const performers = aggressiveCapitalScaling.getTopPerformers(limit);
+      res.json(performers);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get top performers' });
+    }
+  });
+
+  app.post('/api/scaling/force-exit', async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      await aggressiveCapitalScaling.forceExitAll(reason || 'Manual force exit');
+      res.json({ 
+        success: true, 
+        message: 'All positions force exited',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to force exit positions' });
+    }
+  });
+
+  app.post('/api/scaling/update-params', async (req, res) => {
+    try {
+      const params = req.body;
+      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      aggressiveCapitalScaling.updateScalingParameters(params);
+      res.json({ 
+        success: true, 
+        message: 'Scaling parameters updated',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update scaling parameters' });
+    }
+  });
+
   // Real-time updates with proper error handling
   setInterval(async () => {
     try {
