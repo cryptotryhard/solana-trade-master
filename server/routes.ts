@@ -2583,5 +2583,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alpha Trade Log endpoints
+  app.get('/api/trading/decisions', (req, res) => {
+    try {
+      const { tradeDecisionTracker } = require('./trade-decision-tracker');
+      const decisions = tradeDecisionTracker.getRecentDecisions(20);
+      res.json(decisions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch trading decisions' });
+    }
+  });
+
+  app.get('/api/trading/log', (req, res) => {
+    try {
+      const { tradeDecisionTracker } = require('./trade-decision-tracker');
+      const trades = tradeDecisionTracker.getTradeLog(50);
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch trade log' });
+    }
+  });
+
+  app.get('/api/trading/metrics', (req, res) => {
+    try {
+      const { tradeDecisionTracker } = require('./trade-decision-tracker');
+      const decisionMetrics = tradeDecisionTracker.getDecisionMetrics();
+      const tradeMetrics = tradeDecisionTracker.getTradeMetrics();
+      const confidenceAnalysis = tradeDecisionTracker.getConfidenceAnalysis();
+      
+      res.json({
+        decisions: decisionMetrics,
+        trades: tradeMetrics,
+        confidence: confidenceAnalysis
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch trading metrics' });
+    }
+  });
+
+  app.post('/api/trading/decision', (req, res) => {
+    try {
+      const { tradeDecisionTracker } = require('./trade-decision-tracker');
+      const decisionId = tradeDecisionTracker.recordDecision(req.body);
+      res.json({ success: true, id: decisionId });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to record trading decision' });
+    }
+  });
+
+  app.post('/api/trading/record', (req, res) => {
+    try {
+      const { tradeDecisionTracker } = require('./trade-decision-tracker');
+      const tradeId = tradeDecisionTracker.recordTrade(req.body);
+      res.json({ success: true, id: tradeId });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to record trade' });
+    }
+  });
+
   return httpServer;
 }

@@ -18,6 +18,8 @@ import { CopyTradingDashboard } from './copytrading-dashboard';
 import { AlphaHeatDashboard } from './alpha-heat-dashboard';
 import { SystemStatusPanel } from './system-status-panel';
 import { PortfolioGrowthChart } from './portfolio-growth-chart';
+import { AlphaTradeLog } from './alpha-trade-log';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
