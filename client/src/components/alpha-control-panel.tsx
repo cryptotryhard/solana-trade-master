@@ -553,17 +553,24 @@ export function AlphaControlPanel() {
           <CardContent>
             <div className="space-y-3">
               {filteredTokens.map((token) => (
-                <div key={token.mintAddress} className="border rounded-lg p-4 space-y-3">
+                <div key={token.mintAddress} className="border rounded-lg p-4 space-y-3 relative overflow-hidden">
                   {/* Token Header */}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-lg">{token.symbol}</span>
-                      {getConfidenceBadge(token.confidence, token.dataSources)}
-                      {getSentimentBadge(token)}
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex flex-col gap-2 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-lg truncate">{token.symbol}</span>
+                        {getConfidenceBadge(token.confidence, token.dataSources)}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getSentimentBadge(token)}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm text-muted-foreground">AI Score</div>
-                      <Badge variant={token.aiScore >= 95 ? "default" : token.aiScore >= 90 ? "secondary" : "outline"}>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-xs text-muted-foreground mb-1">AI Score</div>
+                      <Badge 
+                        variant={token.aiScore >= 95 ? "default" : token.aiScore >= 90 ? "secondary" : "outline"}
+                        className="text-xs font-bold"
+                      >
                         {token.aiScore}/100
                       </Badge>
                     </div>
@@ -575,31 +582,39 @@ export function AlphaControlPanel() {
                     {getDataSourceBadges(token.dataSources)}
                   </div>
 
-                  {/* Token Metrics */}
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Price:</span>
-                      <div className="font-medium">${token.price.toFixed(8)}</div>
+                  {/* Token Metrics - Compressed */}
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div className="text-center p-2 bg-secondary/30 rounded">
+                      <div className="text-muted-foreground">Price</div>
+                      <div className="font-medium">${token.price.toFixed(6)}</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Volume 24h:</span>
-                      <div className="font-medium">${token.volume24h.toLocaleString()}</div>
+                    <div className="text-center p-2 bg-secondary/30 rounded">
+                      <div className="text-muted-foreground">Vol 24h</div>
+                      <div className="font-medium">${(token.volume24h / 1000).toFixed(0)}K</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Market Cap:</span>
-                      <div className="font-medium">${token.marketCap.toLocaleString()}</div>
+                    <div className="text-center p-2 bg-secondary/30 rounded">
+                      <div className="text-muted-foreground">MCap</div>
+                      <div className="font-medium">${(token.marketCap / 1000000).toFixed(1)}M</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Age:</span>
-                      <div className="font-medium">{token.age.toFixed(1)}m</div>
+                    <div className="text-center p-2 bg-secondary/30 rounded">
+                      <div className="text-muted-foreground">Age</div>
+                      <div className="font-medium">{token.age.toFixed(0)}m</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Wallets:</span>
+                  </div>
+                  
+                  {/* Secondary Metrics */}
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="text-center p-1 border rounded">
+                      <div className="text-muted-foreground">Wallets</div>
                       <div className="font-medium">{token.uniqueWallets}</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Volume Spike:</span>
-                      <div className="font-medium text-green-500">+{token.volumeSpike.toFixed(0)}%</div>
+                    <div className="text-center p-1 border rounded">
+                      <div className="text-muted-foreground">Spike</div>
+                      <div className="font-medium text-green-500">+{token.volumeSpike?.toFixed(0) || 0}%</div>
+                    </div>
+                    <div className="text-center p-1 border rounded">
+                      <div className="text-muted-foreground">Risk</div>
+                      <div className="font-medium text-red-500">{token.ownershipRisk?.toFixed(0) || 0}%</div>
                     </div>
                   </div>
 

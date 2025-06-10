@@ -247,9 +247,19 @@ export function AlphaTradeLog() {
       </div>
 
       <Tabs defaultValue="decisions" className="w-full">
-        <TabsList>
-          <TabsTrigger value="decisions">Trading Decisions</TabsTrigger>
-          <TabsTrigger value="trades">Executed Trades</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1 rounded-lg">
+          <TabsTrigger 
+            value="decisions"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200 font-medium"
+          >
+            Trading Decisions
+          </TabsTrigger>
+          <TabsTrigger 
+            value="trades"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200 font-medium"
+          >
+            Executed Trades
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="decisions" className="space-y-4">
