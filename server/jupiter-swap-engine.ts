@@ -112,35 +112,39 @@ class JupiterSwapEngine {
         const transactionBuf = Buffer.from(swapTransaction, 'base64');
         const transaction = VersionedTransaction.deserialize(transactionBuf);
         
-        // In production, this would use the user's actual private key
-        // For security demonstration, we'll simulate the signing process
+        // Use the actual private key for live trading
+        let userKeypair: Keypair;
         
-        // Get the wallet's public key from the transaction
-        const walletPubkey = new PublicKey(userPublicKey);
-        
-        // Create a demonstration keypair (in production, use actual private key)
-        const demoKeypair = Keypair.generate();
-        
-        // Simulate transaction signing (would use actual private key in production)
         try {
-          transaction.sign([demoKeypair]);
+          // Load the private key for live trading
+          const privateKeyB58 = '3qDnPYLuTxdqj8QRx7FWZoH7UhNcUK9LVYQYd6t2D5THUxwsG8jd4QQXkLrM1LzbMK41hpfgSWj3tQ7PRSnV5RFR';
+          
+          // Decode the private key from base58
+          const privateKeyBytes = base58.decode(privateKeyB58);
+          userKeypair = Keypair.fromSecretKey(privateKeyBytes);
+          
+          console.log(`🔐 Live wallet loaded: ${userKeypair.publicKey.toString()}`);
+          console.log(`🔐 Expected wallet: ${userPublicKey}`);
+          
+          // Verify this matches our expected wallet
+          if (userKeypair.publicKey.toString() !== userPublicKey) {
+            console.log(`⚠️ Wallet mismatch - using correct keypair for transaction`);
+            // Update the public key to match the actual keypair
+            userPublicKey = userKeypair.publicKey.toString();
+          }
+          
+        } catch (keyError) {
+          console.error('❌ Failed to load private key:', keyError);
+          throw new Error('Private key loading failed');
+        }
+        
+        // Sign the transaction with the user's actual private key
+        try {
+          transaction.sign([userKeypair]);
+          console.log('✅ Transaction signed successfully with live wallet');
         } catch (signingError) {
-          console.log('🔐 Transaction requires actual private key for signing');
-          // For demonstration, we'll create a simulated successful transaction
-          const simulatedTxHash = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-          
-          console.log(`🔥 DEMO MODE: Would execute real transaction with private key`);
-          console.log(`🔥 DEMO TX HASH: ${simulatedTxHash}`);
-          console.log(`🔥 View simulated transaction: https://solscan.io/tx/${simulatedTxHash}`);
-          
-          return {
-            success: true,
-            txHash: simulatedTxHash,
-            actualPrice: parseFloat(quote.outAmount) / parseFloat(quote.inAmount),
-            slippage: Math.random() * 0.5,
-            gasUsed: 5000 + Math.floor(Math.random() * 5000),
-            outputAmount: parseFloat(quote.outAmount)
-          };
+          console.error('❌ Transaction signing failed:', signingError);
+          throw new Error(`Transaction signing failed: ${signingError}`);
         }
         
         // Send the transaction

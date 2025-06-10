@@ -34,7 +34,7 @@ interface TradingMetrics {
 }
 
 class LiveTradingEngine {
-  private isActive: boolean = false;
+  private isActive: boolean = true;
   private trades: LiveTrade[] = [];
   private connection: Connection;
   private walletAddress: string = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
