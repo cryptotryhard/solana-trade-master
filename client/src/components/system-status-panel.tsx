@@ -37,6 +37,9 @@ interface SystemCheckResult {
     trade_execution: CheckStatus;
     ai_modules: CheckStatus;
     sol_balance: CheckStatus;
+    api_endpoints?: CheckStatus;
+    wallet_balance_usd?: CheckStatus;
+    background_engines?: CheckStatus;
   };
   deployment_ready: boolean;
   timestamp: Date;
@@ -94,6 +97,8 @@ const componentNames = {
 
 export function SystemStatusPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isRunningCheck, setIsRunningCheck] = useState(false);
+  const [liveTradingActivated, setLiveTradingActivated] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -158,7 +163,14 @@ export function SystemStatusPanel() {
   });
 
   const runSystemCheck = () => {
+    setIsRunningCheck(true);
     systemCheckMutation.mutate();
+    setTimeout(() => setIsRunningCheck(false), 3000);
+  };
+
+  const handleLiveTradingActivation = () => {
+    activateLiveTradingMutation.mutate();
+    setLiveTradingActivated(true);
   };
 
   if (isLoading) {
@@ -284,6 +296,42 @@ export function SystemStatusPanel() {
           </p>
         </div>
 
+        {/* System Check Control */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Settings className={`w-5 h-5 text-blue-600 ${isRunningCheck ? 'animate-spin' : ''}`} />
+                <span className="font-semibold text-gray-900">System Verification</span>
+              </div>
+              <Badge 
+                variant={systemStatus.deployment_ready ? "default" : "secondary"}
+                className={systemStatus.deployment_ready 
+                  ? "bg-blue-600 text-white" 
+                  : "bg-gray-100 text-gray-600"
+                }
+              >
+                {systemStatus.deployment_ready ? "READY" : "CHECKING"}
+              </Badge>
+            </div>
+            
+            <Button
+              onClick={runSystemCheck}
+              variant="outline"
+              size="sm"
+              disabled={isRunningCheck || systemCheckMutation.isPending}
+              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${isRunningCheck ? 'animate-spin' : ''}`} />
+              {isRunningCheck ? "Running Check..." : "Run System Check"}
+            </Button>
+          </div>
+          
+          <p className="text-sm text-gray-600 mt-2">
+            Comprehensive verification of all endpoints, balances, and background engines before live trading.
+          </p>
+        </div>
+
         {/* Live Trading Control */}
         {systemStatus.deployment_ready && (
           <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
@@ -318,13 +366,13 @@ export function SystemStatusPanel() {
                   </Button>
                 ) : (
                   <Button
-                    onClick={() => activateLiveTradingMutation.mutate()}
+                    onClick={handleLiveTradingActivation}
                     size="sm"
-                    disabled={activateLiveTradingMutation.isPending || !systemStatus.deployment_ready}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={activateLiveTradingMutation.isPending || !systemStatus.deployment_ready || liveTradingActivated}
+                    className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                   >
                     <Play className="w-4 h-4 mr-1" />
-                    {activateLiveTradingMutation.isPending ? "Activating..." : "Activate Live Trading"}
+                    {activateLiveTradingMutation.isPending ? "Activating..." : liveTradingActivated ? "Live Trading Active" : "Activate Live Trading"}
                   </Button>
                 )}
               </div>
@@ -332,8 +380,8 @@ export function SystemStatusPanel() {
             
             <p className="text-sm text-gray-600 mt-2">
               {liveTradingStatus?.active 
-                ? "VICTORIA is actively trading with real funds. Monitor performance carefully."
-                : "Click to enable live trading with real SOL. Ensure you understand the risks."
+                ? "🔴 VICTORIA is actively trading with real funds. Monitor performance carefully."
+                : "✅ All systems verified. Click to enable live trading with real SOL."
               }
             </p>
           </div>

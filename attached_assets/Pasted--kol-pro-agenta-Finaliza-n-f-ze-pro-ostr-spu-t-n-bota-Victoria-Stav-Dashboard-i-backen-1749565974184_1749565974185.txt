@@ -1,0 +1,37 @@
+Úkol pro agenta – Finalizační fáze pro ostré spuštění bota Victoria
+
+// ✅ Stav: Dashboard i backend běží. Kód vypadá funkčně, ale chybí plnohodnotná verifikace před ostrým spuštěním.
+
+// 🧠 Potřebuji od tebe následující:
+
+1. Vytvoř funkci `runSystemCheck()` na backendu, která zkontroluje, že:
+   - všechny klíčové komponenty běží (Helius listener, Jupiter swap, Phantom keypair),
+   - endpointy vracejí odpovědi: `/portfolio`, `/portfolio_history`, `/strategy_winrates`, `/alpha_opportunities`, `/token_activity`, `/live_analysis`, `/ai_matrix`, `/system_status`, apod.
+   - dostupné prostředky v peněžence jsou větší než 0.1 USD
+   - není žádná fatální chyba v konzoli ani ve background enginech (přes logger nebo jiný interní report)
+
+2. Přidej tlačítko **"Run System Check"** do dashboardu (SystemStatusPanel) – po kliknutí spustí `runSystemCheck()` a vrátí uživateli výsledek kontroly (např. ✅ All systems go / ❌ Missing component: ...)
+
+3. Po úspěšné kontrole se má zobrazit **button "Activate Live Trading"**, který:
+   - spustí reálné obchodování (nastaví režim `live = true`),
+   - po aktivaci znepřístupní opětovné kliknutí (toggle už nebude možný).
+
+4. Zajisti, že obchodování běží ve vlákně, které:
+   - kontroluje dostupné tokeny (přes strategii ShadowSyncAI),
+   - kontroluje kontrakt (contract_checker),
+   - zajišťuje alokaci kapitálu (capital_manager),
+   - provede swap (jup_swap),
+   - zaznamená obchod do `trades.json` a aktualizuje `portfolio.json`.
+
+5. Ujisti se, že máme napojené notifikace (stačí interní alert v dashboardu nebo konzoli), kdykoli proběhne:
+   - úspěšný obchod (token X koupen za Y USD)
+   - výprodej (sell event)
+   - error v některé části
+
+6. Vytvoř přehledný report, co **už máme hotové** a co **ještě zbývá dokončit**, aby byl bot 100% připravený na ostrý režim.
+
+7. Bonus: Pokud máš čas, přidej elegantní animaci (např. pulsující stavový kruh) do SystemStatusPanel při spuštění kontroly nebo aktivaci režimu.
+
+Cíl: Uživatel jen klikne „Run System Check“ → pokud je vše OK, zobrazí se „Activate Live Trading“ → pak běží ostrý režim nonstop. Už žádné ruční spouštění, žádné riskantní aktivace.
+
+Nezačínej kódovat, dokud nebudeš mít jasno v architektuře. Až to budeš mít rozmyšlené, potvrď plán a napiš, co máš hotové a jaké endpointy nebo soubory budeš upravovat.

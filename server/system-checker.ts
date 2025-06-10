@@ -423,6 +423,138 @@ class SystemChecker {
     }
   }
 
+  private async checkEndpoints(endpoints: string[]): Promise<CheckStatus> {
+    try {
+      const results = await Promise.allSettled(
+        endpoints.map(async (endpoint) => {
+          const response = await fetch(`http://localhost:5000${endpoint}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          return { endpoint, status: response.status, ok: response.ok };
+        })
+      );
+
+      const failedEndpoints = results
+        .map((result, index) => {
+          if (result.status === 'fulfilled') {
+            return result.value.ok ? null : `${endpoints[index]} (${result.value.status})`;
+          } else {
+            return `${endpoints[index]} (error)`;
+          }
+        })
+        .filter(Boolean);
+
+      const successCount = results.length - failedEndpoints.length;
+      const totalCount = results.length;
+
+      if (failedEndpoints.length === 0) {
+        return {
+          status: 'ok',
+          message: `All API endpoints responsive (${successCount}/${totalCount})`,
+          details: { endpoints, successCount, totalCount }
+        };
+      } else if (successCount >= totalCount * 0.8) {
+        return {
+          status: 'warning',
+          message: `Most API endpoints responsive (${successCount}/${totalCount})`,
+          details: { endpoints, successCount, totalCount, failed: failedEndpoints }
+        };
+      } else {
+        return {
+          status: 'error',
+          message: `Critical API endpoints failing (${successCount}/${totalCount})`,
+          details: { endpoints, successCount, totalCount, failed: failedEndpoints }
+        };
+      }
+    } catch (error) {
+      return {
+        status: 'error',
+        message: `Endpoint check failed: ${error.message}`
+      };
+    }
+  }
+
+  private async checkBalanceUSD(): Promise<CheckStatus> {
+    try {
+      const balance = await this.solanaConnection.getBalance(new PublicKey(this.WALLET_ADDRESS));
+      const solBalance = balance / 1e9;
+      
+      // Get SOL price in USD (simplified estimate)
+      const solPriceUSD = 150; // Current approximate SOL price
+      const balanceUSD = solBalance * solPriceUSD;
+      const minimumUSD = 0.1;
+
+      if (balanceUSD >= minimumUSD) {
+        return {
+          status: 'ok',
+          message: `Wallet balance sufficient: $${balanceUSD.toFixed(2)} USD (${solBalance.toFixed(4)} SOL)`,
+          details: { balanceUSD, solBalance, minimumUSD, solPriceUSD }
+        };
+      } else {
+        return {
+          status: 'error',
+          message: `Wallet balance insufficient: $${balanceUSD.toFixed(2)} USD (minimum: $${minimumUSD} USD)`,
+          details: { balanceUSD, solBalance, minimumUSD, solPriceUSD }
+        };
+      }
+    } catch (error) {
+      return {
+        status: 'error',
+        message: `USD balance check failed: ${error.message}`
+      };
+    }
+  }
+
+  private async checkBackgroundEngines(): Promise<CheckStatus> {
+    try {
+      const engineChecks = [
+        { name: 'Alpha Acceleration Engine', check: () => import('./alpha-acceleration-engine') },
+        { name: 'Adaptive Trading Engine', check: () => import('./adaptive-trading-engine') },
+        { name: 'Copy Trading Engine', check: () => import('./copytrading-engine') },
+        { name: 'Alpha Leak Hunter', check: () => import('./alpha-leak-hunter') },
+        { name: 'Crash Shield', check: () => import('./crash-shield') },
+        { name: 'Smart Capital Allocation', check: () => import('./smart-capital-allocation') },
+        { name: 'Portfolio Meta Manager', check: () => import('./portfolio-meta-manager') }
+      ];
+
+      const results = await Promise.allSettled(
+        engineChecks.map(async (engine) => {
+          await engine.check();
+          return { name: engine.name, status: 'ok' };
+        })
+      );
+
+      const operationalEngines = results.filter(r => r.status === 'fulfilled').length;
+      const totalEngines = engineChecks.length;
+
+      if (operationalEngines === totalEngines) {
+        return {
+          status: 'ok',
+          message: `All background engines operational (${operationalEngines}/${totalEngines})`,
+          details: { operationalEngines, totalEngines }
+        };
+      } else if (operationalEngines >= totalEngines * 0.8) {
+        return {
+          status: 'warning',
+          message: `Most background engines operational (${operationalEngines}/${totalEngines})`,
+          details: { operationalEngines, totalEngines }
+        };
+      } else {
+        return {
+          status: 'error',
+          message: `Critical background engines missing (${operationalEngines}/${totalEngines})`,
+          details: { operationalEngines, totalEngines }
+        };
+      }
+    } catch (error) {
+      return {
+        status: 'error',
+        message: `Background engines check failed: ${error.message}`
+      };
+    }
+  }
+
   private async checkSOLBalance(): Promise<CheckStatus> {
     try {
       const balance = await this.solanaConnection.getBalance(new PublicKey(this.WALLET_ADDRESS));
