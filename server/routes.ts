@@ -19,6 +19,11 @@ import { patternPerformanceTracker } from "./pattern-performance-tracker";
 import { portfolioMetaManager } from "./portfolio-meta-manager";
 import { crashShield } from "./crash-shield";
 import { accountIntelligence } from "./account-intelligence";
+import { copyTradingEngine } from "./copytrading-engine";
+import { patternWalletCorrelationEngine } from "./pattern-wallet-correlation";
+import { smartCapitalAllocationEngine } from "./smart-capital-allocation";
+import { layeredRiskDefenseSystem } from "./layered-risk-defense";
+import { realTimeProfitHeatmap } from "./real-time-profit-heatmap";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1942,5 +1947,165 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Pattern-Wallet Correlation Routes
+  app.get('/api/pattern-correlation/wallet-styles', (req, res) => {
+    try {
+      const styles = patternWalletCorrelationEngine.getWalletStyles();
+      res.json(styles);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get wallet styles' });
+    }
+  });
+
+  app.get('/api/pattern-correlation/patterns', (req, res) => {
+    try {
+      const patterns = patternWalletCorrelationEngine.getPatternDatabase();
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get patterns' });
+    }
+  });
+
+  app.post('/api/pattern-correlation/analyze-token', async (req, res) => {
+    try {
+      const tokenData = req.body;
+      const matches = await patternWalletCorrelationEngine.analyzeTokenForPatterns(tokenData);
+      res.json(matches);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to analyze token patterns' });
+    }
+  });
+
+  // Smart Capital Allocation Routes
+  app.get('/api/capital/allocation-params', (req, res) => {
+    try {
+      const params = smartCapitalAllocationEngine.getAllocationParameters();
+      res.json(params);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get allocation parameters' });
+    }
+  });
+
+  app.put('/api/capital/allocation-params', (req, res) => {
+    try {
+      smartCapitalAllocationEngine.updateAllocationParameters(req.body);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update allocation parameters' });
+    }
+  });
+
+  app.get('/api/capital/portfolio-metrics', (req, res) => {
+    try {
+      const metrics = smartCapitalAllocationEngine.getPortfolioMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get portfolio metrics' });
+    }
+  });
+
+  app.post('/api/capital/calculate-allocation', async (req, res) => {
+    try {
+      const { tokenData, confidenceScore, patternStrength, walletPerformance } = req.body;
+      const allocation = await smartCapitalAllocationEngine.calculateOptimalAllocation(
+        tokenData, 
+        confidenceScore, 
+        patternStrength || 0, 
+        walletPerformance || 0
+      );
+      res.json(allocation);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to calculate allocation' });
+    }
+  });
+
+  app.get('/api/capital/allocation-summary', (req, res) => {
+    try {
+      const summary = smartCapitalAllocationEngine.getAllocationSummary();
+      res.json(summary);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get allocation summary' });
+    }
+  });
+
+  // Risk Defense Routes
+  app.post('/api/risk/assess-token', async (req, res) => {
+    try {
+      const tokenData = req.body;
+      const assessment = await layeredRiskDefenseSystem.assessTokenRisk(tokenData);
+      res.json(assessment);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to assess token risk' });
+    }
+  });
+
+  app.get('/api/risk/token-score/:mintAddress', (req, res) => {
+    try {
+      const mintAddress = req.params.mintAddress;
+      const score = layeredRiskDefenseSystem.getTokenRiskScore(mintAddress);
+      res.json(score);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get token risk score' });
+    }
+  });
+
+  app.get('/api/risk/report', (req, res) => {
+    try {
+      const report = layeredRiskDefenseSystem.generateRiskReport();
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate risk report' });
+    }
+  });
+
+  // Profit Heatmap Routes
+  app.get('/api/heatmap/data', (req, res) => {
+    try {
+      const heatmapData = realTimeProfitHeatmap.getHeatmapData();
+      res.json(heatmapData);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get heatmap data' });
+    }
+  });
+
+  app.get('/api/heatmap/top-performers', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const topPerformers = realTimeProfitHeatmap.getTopPerformers(limit);
+      res.json(topPerformers);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get top performers' });
+    }
+  });
+
+  app.get('/api/heatmap/hottest', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const hottestItems = realTimeProfitHeatmap.getHottestItems(limit);
+      res.json(hottestItems);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get hottest items' });
+    }
+  });
+
+  app.get('/api/heatmap/metrics/:period?', (req, res) => {
+    try {
+      const period = (req.params.period as '1h' | '6h' | '24h') || '24h';
+      const metrics = realTimeProfitHeatmap.getProfitMetrics(period);
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get profit metrics' });
+    }
+  });
+
+  app.get('/api/heatmap/global', (req, res) => {
+    try {
+      const globalHeatmap = realTimeProfitHeatmap.getGlobalHeatmap();
+      res.json(globalHeatmap);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get global heatmap' });
+    }
+  });
+
   return httpServer;
 }
