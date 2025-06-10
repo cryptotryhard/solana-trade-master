@@ -31,6 +31,7 @@ import { alphaAutoFollowEngine } from "./alpha-auto-follow";
 import { simulationModeEngine } from "./simulation-mode";
 import { systemChecker } from "./system-checker";
 import { webhookNotifier } from "./webhook-notifier";
+import { liveTradingEngine } from "./live-trading-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -2494,7 +2495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/live-trading/toggle', (req, res) => {
+  app.post('/api/live-trading/toggle', async (req, res) => {
     try {
       const { mode } = req.body;
       
@@ -2509,8 +2510,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (mode === 'live') {
         console.log('⚠️  WARNING: Live trading mode activated - real transactions will be executed');
+        // Activate the live trading engine
+        await liveTradingEngine.activate();
       } else {
         console.log('🛡️  Demo mode activated - no real transactions will be executed');
+        // Deactivate the live trading engine
+        await liveTradingEngine.deactivate();
       }
 
       const status = {
