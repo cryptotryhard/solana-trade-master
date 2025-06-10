@@ -1,5 +1,9 @@
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { jupiterSwapEngine } from './jupiter-swap-engine';
+import { livePortfolioTracker } from './live-portfolio-tracker';
+import { tradeLogger } from './trade-logger';
+import { dynamicReinvestmentEngine } from './dynamic-reinvestment-engine';
+import { alphaWatchlistManager } from './alpha-watchlist-manager';
 
 interface LiveTrade {
   id: string;
