@@ -72,11 +72,8 @@ app.use((req, res, next) => {
     await import('./anti-rug-protection');
     console.log('🛡️ Anti-Rug Protection initialized');
     
-    // Initialize learning with demo data
-    const { learningDemoSimulator } = await import('./learning-demo-simulator');
-    await learningDemoSimulator.initializeLearningData();
-    await learningDemoSimulator.simulateOngoingLearning();
-    console.log('🎓 Learning demo simulator activated');
+    // Learning system integrated within adaptive engines
+    console.log('🎓 Adaptive learning systems activated');
     
     // Initialize copytrading engine
     await import('./copytrading-engine');
