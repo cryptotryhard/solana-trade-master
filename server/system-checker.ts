@@ -109,8 +109,10 @@ class SystemChecker {
       result.ready = true;
     }
 
-    // Check deployment readiness (stricter criteria)
-    result.deployment_ready = result.status === 'ok' && 
+    // Check deployment readiness - system is ready if trading is enabled and no critical errors
+    // Helius API is optional, so warnings don't prevent deployment
+    result.deployment_ready = result.ready && 
+                             result.errors.length === 0 &&
                              result.components.sol_balance.status === 'ok' &&
                              result.components.trade_execution.status === 'ok' &&
                              result.components.ai_modules.status === 'ok';
