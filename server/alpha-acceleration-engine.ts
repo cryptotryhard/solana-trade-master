@@ -303,8 +303,8 @@ class AlphaAccelerationEngine {
       };
 
       // Calculate aggressive position size based on advantage and confidence
-      const basePosition = 25; // $25 SOL per trade
-      const advantageMultiplier = Math.min((token.advantage || 100) / 100, 3); // Up to 3x for high advantage
+      const basePosition = 50; // $50 SOL per trade - doubled for aggressive scaling
+      const advantageMultiplier = Math.min((token.advantage || 100) / 100, 5); // Up to 5x for extreme advantages
       const confidenceMultiplier = (token.confidence || 85) / 100;
       const positionSizeSOL = basePosition * advantageMultiplier * confidenceMultiplier;
       

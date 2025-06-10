@@ -30,9 +30,9 @@ class AggressiveCapitalScaling extends EventEmitter {
   private scaledTrades: ScalingTrade[] = [];
   private baseCapital: number = 500; // Starting $500
   private targetCapital: number = 5000; // Target $5,000
-  private aggressiveMultiplier: number = 2.5; // 2.5x scaling on winners
-  private maxPositionSize: number = 100; // Max $100 per position
-  private reinvestmentRate: number = 0.75; // 75% profit reinvestment
+  private aggressiveMultiplier: number = 3.0; // 3.0x scaling on winners
+  private maxPositionSize: number = 150; // Max $150 per position
+  private reinvestmentRate: number = 0.85; // 85% profit reinvestment
 
   constructor() {
     super();
