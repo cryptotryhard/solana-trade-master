@@ -34,17 +34,51 @@ class RealPortfolioTracker {
   private realTrades: RealTradeRecord[] = [];
   private readonly STARTING_CAPITAL = 500; // Real starting amount
 
+  private rpcEndpoints = [
+    'https://rpc.heliohost.org',
+    'https://rpc.ankr.com/solana', 
+    'https://solana-mainnet.rpc.extrnode.com',
+    'https://api.mainnet-beta.solana.com',
+    'https://solana.public-rpc.com'
+  ];
+  private currentEndpointIndex = 0;
+
   constructor() {
-    this.connection = new Connection('https://api.mainnet-beta.solana.com');
+    this.connection = new Connection(this.rpcEndpoints[0]);
+  }
+
+  private async switchToNextEndpoint(): Promise<void> {
+    this.currentEndpointIndex = (this.currentEndpointIndex + 1) % this.rpcEndpoints.length;
+    this.connection = new Connection(this.rpcEndpoints[this.currentEndpointIndex]);
+    console.log(`🔄 Switched to RPC: ${this.rpcEndpoints[this.currentEndpointIndex]}`);
+  }
+
+  private async retryWithFallback<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (attempt < maxRetries - 1) {
+          console.log(`⚠️ RPC attempt ${attempt + 1} failed, switching endpoint`);
+          await this.switchToNextEndpoint();
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error('All RPC endpoints failed');
   }
 
   async getRealWalletData(walletAddress: string): Promise<RealPortfolioData> {
     try {
       const wallet = new PublicKey(walletAddress);
       
-      // Get SOL balance
-      const solBalance = await this.connection.getBalance(wallet);
-      const solInTokens = solBalance / 1e9; // Convert lamports to SOL
+      // Get SOL balance with retry fallback
+      const solBalance = await this.retryWithFallback(async () => {
+        return await this.connection.getBalance(wallet);
+      });
+      const solInTokens = solBalance / 1e9;
       
       // Get SOL price with proper error handling
       let solPrice = 164.50; // Current SOL price fallback
@@ -212,6 +246,14 @@ class RealPortfolioTracker {
       winRate: this.realTrades.length > 0 ? (winningTrades / this.realTrades.length) * 100 : 0,
       totalVolume
     };
+  }
+
+  async getPortfolioData(walletAddress: string): Promise<RealPortfolioData> {
+    return await this.getRealWalletData(walletAddress);
+  }
+
+  async getPerformanceMetrics(): Promise<any> {
+    return this.getRealMetrics();
   }
 }
 

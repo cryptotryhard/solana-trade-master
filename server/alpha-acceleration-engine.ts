@@ -11,6 +11,7 @@ import { alphaDataGenerator } from './alpha-data-generator';
 import { adaptiveStrategyEngine } from './adaptive-strategy-engine';
 import { prePumpPredictor } from './pre-pump-predictor';
 import { pumpPatternMemory } from './pump-pattern-memory';
+import { aggressiveAlphaFilter } from './aggressive-alpha-filter';
 
 interface AlphaToken {
   symbol: string;
