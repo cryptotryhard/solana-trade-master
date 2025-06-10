@@ -308,9 +308,9 @@ class AlphaAccelerationEngine {
       const confidenceMultiplier = (token.confidence || 85) / 100;
       const positionSizeSOL = basePosition * advantageMultiplier * confidenceMultiplier;
       
-      // Import execution and scaling engines for real trading
-      const { liveExecutionEngine } = await import('./live-execution-engine');
-      const { aggressiveCapitalScaling } = await import('./aggressive-capital-scaling');
+      // Import aggressive execution system for high-advantage trading
+      const { aggressiveExecutionManager } = await import('./aggressive-execution-manager');
+      const { liveTradingExecution } = await import('./live-trading-execution');
       
       // Execute real buy order
       const trade = await liveExecutionEngine.executeBuyOrder(
