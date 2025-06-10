@@ -592,6 +592,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Integration Service endpoints
+  app.get('/api/adaptive-integration/status', async (req, res) => {
+    try {
+      const { adaptiveIntegrationService } = await import('./adaptive-integration-service');
+      const status = adaptiveIntegrationService.getQueueStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get integration status' });
+    }
+  });
+
+  app.get('/api/adaptive-integration/queue', async (req, res) => {
+    try {
+      const { adaptiveIntegrationService } = await import('./adaptive-integration-service');
+      const queue = adaptiveIntegrationService.getExecutionQueue();
+      res.json(queue);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get execution queue' });
+    }
+  });
+
+  app.post('/api/adaptive-integration/analyze-token', async (req, res) => {
+    try {
+      const { adaptiveIntegrationService } = await import('./adaptive-integration-service');
+      const tokenData = req.body;
+      
+      if (!tokenData.symbol) {
+        return res.status(400).json({ error: 'Missing token symbol' });
+      }
+
+      const decision = await adaptiveIntegrationService.analyzeAlphaToken(tokenData);
+      res.json(decision);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to analyze token' });
+    }
+  });
+
   // Wallet balance proxy endpoint
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {

@@ -208,6 +208,9 @@ export function MainDashboard() {
 
       {/* Account Intelligence & Audit */}
       <AccountIntelligenceDashboard />
+
+      {/* Adaptive Trading Engine */}
+      <AdaptiveEngineDashboard />
     </div>
   );
 }

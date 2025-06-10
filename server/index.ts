@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
   
-  // Auto-activate Alpha Acceleration Mode
+  // Auto-activate Alpha Acceleration Mode and Adaptive Engine
   setTimeout(async () => {
     const { alphaAccelerationEngine } = await import('./alpha-acceleration-engine');
     await alphaAccelerationEngine.startAlphaMode();
@@ -49,6 +49,15 @@ app.use((req, res, next) => {
     console.log('📈 Layered position stacking: Up to 3 layers per token');
     console.log('💎 Auto-compounding: 85% profit reinvestment');
     console.log('👥 Shadow trading: Top 50 wallets monitored');
+    
+    // Start adaptive trading engine
+    const { adaptiveEngine } = await import('./adaptive-trading-engine');
+    adaptiveEngine.start();
+    console.log('🧠 Adaptive Trading Engine activated with $500 capital');
+    
+    // Initialize integration service
+    await import('./adaptive-integration-service');
+    console.log('🔗 Adaptive Integration Service initialized');
   }, 3000); // Activate after 3 seconds
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
