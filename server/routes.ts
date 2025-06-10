@@ -39,6 +39,9 @@ import { livePortfolioTracker } from "./live-portfolio-tracker";
 import { tradeLogger } from "./trade-logger";
 import { dynamicReinvestmentEngine } from "./dynamic-reinvestment-engine";
 import { alphaWatchlistManager } from "./alpha-watchlist-manager";
+import { snapshotVault } from "./snapshot-vault";
+import { hyperTacticalEntryEngine } from "./hyper-tactical-entry-engine";
+import { advancedMetricsEngine } from "./advanced-metrics-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -3349,6 +3352,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error removing from watchlist:", error);
       res.status(500).json({ error: "Failed to remove from watchlist" });
+    }
+  });
+
+  // Snapshot Vault API Routes
+  app.get("/api/vault/snapshots", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const snapshots = snapshotVault.getSnapshots(limit);
+      res.json(snapshots);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get portfolio snapshots" });
+    }
+  });
+
+  app.get("/api/vault/public-stats", async (req, res) => {
+    try {
+      const stats = snapshotVault.getPublicStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get public stats" });
+    }
+  });
+
+  app.get("/api/vault/milestone-progress", async (req, res) => {
+    try {
+      const progress = snapshotVault.getMilestoneProgress();
+      res.json(progress);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get milestone progress" });
+    }
+  });
+
+  app.get("/api/vault/public-url", async (req, res) => {
+    try {
+      const url = snapshotVault.getPublicStatsUrl();
+      res.json({ url });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get public stats URL" });
+    }
+  });
+
+  // Hyper-Tactical Entry Engine API Routes
+  app.get("/api/tactical/signals", async (req, res) => {
+    try {
+      const signals = hyperTacticalEntryEngine.getActiveSignals();
+      res.json(signals);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get volatility signals" });
+    }
+  });
+
+  app.get("/api/tactical/entries", async (req, res) => {
+    try {
+      const entries = hyperTacticalEntryEngine.getPendingEntries();
+      res.json(entries);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get pending entries" });
+    }
+  });
+
+  app.get("/api/tactical/metrics", async (req, res) => {
+    try {
+      const metrics = hyperTacticalEntryEngine.getTacticalMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tactical metrics" });
+    }
+  });
+
+  app.get("/api/tactical/performance", async (req, res) => {
+    try {
+      const performance = hyperTacticalEntryEngine.getPerformanceReport();
+      res.json(performance);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get performance report" });
+    }
+  });
+
+  app.post("/api/tactical/activate", async (req, res) => {
+    try {
+      const { active } = req.body;
+      hyperTacticalEntryEngine.setActive(active);
+      res.json({ success: true, message: `Tactical engine ${active ? 'activated' : 'deactivated'}` });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update tactical engine status" });
+    }
+  });
+
+  app.post("/api/tactical/optimize", async (req, res) => {
+    try {
+      const params = req.body;
+      hyperTacticalEntryEngine.optimizeParameters(params);
+      res.json({ success: true, message: "Tactical parameters optimized" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to optimize tactical parameters" });
     }
   });
 
