@@ -121,9 +121,7 @@ export function SystemStatusPanel() {
   });
 
   const activateLiveTradingMutation = useMutation({
-    mutationFn: () => apiRequest('/api/live-trading/activate', {
-      method: 'POST',
-    }),
+    mutationFn: () => apiRequest('/api/live-trading/activate', 'POST'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/live-trading/status'] });
       toast({
@@ -141,9 +139,7 @@ export function SystemStatusPanel() {
   });
 
   const deactivateLiveTradingMutation = useMutation({
-    mutationFn: () => apiRequest('/api/live-trading/deactivate', {
-      method: 'POST',
-    }),
+    mutationFn: () => apiRequest('/api/live-trading/deactivate', 'POST'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/live-trading/status'] });
       toast({

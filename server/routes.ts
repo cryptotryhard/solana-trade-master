@@ -30,6 +30,7 @@ import { tradeExplanationGenerator } from "./trade-explanation-generator";
 import { alphaAutoFollowEngine } from "./alpha-auto-follow";
 import { simulationModeEngine } from "./simulation-mode";
 import { systemChecker } from "./system-checker";
+import { webhookNotifier } from "./webhook-notifier";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
