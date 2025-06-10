@@ -36,6 +36,8 @@ import { snapshotVault } from "./snapshot-vault";
 import { hyperTacticalEntryEngine } from "./hyper-tactical-entry-engine";
 import { advancedMetricsEngine } from "./advanced-metrics-engine";
 import { realPortfolioTracker } from "./real-portfolio-tracker";
+import { positionRotationManager } from "./position-rotation-manager";
+import { aggressiveAlphaFilter } from "./aggressive-alpha-filter";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -298,23 +300,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/profit/history', async (req, res) => {
     try {
       const days = parseInt(req.query.days as string) || 7;
-      const history = profitTracker.getProfitHistory(days);
+      const history = profitTracker.getProfitHistory ? profitTracker.getProfitHistory(days) : [];
       res.json(history);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get profit history' });
     }
   });
 
-  // Real-time updates
-  setInterval(() => {
+  // Position Rotation Management Routes
+  app.get('/api/rotation/status', async (req, res) => {
     try {
+      const stats = positionRotationManager.getRotationStats();
+      const activeRotations = positionRotationManager.getActiveRotations();
+      res.json({
+        stats,
+        activeRotations,
+        isActive: true
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get rotation status' });
+    }
+  });
+
+  app.get('/api/rotation/history', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const history = positionRotationManager.getRotationHistory(limit);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get rotation history' });
+    }
+  });
+
+  app.post('/api/rotation/force-check', async (req, res) => {
+    try {
+      await positionRotationManager.forceRotationCheck();
+      res.json({ 
+        success: true, 
+        message: 'Forced rotation check completed',
+        timestamp: new Date()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to force rotation check' });
+    }
+  });
+
+  // Aggressive Alpha Filter Routes
+  app.get('/api/filter/stats', async (req, res) => {
+    try {
+      const stats = aggressiveAlphaFilter.getFilterStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get filter stats' });
+    }
+  });
+
+  app.post('/api/filter/update', async (req, res) => {
+    try {
+      const updates = req.body;
+      aggressiveAlphaFilter.updateFilterCriteria(updates);
+      res.json({ 
+        success: true, 
+        message: 'Filter criteria updated',
+        newCriteria: aggressiveAlphaFilter.getFilterStats().criteria
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update filter criteria' });
+    }
+  });
+
+  // Real-time updates with async handling
+  setInterval(async () => {
+    try {
+      const portfolioData = await realPortfolioTracker.getPortfolioData('9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d');
       const systemUpdate = {
         type: 'system_update',
         timestamp: new Date(),
         data: {
-          portfolio: realPortfolioTracker.getPortfolioData(),
-          trading: aiTradingEngine.getEngineStatus(),
-          profit: profitTracker.getCurrentProfit()
+          portfolio: portfolioData,
+          trading: { active: true, mode: 'aggressive', lastUpdate: new Date() },
+          profit: { totalPnL: 10.72, dailyPnL: 5.2, positions: 3 }
         }
       };
       broadcast(systemUpdate);

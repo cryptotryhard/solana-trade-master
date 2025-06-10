@@ -151,10 +151,16 @@ class AlphaAccelerationEngine {
   private async processAlphaTokens(tokens: any[]): Promise<void> {
     this.status.currentPhase = 'analyzing';
     
-    for (const token of tokens) {
+    // Convert to alpha tokens first
+    const alphaTokens = tokens.map(token => this.convertToAlphaToken(token));
+    
+    // Apply aggressive filtering for early-stage opportunities
+    const filteredTokens = aggressiveAlphaFilter.filterAlphaTokens(alphaTokens);
+    console.log(`🎯 AGGRESSIVE FILTER: ${filteredTokens.length}/${alphaTokens.length} tokens passed aggressive criteria`);
+    
+    // Process filtered tokens (only highest quality early-stage opportunities)
+    for (const alphaToken of filteredTokens) {
       try {
-        const alphaToken = this.convertToAlphaToken(token);
-        
         if (await this.validateAlphaToken(alphaToken)) {
           this.status.validAlphaCount++;
           await this.executeAlphaEntry(alphaToken);
@@ -163,7 +169,7 @@ class AlphaAccelerationEngine {
         this.status.totalTokensProcessed++;
         
       } catch (error) {
-        console.error(`Error processing token ${token.symbol}:`, error);
+        console.error(`Error processing token ${alphaToken.symbol}:`, error);
       }
     }
     
