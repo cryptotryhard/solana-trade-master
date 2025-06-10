@@ -220,4 +220,7 @@ class DynamicReinvestmentEngine {
 }
 
 export const dynamicReinvestmentEngine = new DynamicReinvestmentEngine();
+
+// Start automatic reinvestment immediately
+dynamicReinvestmentEngine.startAutomaticReinvestment();
 export { ReinvestmentOpportunity, ReinvestmentConfig };

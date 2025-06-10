@@ -4,6 +4,7 @@ import { PortfolioSidebar } from '@/components/portfolio-sidebar';
 import { MainDashboard } from '@/components/main-dashboard-tabbed';
 import { LivePortfolioDashboard } from '@/components/live-portfolio-dashboard';
 import { ActivityPanel } from '@/components/activity-panel';
+import { AdvancedMetricsDashboard } from '@/components/advanced-metrics-dashboard';
 import { useWebSocket } from '@/lib/websocket';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -76,6 +77,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <MainDashboard />
             <LivePortfolioDashboard />
+            <AdvancedMetricsDashboard />
           </div>
           <ActivityPanel />
         </div>
