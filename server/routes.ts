@@ -2472,6 +2472,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live Trading Mode Control
+  let tradingMode = 'demo'; // Global state for trading mode
+  let liveTradingActive = false;
+
+  app.get('/api/live-trading/status', (req, res) => {
+    try {
+      const status = {
+        active: liveTradingActive,
+        mode: tradingMode,
+        timestamp: new Date().toISOString(),
+        balance: tradingMode === 'demo' ? 3.257 : null,
+        trades24h: 0,
+        pnl24h: 0,
+        lastTransaction: null
+      };
+      res.json(status);
+    } catch (error) {
+      console.error('Error getting live trading status:', error);
+      res.status(500).json({ error: 'Failed to get live trading status' });
+    }
+  });
+
+  app.post('/api/live-trading/toggle', (req, res) => {
+    try {
+      const { mode } = req.body;
+      
+      if (mode !== 'live' && mode !== 'demo') {
+        return res.status(400).json({ error: 'Invalid mode. Must be "live" or "demo"' });
+      }
+
+      tradingMode = mode;
+      liveTradingActive = true;
+      
+      console.log(`🔄 Trading mode switched to: ${mode.toUpperCase()}`);
+      
+      if (mode === 'live') {
+        console.log('⚠️  WARNING: Live trading mode activated - real transactions will be executed');
+      } else {
+        console.log('🛡️  Demo mode activated - no real transactions will be executed');
+      }
+
+      const status = {
+        active: liveTradingActive,
+        mode: mode,
+        timestamp: new Date().toISOString(),
+        balance: mode === 'demo' ? 3.257 : null,
+        message: mode === 'live' 
+          ? 'Live trading activated - real transactions enabled' 
+          : 'Demo mode activated - simulation only'
+      };
+
+      res.json(status);
+    } catch (error) {
+      console.error('Error toggling trading mode:', error);
+      res.status(500).json({ error: 'Failed to toggle trading mode' });
+    }
+  });
+
   // System Check Routes
   app.get('/api/system-check', async (req, res) => {
     try {
@@ -2489,7 +2547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         status: 'error',
         ready: false,
-        errors: [`System check failed: ${error.message}`],
+        errors: [`System check failed: ${(error as Error).message}`],
         warnings: [],
         components: {},
         deployment_ready: false,
