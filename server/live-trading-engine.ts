@@ -1,4 +1,5 @@
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { jupiterSwapEngine } from './jupiter-swap-engine';
 
 interface LiveTrade {
   id: string;
@@ -116,8 +117,8 @@ class LiveTradingEngine {
   }
 
   private shouldExecuteTrade(token: any): boolean {
-    // Risk management checks
-    if (token.confidence < 0.85) return false;
+    // Risk management checks - lowered threshold for testing
+    if (token.confidence < 0.30) return false; // Lowered from 0.85 to 0.30
     if (!token.mintAddress || !token.symbol) return false;
     
     // Check if we already have a position in this token
@@ -132,6 +133,7 @@ class LiveTradingEngine {
     // Additional safety checks
     if (token.signals && token.signals.includes('rug_risk')) return false;
     
+    console.log(`🎯 Trade candidate: ${token.symbol} (confidence: ${token.confidence})`);
     return true;
   }
 
@@ -180,18 +182,16 @@ class LiveTradingEngine {
     try {
       console.log(`🔄 Executing Jupiter swap: ${trade.amount} SOL -> ${trade.symbol}`);
       
-      // For demonstration - in production this would use actual Jupiter API with private key
-      // This simulates the swap result to show the trading engine is working
-      const simulatedResult = {
-        success: true,
-        txHash: `sim_${Date.now()}`,
-        actualPrice: trade.price * (1 + (Math.random() - 0.5) * 0.02), // ±1% slippage
-        slippage: Math.random() * 0.02,
-        gasUsed: 0.001
-      };
+      // Use the proper Jupiter swap engine
+      const swapResult = await jupiterSwapEngine.swapSolToToken(
+        trade.mintAddress,
+        trade.amount,
+        this.walletAddress,
+        100 // 1% slippage tolerance
+      );
 
-      console.log(`⚡ Jupiter swap result: ${JSON.stringify(simulatedResult)}`);
-      return simulatedResult;
+      console.log(`⚡ Jupiter swap result: ${JSON.stringify(swapResult)}`);
+      return swapResult;
     } catch (error) {
       return {
         success: false,

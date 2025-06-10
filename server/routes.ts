@@ -33,6 +33,8 @@ import { systemChecker } from "./system-checker";
 import { webhookNotifier } from "./webhook-notifier";
 import { liveTradingEngine } from "./live-trading-engine";
 import { enhancedBirdeyeIntegration } from "./enhanced-birdeye-integration";
+import { dexscreenerIntegration } from "./dexscreener-integration";
+import { pumpFunIntegration } from "./pumpfun-integration";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1106,6 +1108,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(status);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch system status' });
+    }
+  });
+
+  // Dexscreener Integration endpoints
+  app.get("/api/dexscreener/tokens", async (req, res) => {
+    try {
+      const tokens = dexscreenerIntegration.getAuthenticTokens();
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch Dexscreener tokens' });
+    }
+  });
+
+  app.get("/api/dexscreener/status", async (req, res) => {
+    try {
+      const status = dexscreenerIntegration.getSystemStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch Dexscreener status' });
+    }
+  });
+
+  // Pump.fun Integration endpoints
+  app.get("/api/pumpfun/tokens", async (req, res) => {
+    try {
+      const tokens = pumpFunIntegration.getAuthenticTokens();
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch Pump.fun tokens' });
+    }
+  });
+
+  app.get("/api/pumpfun/status", async (req, res) => {
+    try {
+      const status = pumpFunIntegration.getSystemStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch Pump.fun status' });
     }
   });
 
