@@ -217,23 +217,47 @@ export function AlphaHeatDashboard() {
                   {filteredData.slice(0, 12).map((entry) => (
                     <div
                       key={entry.id}
-                      className={`p-4 rounded-lg border transition-all duration-300 ${getHotnessColor(entry.hotness)}/10 border-${getHotnessColor(entry.hotness).split('-')[1]}-500/20`}
+                      className={`p-5 rounded-xl border-2 transition-all duration-300 hover:scale-105 cursor-pointer ${
+                        entry.hotness >= 80 ? 'bg-red-500/20 border-red-500/50' :
+                        entry.hotness >= 60 ? 'bg-orange-500/20 border-orange-500/50' :
+                        entry.hotness >= 40 ? 'bg-yellow-500/20 border-yellow-500/50' :
+                        entry.hotness >= 20 ? 'bg-blue-500/20 border-blue-500/50' :
+                        'bg-gray-500/20 border-gray-500/50'
+                      }`}
                       style={{
-                        boxShadow: `0 0 ${entry.hotness / 5}px ${getHotnessColor(entry.hotness).replace('bg-', 'rgb(var(--')})`
+                        background: entry.hotness >= 80 ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))' :
+                                   entry.hotness >= 60 ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05))' :
+                                   entry.hotness >= 40 ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.05))' :
+                                   entry.hotness >= 20 ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))' :
+                                   'linear-gradient(135deg, rgba(107, 114, 128, 0.15), rgba(107, 114, 128, 0.05))'
                       }}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {getTypeIcon(entry.type)}
-                          <div className="font-medium text-sm truncate">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`p-2 rounded-lg ${
+                            entry.hotness >= 80 ? 'bg-red-500/30' :
+                            entry.hotness >= 60 ? 'bg-orange-500/30' :
+                            entry.hotness >= 40 ? 'bg-yellow-500/30' :
+                            entry.hotness >= 20 ? 'bg-blue-500/30' :
+                            'bg-gray-500/30'
+                          }`}>
+                            {getTypeIcon(entry.type)}
+                          </div>
+                          <div className="font-bold text-lg text-white drop-shadow-lg truncate">
                             {entry.symbol || entry.name}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {getTrendIcon(entry.trend)}
                           <Badge 
                             variant="outline" 
-                            className={`text-xs ${getHotnessColor(entry.hotness)} text-white border-none px-2 py-1`}
+                            className={`text-sm font-bold px-3 py-1 ${
+                              entry.hotness >= 80 ? 'bg-red-500 border-red-400 text-white' :
+                              entry.hotness >= 60 ? 'bg-orange-500 border-orange-400 text-white' :
+                              entry.hotness >= 40 ? 'bg-yellow-500 border-yellow-400 text-black' :
+                              entry.hotness >= 20 ? 'bg-blue-500 border-blue-400 text-white' :
+                              'bg-gray-500 border-gray-400 text-white'
+                            }`}
                           >
                             {entry.hotness.toFixed(0)}° Heat
                           </Badge>

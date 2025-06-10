@@ -236,8 +236,8 @@ export function AlphaTradeLog() {
           <p className="text-muted-foreground">Real-time trading decisions and execution log</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={liveStatus?.active ? "default" : "secondary"}>
-            {liveStatus?.active ? "Live Trading" : "Simulation"}
+          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+            Sharp Mode - Live Trading
           </Badge>
           <Button variant="outline" size="sm">
             <ExternalLink className="w-4 h-4 mr-2" />

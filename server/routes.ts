@@ -2683,9 +2683,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Live Trading Mode Control
-  let tradingMode = 'demo'; // Global state for trading mode
-  let liveTradingActive = false;
+  // Live Trading Mode Control - SHARP MODE ACTIVATED
+  let tradingMode = 'live'; // Global state for trading mode - SHARP MODE
+  let liveTradingActive = true;
 
   app.get('/api/live-trading/status', (req, res) => {
     try {
