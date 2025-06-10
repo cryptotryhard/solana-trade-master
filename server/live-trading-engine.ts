@@ -38,13 +38,18 @@ class LiveTradingEngine {
   private trades: LiveTrade[] = [];
   private connection: Connection;
   private walletAddress: string = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
-  private maxTradeSize: number = 0.5; // Max 0.5 SOL per trade
-  private minBalance: number = 1.0; // Keep minimum 1 SOL in wallet
+  private maxTradeSize: number = 0.1; // Max 0.1 SOL per trade for safety
+  private minBalance: number = 2.0; // Keep minimum 2 SOL in wallet
   private tradingInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     console.log('🚀 Live Trading Engine initialized');
+    
+    // Auto-activate for immediate real trading
+    setTimeout(() => {
+      this.activate();
+    }, 2000);
   }
 
   async activate(): Promise<void> {
@@ -118,7 +123,7 @@ class LiveTradingEngine {
 
   private shouldExecuteTrade(token: any): boolean {
     // Risk management checks - lowered threshold for testing
-    if (token.confidence < 0.30) return false; // Lowered from 0.85 to 0.30
+    if (token.confidence < 0.15) return false; // Further lowered for testing
     if (!token.mintAddress || !token.symbol) return false;
     
     // Check if we already have a position in this token
@@ -135,6 +140,47 @@ class LiveTradingEngine {
     
     console.log(`🎯 Trade candidate: ${token.symbol} (confidence: ${token.confidence})`);
     return true;
+  }
+
+  // Force execute a trade for testing purposes
+  async forceExecuteTrade(tokenSymbol?: string): Promise<any> {
+    console.log(`🔥 FORCE EXECUTING TRADE - REAL JUPITER SWAP`);
+    
+    try {
+      // Get available alpha tokens
+      const alphaTokens = await this.getAlphaOpportunities();
+      console.log(`📊 Found ${alphaTokens.length} alpha opportunities`);
+      
+      let targetToken = alphaTokens[0]; // Default to first token
+      
+      if (tokenSymbol) {
+        const specificToken = alphaTokens.find(t => t.symbol === tokenSymbol);
+        if (specificToken) {
+          targetToken = specificToken;
+        }
+      }
+      
+      if (!targetToken) {
+        return { success: false, error: 'No suitable alpha tokens found' };
+      }
+      
+      console.log(`🎯 Force executing trade for: ${targetToken.symbol} (${targetToken.mintAddress})`);
+      
+      // Execute the trade regardless of normal checks
+      await this.executeLiveTrade(targetToken);
+      
+      return { 
+        success: true, 
+        token: targetToken.symbol,
+        mintAddress: targetToken.mintAddress
+      };
+    } catch (error) {
+      console.error('❌ Force trade execution failed:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
   }
 
   private async executeLiveTrade(token: any): Promise<void> {
@@ -243,6 +289,15 @@ class LiveTradingEngine {
     return this.trades
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, limit);
+  }
+
+  // Additional methods for API compatibility
+  getLiveTrades(): LiveTrade[] {
+    return this.trades;
+  }
+
+  getTradingStatus(): any {
+    return this.getStatus();
   }
 
   getTradingMetrics(): TradingMetrics {

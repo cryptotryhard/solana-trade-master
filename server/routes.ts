@@ -1952,6 +1952,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live Trading Engine endpoints
+  app.post("/api/trading/force-execute", async (req, res) => {
+    try {
+      const { liveTradingEngine } = await import('./live-trading-engine');
+      const { tokenSymbol } = req.body;
+      
+      console.log(`🔥 API: Force executing trade${tokenSymbol ? ` for ${tokenSymbol}` : ''}`);
+      const result = await liveTradingEngine.forceExecuteTrade(tokenSymbol);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Force trade execution failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  app.get("/api/trading/live-trades", async (req, res) => {
+    try {
+      const { liveTradingEngine } = await import('./live-trading-engine');
+      const trades = liveTradingEngine.getLiveTrades();
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get live trades" });
+    }
+  });
+
+  app.get("/api/trading/status", async (req, res) => {
+    try {
+      const { liveTradingEngine } = await import('./live-trading-engine');
+      const status = liveTradingEngine.getTradingStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get trading status" });
+    }
+  });
+
   app.post("/api/signals/optimize", async (req, res) => {
     try {
       await signalOptimizer.optimizeSignalWeights();
