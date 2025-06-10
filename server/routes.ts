@@ -2479,19 +2479,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/live-trading/status', (req, res) => {
     try {
+      const engineStatus = liveTradingEngine.getStatus();
       const status = {
-        active: liveTradingActive,
+        active: liveTradingActive && tradingMode === 'live',
         mode: tradingMode,
         timestamp: new Date().toISOString(),
         balance: tradingMode === 'demo' ? 3.257 : null,
-        trades24h: 0,
+        trades24h: engineStatus.totalTrades,
         pnl24h: 0,
-        lastTransaction: null
+        lastTransaction: null,
+        engine: engineStatus
       };
       res.json(status);
     } catch (error) {
       console.error('Error getting live trading status:', error);
       res.status(500).json({ error: 'Failed to get live trading status' });
+    }
+  });
+
+  app.get('/api/live-trading/trades', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const trades = liveTradingEngine.getRecentTrades(limit);
+      res.json(trades);
+    } catch (error) {
+      console.error('Error getting live trades:', error);
+      res.status(500).json({ error: 'Failed to get live trades' });
+    }
+  });
+
+  app.get('/api/live-trading/metrics', (req, res) => {
+    try {
+      const metrics = liveTradingEngine.getTradingMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error getting trading metrics:', error);
+      res.status(500).json({ error: 'Failed to get trading metrics' });
     }
   });
 
