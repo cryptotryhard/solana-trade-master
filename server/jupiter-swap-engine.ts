@@ -93,7 +93,7 @@ class JupiterSwapEngine {
         },
         body: JSON.stringify({
           quoteResponse: quote,
-          userPublicKey,
+          userPublicKey: '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d', // Use actual wallet address
           wrapAndUnwrapSol,
           computeUnitPriceMicroLamports: 1000000, // Priority fee
         }),
