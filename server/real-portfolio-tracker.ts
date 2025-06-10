@@ -36,10 +36,10 @@ class RealPortfolioTracker {
 
   private rpcEndpoints = [
     'https://rpc.heliohost.org',
-    'https://rpc.ankr.com/solana', 
-    'https://solana-mainnet.rpc.extrnode.com',
-    'https://api.mainnet-beta.solana.com',
-    'https://solana.public-rpc.com'
+    'https://solana-api.projectserum.com',
+    'https://rpc.ankr.com/solana',
+    `https://solana-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY || 'demo'}`,
+    'https://api.mainnet-beta.solana.com'
   ];
   private currentEndpointIndex = 0;
 
