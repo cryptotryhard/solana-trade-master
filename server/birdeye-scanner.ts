@@ -46,13 +46,14 @@ interface BirdeyePriceData {
 
 class BirdeyeScanner {
   private baseUrl = 'https://public-api.birdeye.so';
+  private apiKey = process.env.BIRDEYE_API_KEY || '81357058bdf84d0f9ad7c90537750b20';
   
   async getNewTokens(limit: number = 50): Promise<BirdeyeToken[]> {
     try {
       const response = await fetch(`${this.baseUrl}/defi/tokenlist?sort_by=created_time&sort_type=desc&offset=0&limit=${limit}`, {
         headers: {
           'Accept': 'application/json',
-          'X-API-KEY': process.env.BIRDEYE_API_KEY || 'public'
+          'X-API-KEY': this.apiKey
         }
       });
       
