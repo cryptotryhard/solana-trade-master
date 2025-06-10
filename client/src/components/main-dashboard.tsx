@@ -12,6 +12,7 @@ import { PatternPerformanceTable } from './pattern-performance-table';
 import { PortfolioMetaDashboard } from './portfolio-meta-dashboard';
 import { CrashShieldDashboard } from './crash-shield-dashboard';
 import { AccountIntelligenceDashboard } from './account-intelligence-dashboard';
+import { AdaptiveEngineDashboard } from './adaptive-engine-dashboard';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({

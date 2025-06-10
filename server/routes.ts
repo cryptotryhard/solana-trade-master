@@ -516,6 +516,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Adaptive Trading Engine endpoints
+  app.get('/api/adaptive-engine/status', async (req, res) => {
+    try {
+      const { adaptiveEngine } = await import('./adaptive-trading-engine');
+      const status = adaptiveEngine.getEngineStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get engine status' });
+    }
+  });
+
+  app.post('/api/adaptive-engine/analyze', async (req, res) => {
+    try {
+      const { adaptiveEngine } = await import('./adaptive-trading-engine');
+      const tokenData = req.body;
+      
+      // Validate required fields
+      if (!tokenData.symbol || !tokenData.price) {
+        return res.status(400).json({ error: 'Missing required token data' });
+      }
+
+      const decision = await adaptiveEngine.analyzeToken(tokenData);
+      res.json(decision);
+    } catch (error) {
+      console.error('Token analysis error:', error);
+      res.status(500).json({ error: 'Failed to analyze token' });
+    }
+  });
+
+  app.get('/api/adaptive-engine/decisions', async (req, res) => {
+    try {
+      const { adaptiveEngine } = await import('./adaptive-trading-engine');
+      const limit = parseInt(req.query.limit as string) || 20;
+      const decisions = adaptiveEngine.getDecisionHistory(limit);
+      res.json(decisions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get decision history' });
+    }
+  });
+
+  app.post('/api/adaptive-engine/start', async (req, res) => {
+    try {
+      const { adaptiveEngine } = await import('./adaptive-trading-engine');
+      adaptiveEngine.start();
+      res.json({ status: 'Engine started successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to start engine' });
+    }
+  });
+
+  app.post('/api/adaptive-engine/stop', async (req, res) => {
+    try {
+      const { adaptiveEngine } = await import('./adaptive-trading-engine');
+      adaptiveEngine.stop();
+      res.json({ status: 'Engine stopped successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to stop engine' });
+    }
+  });
+
+  app.post('/api/adaptive-engine/update-capital', async (req, res) => {
+    try {
+      const { adaptiveEngine } = await import('./adaptive-trading-engine');
+      const { totalCapital, profit } = req.body;
+      
+      if (typeof totalCapital !== 'number') {
+        return res.status(400).json({ error: 'Invalid capital amount' });
+      }
+
+      adaptiveEngine.updateCapital(totalCapital, profit || 0);
+      res.json({ status: 'Capital updated successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update capital' });
+    }
+  });
+
   // Wallet balance proxy endpoint
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {
