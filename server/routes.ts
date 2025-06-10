@@ -858,6 +858,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Extended Copytrading endpoints
+  app.post('/api/copytrading/check-eligibility', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { address } = req.body;
+      
+      if (!address) {
+        return res.status(400).json({ error: 'Missing wallet address' });
+      }
+
+      const eligibility = await copyTradingEngine.checkWalletEligibility(address);
+      res.json(eligibility);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to check wallet eligibility' });
+    }
+  });
+
+  app.get('/api/copytrading/rankings', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const rankings = copyTradingEngine.getWalletRankings();
+      res.json(rankings);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get wallet rankings' });
+    }
+  });
+
+  app.get('/api/copytrading/report/:walletId/:period', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { walletId, period } = req.params;
+      
+      if (!['1d', '7d', '30d'].includes(period)) {
+        return res.status(400).json({ error: 'Invalid period. Use 1d, 7d, or 30d' });
+      }
+
+      const report = copyTradingEngine.generateCopyTradeReport(walletId, period as '1d' | '7d' | '30d');
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate report' });
+    }
+  });
+
+  app.get('/api/copytrading/export-reports/:period', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { period } = req.params;
+      
+      if (!['1d', '7d', '30d'].includes(period)) {
+        return res.status(400).json({ error: 'Invalid period. Use 1d, 7d, or 30d' });
+      }
+
+      const reports = copyTradingEngine.exportAllReports(period as '1d' | '7d' | '30d');
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="copytrading-report-${period}.json"`);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to export reports' });
+    }
+  });
+
+  app.get('/api/copytrading/settings', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const settings = copyTradingEngine.getSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get settings' });
+    }
+  });
+
+  app.put('/api/copytrading/settings', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const settings = req.body;
+      
+      copyTradingEngine.updateSettings(settings);
+      res.json({ status: 'Settings updated successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
+  });
+
   // Wallet balance proxy endpoint
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {

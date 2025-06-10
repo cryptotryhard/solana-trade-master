@@ -52,13 +52,91 @@ interface CopyDecision {
   engineAlignment: number; // 0-100% how much our engine agrees
 }
 
+interface WalletEligibilityCheck {
+  isEligible: boolean;
+  reasons: string[];
+  score: number;
+  requirements: {
+    minimumTrades: { required: number; actual: number; passed: boolean };
+    minimumWinRate: { required: number; actual: number; passed: boolean };
+    minimumROI: { required: number; actual: number; passed: boolean };
+    minimumAge: { required: number; actual: number; passed: boolean };
+    consistencyScore: { required: number; actual: number; passed: boolean };
+  };
+}
+
+interface CopyTradingSettings {
+  minimumWalletConfidence: number;
+  minimumWalletROI: number;
+  minimumTradeCount: number;
+  minimumWinRate: number;
+  minimumWalletAge: number; // days
+  maxCopyPercentage: number; // max % of our portfolio to copy
+  autoDeactivateThreshold: number; // deactivate wallet if performance drops below this ROI
+  consistencyThreshold: number; // minimum consistency score for eligibility
+}
+
+interface WalletRanking {
+  walletId: string;
+  name: string;
+  rank: number;
+  overallScore: number;
+  metrics: {
+    profitabilityScore: number;
+    consistencyScore: number;
+    riskAdjustedReturn: number;
+    recentPerformanceScore: number;
+    volumeScore: number;
+    stabilityScore: number;
+  };
+  category: 'elite' | 'strong' | 'average' | 'risky';
+}
+
+interface CopyTradeReport {
+  walletId: string;
+  walletName: string;
+  period: string;
+  startDate: string;
+  endDate: string;
+  summary: {
+    totalCopies: number;
+    successfulCopies: number;
+    totalProfit: number;
+    totalROI: number;
+    winRate: number;
+    averageHoldTime: number;
+    totalVolume: number;
+  };
+  bestTrade: {
+    symbol: string;
+    profit: number;
+    roi: number;
+    timestamp: string;
+  };
+  worstTrade: {
+    symbol: string;
+    profit: number;
+    roi: number;
+    timestamp: string;
+  };
+  trades: CopyDecision[];
+}
+
 class CopyTradingEngine extends EventEmitter {
   private smartWallets: Map<string, SmartWallet> = new Map();
   private walletTrades: WalletTrade[] = [];
   private copyDecisions: CopyDecision[] = [];
   private isActive: boolean = true;
-  private minWalletConfidence: number = 65;
-  private maxCopyPercentage: number = 0.15; // Max 15% of portfolio per trade
+  private settings: CopyTradingSettings = {
+    minimumWalletConfidence: 65,
+    minimumWalletROI: 20,
+    minimumTradeCount: 25,
+    minimumWinRate: 55,
+    minimumWalletAge: 14, // days
+    maxCopyPercentage: 0.15,
+    autoDeactivateThreshold: -10,
+    consistencyThreshold: 60
+  };
 
   constructor() {
     super();
@@ -215,7 +293,7 @@ class CopyTradingEngine extends EventEmitter {
     let positionSize = 0;
 
     // Decision logic based on wallet performance and engine alignment
-    if (wallet.confidence < this.minWalletConfidence) {
+    if (wallet.confidence < this.settings.minimumWalletConfidence) {
       reason = `Wallet confidence too low (${wallet.confidence}%)`;
     } else if (engineAlignment < 50) {
       reason = `Engine disagrees with trade (${engineAlignment}% alignment)`;
@@ -228,11 +306,11 @@ class CopyTradingEngine extends EventEmitter {
       
       if (confidence >= 80) {
         action = 'copy';
-        positionSize = Math.min(this.maxCopyPercentage * confidence / 100, this.maxCopyPercentage);
+        positionSize = Math.min(this.settings.maxCopyPercentage * confidence / 100, this.settings.maxCopyPercentage);
         reason = `High confidence copy (${confidence.toFixed(1)}%)`;
       } else if (confidence >= 65) {
         action = 'partial_copy';
-        positionSize = Math.min(this.maxCopyPercentage * confidence / 100 * 0.5, this.maxCopyPercentage * 0.5);
+        positionSize = Math.min(this.settings.maxCopyPercentage * confidence / 100 * 0.5, this.settings.maxCopyPercentage * 0.5);
         reason = `Partial copy due to moderate confidence (${confidence.toFixed(1)}%)`;
       } else {
         reason = `Confidence too low for copy (${confidence.toFixed(1)}%)`;
@@ -394,6 +472,279 @@ class CopyTradingEngine extends EventEmitter {
     return false;
   }
 
+  // Wallet eligibility validation
+  public async checkWalletEligibility(address: string): Promise<WalletEligibilityCheck> {
+    try {
+      const mockWalletData = this.generateMockWalletData(address);
+      
+      const requirements = {
+        minimumTrades: {
+          required: this.settings.minimumTradeCount,
+          actual: mockWalletData.totalTrades,
+          passed: mockWalletData.totalTrades >= this.settings.minimumTradeCount
+        },
+        minimumWinRate: {
+          required: this.settings.minimumWinRate,
+          actual: mockWalletData.winRate,
+          passed: mockWalletData.winRate >= this.settings.minimumWinRate
+        },
+        minimumROI: {
+          required: this.settings.minimumWalletROI,
+          actual: mockWalletData.avgROI,
+          passed: mockWalletData.avgROI >= this.settings.minimumWalletROI
+        },
+        minimumAge: {
+          required: this.settings.minimumWalletAge,
+          actual: mockWalletData.ageInDays,
+          passed: mockWalletData.ageInDays >= this.settings.minimumWalletAge
+        },
+        consistencyScore: {
+          required: this.settings.consistencyThreshold,
+          actual: mockWalletData.consistencyScore,
+          passed: mockWalletData.consistencyScore >= this.settings.consistencyThreshold
+        }
+      };
+
+      const passedChecks = Object.values(requirements).filter(r => r.passed).length;
+      const totalChecks = Object.keys(requirements).length;
+      const score = (passedChecks / totalChecks) * 100;
+      
+      const isEligible = passedChecks === totalChecks;
+      const reasons = [];
+      
+      if (!requirements.minimumTrades.passed) {
+        reasons.push(`Insufficient trade history: ${requirements.minimumTrades.actual} < ${requirements.minimumTrades.required} required`);
+      }
+      if (!requirements.minimumWinRate.passed) {
+        reasons.push(`Low win rate: ${requirements.minimumWinRate.actual.toFixed(1)}% < ${requirements.minimumWinRate.required}% required`);
+      }
+      if (!requirements.minimumROI.passed) {
+        reasons.push(`Low ROI: ${requirements.minimumROI.actual.toFixed(1)}% < ${requirements.minimumROI.required}% required`);
+      }
+      if (!requirements.minimumAge.passed) {
+        reasons.push(`Wallet too new: ${requirements.minimumAge.actual} days < ${requirements.minimumAge.required} days required`);
+      }
+      if (!requirements.consistencyScore.passed) {
+        reasons.push(`Low consistency: ${requirements.consistencyScore.actual.toFixed(1)} < ${requirements.consistencyScore.required} required`);
+      }
+
+      if (isEligible) {
+        reasons.push('Wallet meets all eligibility requirements');
+      }
+
+      return { isEligible, reasons, score, requirements };
+    } catch (error) {
+      return {
+        isEligible: false,
+        reasons: ['Failed to analyze wallet - may be invalid address'],
+        score: 0,
+        requirements: {
+          minimumTrades: { required: this.settings.minimumTradeCount, actual: 0, passed: false },
+          minimumWinRate: { required: this.settings.minimumWinRate, actual: 0, passed: false },
+          minimumROI: { required: this.settings.minimumWalletROI, actual: 0, passed: false },
+          minimumAge: { required: this.settings.minimumWalletAge, actual: 0, passed: false },
+          consistencyScore: { required: this.settings.consistencyThreshold, actual: 0, passed: false }
+        }
+      };
+    }
+  }
+
+  private generateMockWalletData(address: string) {
+    const hash = this.simpleHash(address);
+    return {
+      totalTrades: 15 + (hash % 200),
+      winRate: 40 + (hash % 50),
+      avgROI: -10 + (hash % 80),
+      ageInDays: 7 + (hash % 120),
+      consistencyScore: 30 + (hash % 60)
+    };
+  }
+
+  private simpleHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  }
+
+  // Wallet ranking system
+  public getWalletRankings(): WalletRanking[] {
+    const wallets = Array.from(this.smartWallets.values());
+    
+    const rankings = wallets.map(wallet => {
+      const metrics = this.calculateWalletMetrics(wallet);
+      const overallScore = this.calculateOverallScore(metrics);
+      const category = this.categorizeWallet(overallScore);
+      
+      return {
+        walletId: wallet.id,
+        name: wallet.name,
+        rank: 0,
+        overallScore,
+        metrics,
+        category
+      };
+    });
+
+    rankings.sort((a, b) => b.overallScore - a.overallScore);
+    rankings.forEach((ranking, index) => {
+      ranking.rank = index + 1;
+    });
+
+    return rankings;
+  }
+
+  private calculateWalletMetrics(wallet: SmartWallet) {
+    return {
+      profitabilityScore: Math.min(100, (wallet.currentROI / 200) * 100),
+      consistencyScore: wallet.winRate,
+      riskAdjustedReturn: this.calculateRiskAdjustedReturn(wallet),
+      recentPerformanceScore: this.calculateRecentPerformance(wallet),
+      volumeScore: Math.min(100, (wallet.totalTrades / 100) * 100),
+      stabilityScore: this.calculateStabilityScore(wallet)
+    };
+  }
+
+  private calculateRiskAdjustedReturn(wallet: SmartWallet): number {
+    const riskMultiplier = wallet.riskLevel === 'low' ? 1.2 : wallet.riskLevel === 'medium' ? 1.0 : 0.8;
+    return Math.min(100, (wallet.currentROI * riskMultiplier) / 2);
+  }
+
+  private calculateRecentPerformance(wallet: SmartWallet): number {
+    const recentWeight = 0.6;
+    const weeklyWeight = 0.3;
+    const monthlyWeight = 0.1;
+    
+    return Math.min(100, 
+      (wallet.performance.daily * recentWeight + 
+       wallet.performance.weekly * weeklyWeight + 
+       wallet.performance.monthly * monthlyWeight) / 2
+    );
+  }
+
+  private calculateStabilityScore(wallet: SmartWallet): number {
+    const volatility = Math.abs(wallet.performance.daily - wallet.performance.weekly);
+    return Math.max(0, 100 - volatility * 2);
+  }
+
+  private calculateOverallScore(metrics: WalletRanking['metrics']): number {
+    const weights = {
+      profitability: 0.25,
+      consistency: 0.20,
+      riskAdjusted: 0.20,
+      recentPerformance: 0.15,
+      volume: 0.10,
+      stability: 0.10
+    };
+
+    return (
+      metrics.profitabilityScore * weights.profitability +
+      metrics.consistencyScore * weights.consistency +
+      metrics.riskAdjustedReturn * weights.riskAdjusted +
+      metrics.recentPerformanceScore * weights.recentPerformance +
+      metrics.volumeScore * weights.volume +
+      metrics.stabilityScore * weights.stability
+    );
+  }
+
+  private categorizeWallet(score: number): WalletRanking['category'] {
+    if (score >= 80) return 'elite';
+    if (score >= 65) return 'strong';
+    if (score >= 50) return 'average';
+    return 'risky';
+  }
+
+  // Report generation
+  public generateCopyTradeReport(walletId: string, period: '1d' | '7d' | '30d'): CopyTradeReport {
+    const wallet = this.smartWallets.get(walletId);
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    switch (period) {
+      case '1d':
+        startDate.setDate(endDate.getDate() - 1);
+        break;
+      case '7d':
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case '30d':
+        startDate.setDate(endDate.getDate() - 30);
+        break;
+    }
+
+    const relevantDecisions = this.copyDecisions.filter(d => 
+      d.walletId === walletId && 
+      new Date(d.trade.timestamp) >= startDate
+    );
+
+    const copiedTrades = relevantDecisions.filter(d => d.action === 'copy');
+    const successfulTrades = copiedTrades.filter(d => d.confidence > 70);
+    
+    const totalProfit = copiedTrades.reduce((sum, trade) => sum + (trade.trade.amount * 0.1), 0);
+    const totalVolume = copiedTrades.reduce((sum, trade) => sum + trade.trade.amount, 0);
+
+    const bestTrade = copiedTrades.reduce((best, current) => 
+      !best || current.confidence > best.confidence ? current : best, null
+    );
+
+    const worstTrade = copiedTrades.reduce((worst, current) => 
+      !worst || current.confidence < worst.confidence ? current : worst, null
+    );
+
+    return {
+      walletId,
+      walletName: wallet.name,
+      period,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      summary: {
+        totalCopies: copiedTrades.length,
+        successfulCopies: successfulTrades.length,
+        totalProfit,
+        totalROI: totalVolume > 0 ? (totalProfit / totalVolume) * 100 : 0,
+        winRate: copiedTrades.length > 0 ? (successfulTrades.length / copiedTrades.length) * 100 : 0,
+        averageHoldTime: 24,
+        totalVolume
+      },
+      bestTrade: bestTrade ? {
+        symbol: bestTrade.trade.tokenSymbol,
+        profit: bestTrade.trade.amount * 0.15,
+        roi: 15,
+        timestamp: bestTrade.trade.timestamp
+      } : { symbol: 'N/A', profit: 0, roi: 0, timestamp: '' },
+      worstTrade: worstTrade ? {
+        symbol: worstTrade.trade.tokenSymbol,
+        profit: worstTrade.trade.amount * -0.05,
+        roi: -5,
+        timestamp: worstTrade.trade.timestamp
+      } : { symbol: 'N/A', profit: 0, roi: 0, timestamp: '' },
+      trades: relevantDecisions
+    };
+  }
+
+  public exportAllReports(period: '1d' | '7d' | '30d'): CopyTradeReport[] {
+    return Array.from(this.smartWallets.keys()).map(walletId => 
+      this.generateCopyTradeReport(walletId, period)
+    );
+  }
+
+  // Settings management
+  public updateSettings(newSettings: Partial<CopyTradingSettings>): void {
+    this.settings = { ...this.settings, ...newSettings };
+    console.log('📊 Copy trading settings updated:', this.settings);
+  }
+
+  public getSettings(): CopyTradingSettings {
+    return { ...this.settings };
+  }
+
   public getCopyTradingStats() {
     const activeWallets = this.getActiveWallets();
     const recentDecisions = this.getRecentDecisions(100);
@@ -406,7 +757,8 @@ class CopyTradingEngine extends EventEmitter {
       totalDecisions: recentDecisions.length,
       copiedTrades: copiedTrades.length,
       copyRate: recentDecisions.length > 0 ? (copiedTrades.length / recentDecisions.length) * 100 : 0,
-      topPerformer: activeWallets.sort((a, b) => b.currentROI - a.currentROI)[0]
+      topPerformer: activeWallets.sort((a, b) => b.currentROI - a.currentROI)[0],
+      settings: this.settings
     };
   }
 
