@@ -1,0 +1,69 @@
+DALŠÍ KROKY (všechny implementuj postupně, podle priority):
+1. Alpha Heat Dashboard – rozšíření
+Přidej filtry: Wallets / Patterns / Tokens.
+
+Přidej možnost kliknout na pattern → detailní stats (ROI, winrate, použité peněženky, počet výskytů).
+
+2. LLM-based Alpha Leak Hunter
+Vytvoř engine, který analyzuje:
+
+data z Pump.fun, DEX screeneru, Twitter/Telegram výskyt,
+
+nové tokeny s podezřelým objemem, whale účastí, meme trendem.
+
+Cíl: predikce tokenů s potenciálem explodovat dřív než trh.
+
+Využij LLM nebo pattern matching + heuristiky.
+
+Napoj do dashboardu jako „Alpha Radar“.
+
+3. Liquidity Trap Predictor
+Modul pro detekci tokenů, které:
+
+mají jednostrannou likviditu,
+
+znemožňují výstup,
+
+nebo se chovají jako honeypot v čase.
+
+Zobraz warning přímo u tokenu v dashboardu.
+
+4. Trade Explanation Generator
+Vytvoř AI textovou analýzu „proč byl obchod proveden“.
+
+Může to být stručné shrnutí: „Bought due to social buzz spike + whale entry + high ROI pattern correlation.“
+
+Zobraz jako tooltip nebo hover u každého obchodu v historii.
+
+5. Leaderboard Mode + Public Dashboard Ready
+Přidej dashboard view mód, kde lze:
+
+zobrazit výkon Victorie veřejně,
+
+ukázat denní/týdenní ziskovost, top patterny, kopírované peněženky,
+
+připravit veřejné URL nebo export JSON pro sdílení výkonu.
+
+6. Alpha Auto-Follow Mode
+Když nová wallet dosáhne vysokého score (např. 70 % winrate, 25+ trades), ať ji systém automaticky přidá do týmu.
+
+Zobraz upozornění nebo log o tom v dashboardu.
+
+7. Zjednodušený Debug/Simulation Mode
+Přidej přepínač „Simulation Mode“, kde:
+
+všechny obchody probíhají v simulaci,
+
+loguje se vše detailně,
+
+ale neodesílá se žádná real transakce.
+
+Ideální na ladění a testování strategie bez rizika.
+
+✅ A prosím zároveň mi teď:
+Napiš přesný přehled všech modulů, které už jsou hotové,
+
+A co podle tebe ještě zbývá pro plnou funkčnost a vyladění.
+
+Až tohle dokončíš, budeme mít nejlepší memecoin trading AI systém na Solaně – připravený obchodovat, predikovat a dominovat.
+Pokračuj v češtině jako doteď, kód anglicky. Díky moc!

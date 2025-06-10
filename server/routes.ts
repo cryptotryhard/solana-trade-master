@@ -24,6 +24,9 @@ import { patternWalletCorrelationEngine } from "./pattern-wallet-correlation";
 import { smartCapitalAllocationEngine } from "./smart-capital-allocation";
 import { layeredRiskDefenseSystem } from "./layered-risk-defense";
 import { realTimeProfitHeatmap } from "./real-time-profit-heatmap";
+import { alphaLeakHunter } from "./alpha-leak-hunter";
+import { liquidityTrapPredictor } from "./liquidity-trap-predictor";
+import { tradeExplanationGenerator } from "./trade-explanation-generator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -2104,6 +2107,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(globalHeatmap);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get global heatmap' });
+    }
+  });
+
+  // Alpha Leak Hunter Routes
+  app.get('/api/alpha-radar/leaks', (req, res) => {
+    try {
+      const leaks = alphaLeakHunter.getActiveLeaks();
+      res.json(leaks);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get alpha leaks' });
+    }
+  });
+
+  app.get('/api/alpha-radar/leaks/high-confidence', (req, res) => {
+    try {
+      const minConfidence = parseInt(req.query.minConfidence as string) || 75;
+      const leaks = alphaLeakHunter.getHighConfidenceLeaks(minConfidence);
+      res.json(leaks);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get high confidence leaks' });
+    }
+  });
+
+  app.get('/api/alpha-radar/leaks/urgent', (req, res) => {
+    try {
+      const maxTime = parseInt(req.query.maxTime as string) || 30;
+      const leaks = alphaLeakHunter.getUrgentLeaks(maxTime);
+      res.json(leaks);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get urgent leaks' });
+    }
+  });
+
+  app.get('/api/alpha-radar/stats', (req, res) => {
+    try {
+      const stats = alphaLeakHunter.getHuntingStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get hunting stats' });
+    }
+  });
+
+  // Liquidity Trap Predictor Routes
+  app.get('/api/liquidity-traps/active', (req, res) => {
+    try {
+      const traps = liquidityTrapPredictor.getActiveTraps();
+      res.json(traps);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get active traps' });
+    }
+  });
+
+  app.get('/api/liquidity-traps/critical', (req, res) => {
+    try {
+      const traps = liquidityTrapPredictor.getCriticalTraps();
+      res.json(traps);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get critical traps' });
+    }
+  });
+
+  app.get('/api/liquidity-traps/check/:mintAddress', (req, res) => {
+    try {
+      const mintAddress = req.params.mintAddress;
+      const result = liquidityTrapPredictor.isTokenSafe(mintAddress);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to check token safety' });
+    }
+  });
+
+  app.get('/api/liquidity-traps/stats', (req, res) => {
+    try {
+      const stats = liquidityTrapPredictor.getTrapStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get trap stats' });
+    }
+  });
+
+  // Trade Explanation Routes
+  app.get('/api/trade-explanations/recent', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const explanations = tradeExplanationGenerator.getRecentExplanations(limit);
+      res.json(explanations);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get recent explanations' });
+    }
+  });
+
+  app.get('/api/trade-explanations/:tradeId', (req, res) => {
+    try {
+      const tradeId = req.params.tradeId;
+      const explanation = tradeExplanationGenerator.getExplanation(tradeId);
+      if (explanation) {
+        res.json(explanation);
+      } else {
+        res.status(404).json({ error: 'Explanation not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get trade explanation' });
+    }
+  });
+
+  app.get('/api/trade-explanations/stats', (req, res) => {
+    try {
+      const stats = tradeExplanationGenerator.getExplanationStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get explanation stats' });
+    }
+  });
+
+  app.post('/api/trade-explanations/generate', async (req, res) => {
+    try {
+      const { tradeId, symbol, side, amount, price, context } = req.body;
+      const explanation = await tradeExplanationGenerator.generateExplanation(
+        tradeId, symbol, side, amount, price, context
+      );
+      res.json(explanation);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate trade explanation' });
     }
   });
 
