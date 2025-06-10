@@ -58,6 +58,20 @@ app.use((req, res, next) => {
     // Initialize integration service
     await import('./adaptive-integration-service');
     console.log('🔗 Adaptive Integration Service initialized');
+    
+    // Initialize learning engine
+    await import('./adaptive-learning-engine');
+    console.log('🧠 Adaptive Learning Engine initialized');
+    
+    // Initialize anti-rug protection
+    await import('./anti-rug-protection');
+    console.log('🛡️ Anti-Rug Protection initialized');
+    
+    // Initialize learning with demo data
+    const { learningDemoSimulator } = await import('./learning-demo-simulator');
+    await learningDemoSimulator.initializeLearningData();
+    await learningDemoSimulator.simulateOngoingLearning();
+    console.log('🎓 Learning demo simulator activated');
   }, 3000); // Activate after 3 seconds
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
