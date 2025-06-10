@@ -6,9 +6,11 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, Vault, DollarSign, Target, Settings, Lock, Unlock, BarChart3, PieChart, Zap } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TrendingUp, TrendingDown, Vault, DollarSign, Target, Settings, Lock, Unlock, BarChart3, PieChart, Zap, Info, LineChart } from 'lucide-react';
 import { useState } from 'react';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 interface VaultMetrics {
   totalValue: number;
@@ -183,6 +185,89 @@ export function ProfitVault() {
     emergencyStopMutation.mutate();
   };
 
+  // Generate cumulative profit chart data
+  const generateChartData = () => {
+    let cumulative = 500; // Starting with $500 goal
+    const chartData = [{ time: '00:00', value: cumulative, profit: 0 }];
+    
+    const sortedHistory = [...displayHistory].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    sortedHistory.forEach((entry, index) => {
+      cumulative += entry.profit;
+      chartData.push({
+        time: new Date(entry.timestamp).toLocaleDateString(),
+        value: Math.max(cumulative, 0),
+        profit: entry.profit
+      });
+    });
+
+    return chartData.slice(-30); // Show last 30 data points
+  };
+
+  const chartData = generateChartData();
+
+  // Calculate P&L breakdown
+  const calculatePnLBreakdown = () => {
+    const now = new Date();
+    const day24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const week7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const month30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const profits24h = displayHistory
+      .filter(entry => new Date(entry.timestamp) >= day24h)
+      .reduce((sum, entry) => sum + (entry.profit > 0 ? entry.profit : 0), 0);
+
+    const losses24h = displayHistory
+      .filter(entry => new Date(entry.timestamp) >= day24h)
+      .reduce((sum, entry) => sum + (entry.profit < 0 ? Math.abs(entry.profit) : 0), 0);
+
+    const profits7d = displayHistory
+      .filter(entry => new Date(entry.timestamp) >= week7d)
+      .reduce((sum, entry) => sum + (entry.profit > 0 ? entry.profit : 0), 0);
+
+    const losses7d = displayHistory
+      .filter(entry => new Date(entry.timestamp) >= week7d)
+      .reduce((sum, entry) => sum + (entry.profit < 0 ? Math.abs(entry.profit) : 0), 0);
+
+    const profits30d = displayHistory
+      .filter(entry => new Date(entry.timestamp) >= month30d)
+      .reduce((sum, entry) => sum + (entry.profit > 0 ? entry.profit : 0), 0);
+
+    const losses30d = displayHistory
+      .filter(entry => new Date(entry.timestamp) >= month30d)
+      .reduce((sum, entry) => sum + (entry.profit < 0 ? Math.abs(entry.profit) : 0), 0);
+
+    return {
+      '24h': { profits: profits24h, losses: losses24h, net: profits24h - losses24h },
+      '7d': { profits: profits7d, losses: losses7d, net: profits7d - losses7d },
+      '30d': { profits: profits30d, losses: losses30d, net: profits30d - losses30d }
+    };
+  };
+
+  const pnlBreakdown = calculatePnLBreakdown();
+
+  // Calculate path to $1B
+  const calculatePathTo1B = () => {
+    const currentValue = displayMetrics.totalValue;
+    const target = 1000000000; // $1 billion
+    const monthlyGrowthRate = 0.25; // 25% monthly growth needed
+    
+    const monthsToTarget = Math.log(target / currentValue) / Math.log(1 + monthlyGrowthRate);
+    const dailyGrowthNeeded = Math.pow(target / currentValue, 1 / (monthsToTarget * 30)) - 1;
+    
+    return {
+      monthsToTarget: Math.ceil(monthsToTarget),
+      dailyGrowthNeeded: dailyGrowthNeeded * 100,
+      nextMilestone: currentValue < 10000 ? 10000 : 
+                    currentValue < 100000 ? 100000 : 
+                    currentValue < 1000000 ? 1000000 : 10000000
+    };
+  };
+
+  const pathTo1B = calculatePathTo1B();
+
   if (metricsLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -195,80 +280,154 @@ export function ProfitVault() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Vault className="h-6 w-6" />
-            Profit Vault
-          </h2>
-          <p className="text-muted-foreground">Automated profit management and compound growth</p>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Vault className="h-6 w-6" />
+              Profit Vault
+            </h2>
+            <p className="text-muted-foreground">Automated profit management and compound growth towards $1B</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant={displayMetrics.compoundingEnabled ? "default" : "secondary"}>
+              {displayMetrics.compoundingEnabled ? "Compounding Active" : "Manual Mode"}
+            </Badge>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={handleEmergencyStop}
+              disabled={emergencyStopMutation.isPending}
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Emergency Stop
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={displayMetrics.compoundingEnabled ? "default" : "secondary"}>
-            {displayMetrics.compoundingEnabled ? "Compounding Active" : "Manual Mode"}
-          </Badge>
-          <Button 
-            variant="destructive" 
-            size="sm"
-            onClick={handleEmergencyStop}
-            disabled={emergencyStopMutation.isPending}
-          >
-            <Lock className="w-4 h-4 mr-2" />
-            Emergency Stop
-          </Button>
-        </div>
-      </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold">{formatCurrency(displayMetrics.totalValue)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-green-500" />
+        {/* Path to $1B Progress */}
+        <Card className="border-2 border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Path to $1 Billion
+              </h3>
+              <Badge variant="outline" className="text-primary">
+                {pathTo1B.monthsToTarget} months to target
+              </Badge>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Current Value</p>
+                <p className="text-xl font-bold text-green-500">{formatCurrency(displayMetrics.totalValue)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Next Milestone</p>
+                <p className="text-xl font-bold">{formatCurrency(pathTo1B.nextMilestone)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Daily Growth Needed</p>
+                <p className="text-xl font-bold text-blue-500">{pathTo1B.dailyGrowthNeeded.toFixed(2)}%</p>
+              </div>
+            </div>
+            <Progress 
+              value={(displayMetrics.totalValue / pathTo1B.nextMilestone) * 100} 
+              className="mt-4"
+            />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Net Profit</p>
-                <p className="text-2xl font-bold text-green-500">{formatCurrency(displayMetrics.netProfit)}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Overview Cards with Tooltips */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm text-muted-foreground">Available Balance</p>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                      <p className="text-2xl font-bold">{formatCurrency(displayMetrics.totalValue)}</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total available capital including profits ready for reinvestment</p>
+            </TooltipContent>
+          </Tooltip>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Today's Profit</p>
-                <p className="text-2xl font-bold text-green-500">{formatCurrency(displayMetrics.profitToday)}</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm text-muted-foreground">Net Profit</p>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                      <p className="text-2xl font-bold text-green-500">{formatCurrency(displayMetrics.netProfit)}</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Total profits minus losses from all trading activities</p>
+            </TooltipContent>
+          </Tooltip>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Reinvestment Rate</p>
-                <p className="text-2xl font-bold">{displayMetrics.reinvestmentRate}%</p>
-              </div>
-              <Zap className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm text-muted-foreground">Emergency Reserve</p>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                      <p className="text-2xl font-bold text-yellow-500">{formatCurrency(displayMetrics.stablecoinBalance)}</p>
+                    </div>
+                    <Lock className="h-8 w-8 text-yellow-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Protected stablecoin reserves for risk management and crash protection</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Card className="cursor-help">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-sm text-muted-foreground">Auto-Reinvest</p>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                      <p className="text-2xl font-bold">{displayMetrics.reinvestmentRate}%</p>
+                    </div>
+                    <Zap className="h-8 w-8 text-blue-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Percentage of profits automatically reinvested for compound growth</p>
+            </TooltipContent>
+          </Tooltip>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -563,6 +722,119 @@ export function ProfitVault() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+
+      {/* Cumulative Profit Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LineChart className="h-5 w-5" />
+            Cumulative Growth Curve
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#10b981" 
+                  fill="#10b981" 
+                  fillOpacity={0.2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Journey from $500 to $1B • Current: {formatCurrency(displayMetrics.totalValue)}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* P&L Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Vault P&L Breakdown
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <h4 className="font-medium mb-3">Last 24 Hours</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-600">Profits</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['24h'].profits)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-red-600">Losses</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['24h'].losses)}</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Net P&L</span>
+                    <span className={`font-bold ${pnlBreakdown['24h'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {pnlBreakdown['24h'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['24h'].net)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-3">Last 7 Days</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-600">Profits</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['7d'].profits)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-red-600">Losses</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['7d'].losses)}</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Net P&L</span>
+                    <span className={`font-bold ${pnlBreakdown['7d'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {pnlBreakdown['7d'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['7d'].net)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-3">Last 30 Days</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-green-600">Profits</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(pnlBreakdown['30d'].profits)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-red-600">Losses</span>
+                  <span className="font-medium text-red-600">-{formatCurrency(pnlBreakdown['30d'].losses)}</span>
+                </div>
+                <div className="border-t pt-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Net P&L</span>
+                    <span className={`font-bold ${pnlBreakdown['30d'].net >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {pnlBreakdown['30d'].net >= 0 ? '+' : ''}{formatCurrency(pnlBreakdown['30d'].net)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      </div>
+    </TooltipProvider>
   );
 }
