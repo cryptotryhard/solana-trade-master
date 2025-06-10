@@ -408,7 +408,7 @@ export function ProfitVault() {
                       <div>
                         <p className="font-medium">{formatCurrency(entry.profit)}</p>
                         <p className="text-sm text-muted-foreground">
-                          {entry.timestamp.toLocaleTimeString()} • ROI: {formatPercentage(entry.roi)}
+                          {new Date(entry.timestamp).toLocaleTimeString()} • ROI: {formatPercentage(entry.roi)}
                         </p>
                       </div>
                     </div>
