@@ -32,6 +32,7 @@ import { simulationModeEngine } from "./simulation-mode";
 import { systemChecker } from "./system-checker";
 import { webhookNotifier } from "./webhook-notifier";
 import { liveTradingEngine } from "./live-trading-engine";
+import { enhancedBirdeyeIntegration } from "./enhanced-birdeye-integration";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1089,6 +1090,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Emergency controls
+  // Enhanced Birdeye Integration endpoints
+  app.get("/api/birdeye/authentic-tokens", async (req, res) => {
+    try {
+      const tokens = enhancedBirdeyeIntegration.getAuthenticTokens();
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch authentic tokens' });
+    }
+  });
+
+  app.get("/api/birdeye/system-status", async (req, res) => {
+    try {
+      const status = enhancedBirdeyeIntegration.getSystemStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch system status' });
+    }
+  });
+
   app.post("/api/emergency/activate", async (req, res) => {
     try {
       const { strategyManager } = await import('./strategy-manager');
