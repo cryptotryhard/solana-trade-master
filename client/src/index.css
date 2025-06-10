@@ -80,6 +80,99 @@
   }
 }
 
+/* Trading Grid Layout */
+.trading-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr 320px;
+  gap: 1.5rem;
+  min-height: calc(100vh - 4rem);
+  max-width: 100%;
+  padding: 0 1rem;
+}
+
+@media (max-width: 1280px) {
+  .trading-grid {
+    grid-template-columns: 280px 1fr 280px;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .trading-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 1.5rem;
+    padding: 0;
+  }
+}
+
+/* Dashboard Main Container */
+.dashboard-main {
+  overflow-y: auto;
+  max-height: calc(100vh - 4rem);
+  padding: 1rem;
+  background: transparent;
+}
+
+/* Component Spacing */
+.component-container {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.component-container:last-child {
+  margin-bottom: 0;
+}
+
+/* Grid Layouts */
+.grid-responsive {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid-1 {
+  grid-template-columns: 1fr;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-main {
+    padding: 0.5rem;
+  }
+}
+
+/* Table Responsiveness */
+.responsive-table {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.responsive-table table {
+  min-width: 100%;
+}
+
+/* Clear Separation for Components */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  margin: 2rem 0;
+}
+
 @layer utilities {
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite alternate;

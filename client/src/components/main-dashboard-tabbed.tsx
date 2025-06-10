@@ -20,6 +20,7 @@ import { AlphaHeatDashboard } from './alpha-heat-dashboard';
 import { SystemStatusPanel } from './system-status-panel';
 import { PortfolioGrowthChart } from './portfolio-growth-chart';
 import { AlphaTradeLog } from './alpha-trade-log';
+import { TradingModeIndicator } from './trading-mode-indicator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function MainDashboard() {
@@ -198,19 +199,40 @@ export function MainDashboard() {
           </Card>
 
           {/* Additional Dashboard Components */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PositionsBreakdown />
-            <DailyTradeSummary />
+          <div className="section-divider"></div>
+          
+          <div className="grid-responsive grid-2">
+            <div className="component-container">
+              <PositionsBreakdown />
+            </div>
+            <div className="component-container">
+              <DailyTradeSummary />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <AdaptiveModePanel />
-            <SignalPerformanceHeatmap />
-            <StrategyMatrixPanel />
+          <div className="section-divider"></div>
+
+          <div className="grid-responsive grid-3">
+            <div className="component-container">
+              <AdaptiveModePanel />
+            </div>
+            <div className="component-container">
+              <SignalPerformanceHeatmap />
+            </div>
+            <div className="component-container">
+              <StrategyMatrixPanel />
+            </div>
           </div>
 
-          <AlphaOpportunities />
-          <PatternPerformanceTable />
+          <div className="section-divider"></div>
+
+          <div className="component-container">
+            <AlphaOpportunities />
+          </div>
+          
+          <div className="component-container">
+            <PatternPerformanceTable />
+          </div>
         </TabsContent>
 
         <TabsContent value="trade-log" className="space-y-6">
@@ -222,7 +244,8 @@ export function MainDashboard() {
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <TradingModeIndicator />
             <SystemStatusPanel />
             <PortfolioMetaDashboard />
           </div>
