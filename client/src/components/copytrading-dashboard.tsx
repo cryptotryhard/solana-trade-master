@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Users, Copy, TrendingUp, AlertTriangle, Plus, Trash2, Settings, Activity } from 'lucide-react';
+import { Users, Copy, TrendingUp, AlertTriangle, Plus, Trash2, Settings, Activity, CheckCircle, XCircle, Download, Trophy } from 'lucide-react';
 import { useState } from 'react';
 
 interface SmartWallet {
@@ -67,10 +67,42 @@ interface CopyTradingStats {
   topPerformer?: SmartWallet;
 }
 
+interface WalletEligibility {
+  isEligible: boolean;
+  reasons: string[];
+  score: number;
+  requirements: {
+    minimumTrades: { required: number; actual: number; passed: boolean };
+    minimumWinRate: { required: number; actual: number; passed: boolean };
+    minimumROI: { required: number; actual: number; passed: boolean };
+    minimumAge: { required: number; actual: number; passed: boolean };
+    consistencyScore: { required: number; actual: number; passed: boolean };
+  };
+}
+
+interface WalletRanking {
+  walletId: string;
+  name: string;
+  rank: number;
+  overallScore: number;
+  metrics: {
+    profitabilityScore: number;
+    consistencyScore: number;
+    riskAdjustedReturn: number;
+    recentPerformanceScore: number;
+    volumeScore: number;
+    stabilityScore: number;
+  };
+  category: 'elite' | 'strong' | 'average' | 'risky';
+}
+
 export function CopyTradingDashboard() {
   const [addWalletOpen, setAddWalletOpen] = useState(false);
   const [newWalletAddress, setNewWalletAddress] = useState('');
   const [newWalletName, setNewWalletName] = useState('');
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [eligibilityResult, setEligibilityResult] = useState<WalletEligibility | null>(null);
+  const [showRankings, setShowRankings] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: stats, isLoading: statsLoading } = useQuery<CopyTradingStats>({
@@ -91,6 +123,27 @@ export function CopyTradingDashboard() {
   const { data: recentDecisions, isLoading: decisionsLoading } = useQuery<CopyDecision[]>({
     queryKey: ['/api/copytrading/recent-decisions'],
     refetchInterval: 30000
+  });
+
+  const { data: rankings, isLoading: rankingsLoading } = useQuery<WalletRanking[]>({
+    queryKey: ['/api/copytrading/rankings'],
+    refetchInterval: 60000,
+    enabled: showRankings
+  });
+
+  const checkEligibilityMutation = useMutation({
+    mutationFn: async (address: string) => {
+      const response = await fetch('/api/copytrading/check-eligibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address })
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setEligibilityResult(data);
+      setCheckingEligibility(false);
+    }
   });
 
   const addWalletMutation = useMutation({
@@ -138,6 +191,14 @@ export function CopyTradingDashboard() {
     }
   });
 
+  const handleCheckEligibility = () => {
+    if (newWalletAddress) {
+      setCheckingEligibility(true);
+      setEligibilityResult(null);
+      checkEligibilityMutation.mutate(newWalletAddress);
+    }
+  };
+
   const handleAddWallet = () => {
     if (newWalletAddress && newWalletName) {
       addWalletMutation.mutate({
@@ -145,6 +206,21 @@ export function CopyTradingDashboard() {
         name: newWalletName,
         tags: ['manual_add']
       });
+    }
+  };
+
+  const handleExportReport = async (period: '1d' | '7d' | '30d') => {
+    try {
+      const response = await fetch(`/api/copytrading/export-reports/${period}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `copytrading-report-${period}.json`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export report:', error);
     }
   };
 
@@ -242,46 +318,123 @@ export function CopyTradingDashboard() {
             <Users className="h-5 w-5" />
             Smart Wallets ({wallets?.length || 0})
           </CardTitle>
-          <Dialog open={addWalletOpen} onOpenChange={setAddWalletOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Wallet
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Smart Wallet</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="address">Wallet Address</Label>
-                  <Input
-                    id="address"
-                    value={newWalletAddress}
-                    onChange={(e) => setNewWalletAddress(e.target.value)}
-                    placeholder="Enter Solana wallet address..."
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="name">Display Name</Label>
-                  <Input
-                    id="name"
-                    value={newWalletName}
-                    onChange={(e) => setNewWalletName(e.target.value)}
-                    placeholder="Enter wallet nickname..."
-                  />
-                </div>
-                <Button 
-                  onClick={handleAddWallet}
-                  disabled={!newWalletAddress || !newWalletName || addWalletMutation.isPending}
-                  className="w-full"
-                >
-                  {addWalletMutation.isPending ? 'Adding...' : 'Add Wallet'}
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setShowRankings(!showRankings)}>
+              <Trophy className="h-4 w-4 mr-2" />
+              Rankings
+            </Button>
+            <Dialog open={addWalletOpen} onOpenChange={setAddWalletOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Wallet
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Add Smart Wallet</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="address">Wallet Address</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="address"
+                        value={newWalletAddress}
+                        onChange={(e) => {
+                          setNewWalletAddress(e.target.value);
+                          setEligibilityResult(null);
+                        }}
+                        placeholder="Enter Solana wallet address..."
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={handleCheckEligibility}
+                        disabled={!newWalletAddress || checkingEligibility}
+                        variant="outline"
+                      >
+                        {checkingEligibility ? 'Checking...' : 'Check'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Eligibility Check Results */}
+                  {eligibilityResult && (
+                    <div className={`p-4 rounded-lg border ${
+                      eligibilityResult.isEligible 
+                        ? 'border-green-500/20 bg-green-500/10' 
+                        : 'border-red-500/20 bg-red-500/10'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-3">
+                        {eligibilityResult.isEligible ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500" />
+                        )}
+                        <div className="font-medium">
+                          {eligibilityResult.isEligible ? 'Eligible for Tracking' : 'Not Eligible'}
+                        </div>
+                        <Badge variant="outline" className="ml-auto">
+                          Score: {eligibilityResult.score.toFixed(0)}%
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                        {Object.entries(eligibilityResult.requirements).map(([key, req]) => (
+                          <div key={key} className="flex items-center gap-2">
+                            {req.passed ? (
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <XCircle className="h-3 w-3 text-red-500" />
+                            )}
+                            <span className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                            <span className="text-muted-foreground">
+                              {req.actual}/{req.required}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {eligibilityResult.reasons.map((reason, index) => (
+                          <div key={index} className="text-xs text-muted-foreground">
+                            • {reason}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="name">Display Name</Label>
+                    <Input
+                      id="name"
+                      value={newWalletName}
+                      onChange={(e) => setNewWalletName(e.target.value)}
+                      placeholder="Enter wallet nickname..."
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleAddWallet}
+                      disabled={!newWalletAddress || !newWalletName || addWalletMutation.isPending || (eligibilityResult && !eligibilityResult.isEligible)}
+                      className="flex-1"
+                    >
+                      {addWalletMutation.isPending ? 'Adding...' : 'Add Wallet'}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleExportReport('7d')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export 7d
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {walletsLoading ? (
@@ -363,6 +516,78 @@ export function CopyTradingDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Wallet Rankings */}
+      {showRankings && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Wallet Performance Rankings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {rankingsLoading ? (
+              <div className="text-center text-muted-foreground">Loading rankings...</div>
+            ) : rankings && rankings.length > 0 ? (
+              <div className="space-y-3">
+                {rankings.map((ranking) => (
+                  <div key={ranking.walletId} className="p-4 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                          ranking.rank === 1 ? 'bg-yellow-500/20 text-yellow-500' :
+                          ranking.rank === 2 ? 'bg-gray-500/20 text-gray-500' :
+                          ranking.rank === 3 ? 'bg-orange-500/20 text-orange-500' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          #{ranking.rank}
+                        </div>
+                        <div>
+                          <div className="font-medium">{ranking.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Overall Score: {ranking.overallScore.toFixed(1)}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge className={
+                        ranking.category === 'elite' ? 'bg-purple-500/20 text-purple-500' :
+                        ranking.category === 'strong' ? 'bg-green-500/20 text-green-500' :
+                        ranking.category === 'average' ? 'bg-yellow-500/20 text-yellow-500' :
+                        'bg-red-500/20 text-red-500'
+                      }>
+                        {ranking.category}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <div className="text-muted-foreground">Profitability</div>
+                        <Progress value={ranking.metrics.profitabilityScore} className="h-1 mt-1" />
+                        <div className="font-medium">{ranking.metrics.profitabilityScore.toFixed(0)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Consistency</div>
+                        <Progress value={ranking.metrics.consistencyScore} className="h-1 mt-1" />
+                        <div className="font-medium">{ranking.metrics.consistencyScore.toFixed(0)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Risk-Adjusted</div>
+                        <Progress value={ranking.metrics.riskAdjustedReturn} className="h-1 mt-1" />
+                        <div className="font-medium">{ranking.metrics.riskAdjustedReturn.toFixed(0)}%</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                No rankings available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Copy Decisions */}
       <Card>
