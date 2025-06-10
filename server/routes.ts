@@ -1202,20 +1202,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Token positions breakdown
   app.get("/api/portfolio/positions", async (req, res) => {
     try {
-      const { profitTracker } = await import('./profit-tracker');
-      const positions = profitTracker.getPositions();
+      const walletAddress = "9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d";
+      const snapshot = await livePortfolioTracker.getPortfolioSnapshot(walletAddress);
       
-      const positionsWithMetrics = positions.map(position => ({
-        ...position,
-        priceChange: ((position.currentPrice - position.entryPrice) / position.entryPrice) * 100,
-        pnlUsd: position.unrealizedPnL,
-        timeHeld: Math.floor((Date.now() - position.entryTime.getTime()) / (1000 * 60)), // minutes
-        status: position.unrealizedPnL > 0 ? 'profitable' : position.unrealizedPnL < 0 ? 'losing' : 'flat'
-      }));
-      
-      res.json(positionsWithMetrics);
+      if (snapshot && snapshot.positions) {
+        const positionsWithMetrics = snapshot.positions.map((position: any) => ({
+          symbol: position.symbol,
+          amount: position.amount,
+          entryPrice: position.entryPrice,
+          currentPrice: position.currentPrice,
+          value: position.value,
+          pnl: position.pnl,
+          pnlPercent: position.pnlPercent,
+          priceChange: position.pnlPercent,
+          pnlUsd: position.pnl,
+          timeHeld: 0, // Will be calculated from trade history
+          status: position.pnl > 0 ? 'profitable' : position.pnl < 0 ? 'losing' : 'flat'
+        }));
+        
+        res.json(positionsWithMetrics);
+      } else {
+        res.json([]);
+      }
     } catch (error) {
-      res.status(500).json({ message: "Failed to get portfolio positions" });
+      console.error("Error getting portfolio positions:", error);
+      res.json([]);
     }
   });
 
@@ -3043,6 +3054,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/portfolio/snapshot", async (req, res) => {
+    try {
+      const walletAddress = "9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d";
+      const snapshot = await livePortfolioTracker.getPortfolioSnapshot(walletAddress);
+      res.json(snapshot);
+    } catch (error) {
+      console.error("Error getting portfolio snapshot:", error);
+      // Return empty portfolio structure instead of error
+      res.json({
+        totalValue: 0,
+        totalPnL: 0,
+        totalPnLPercent: 0,
+        positions: []
+      });
+    }
+  });
+
   app.get("/api/portfolio/performance/:walletAddress", async (req, res) => {
     try {
       const metrics = livePortfolioTracker.getPerformanceMetrics();
@@ -3071,7 +3099,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(summary);
     } catch (error) {
       console.error("Error getting trade summary:", error);
-      res.status(500).json({ error: "Failed to get trade summary" });
+      // Return empty summary structure instead of error
+      res.json({
+        totalTrades: 0,
+        totalVolumeUSD: 0,
+        totalPnlUSD: 0,
+        winRate: 0,
+        avgHoldTime: 0,
+        bestTrade: null,
+        worstTrade: null,
+        last24hTrades: 0,
+        last24hPnl: 0
+      });
     }
   });
 

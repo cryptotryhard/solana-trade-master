@@ -73,7 +73,10 @@ export default function Dashboard() {
             walletAddress={walletAddress}
             walletBalance={walletBalance}
           />
-          <MainDashboard />
+          <div className="space-y-6">
+            <MainDashboard />
+            <LivePortfolioDashboard />
+          </div>
           <ActivityPanel />
         </div>
       </main>
