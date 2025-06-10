@@ -134,14 +134,8 @@ export function MainDashboard() {
             </div>
           )}
           
-          {/* Chart Placeholder */}
-          <div className="bg-secondary/30 rounded-lg h-64 flex items-center justify-center border border-accent/20">
-            <div className="text-center">
-              <TrendingUp className="mx-auto h-16 w-16 text-accent mb-4 animate-pulse" />
-              <p className="text-muted-foreground">Live Trading Chart</p>
-              <p className="text-xs text-muted-foreground/60">Powered by TradingView API</p>
-            </div>
-          </div>
+          {/* Portfolio Growth Chart */}
+          <PortfolioGrowthChart />
         </CardContent>
       </Card>
 
