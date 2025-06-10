@@ -17,6 +17,7 @@ import { LearningDashboard } from './learning-dashboard';
 import { CopyTradingDashboard } from './copytrading-dashboard';
 import { AlphaHeatDashboard } from './alpha-heat-dashboard';
 import { SystemStatusPanel } from './system-status-panel';
+import { PortfolioGrowthChart } from './portfolio-growth-chart';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -111,17 +112,23 @@ export function MainDashboard() {
               {tokens?.slice(0, 3).map((token) => (
                 <div key={token.symbol} className="bg-secondary/50 rounded-lg p-4 border border-accent/20">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-xs font-bold">{token.symbol.slice(0, 3)}</span>
                       </div>
-                      <span className="font-semibold">{token.symbol}</span>
+                      <span className="font-semibold truncate">{token.symbol}</span>
                     </div>
-                    <span className={`text-sm ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className={`text-sm flex-shrink-0 ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {formatChange(token.change24h)}
                     </span>
                   </div>
-                  <div className="text-xl font-mono font-bold">{formatPrice(token.price)}</div>
+                  <div className="text-lg font-mono font-bold truncate">{formatPrice(token.price)}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <div className="flex justify-between">
+                      <span className="truncate">Vol: ${(token.volume24h || 0).toLocaleString()}</span>
+                      <span className="truncate ml-2">MC: ${(token.marketCap || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

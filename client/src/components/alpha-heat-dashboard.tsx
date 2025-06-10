@@ -222,20 +222,20 @@ export function AlphaHeatDashboard() {
                         boxShadow: `0 0 ${entry.hotness / 5}px ${getHotnessColor(entry.hotness).replace('bg-', 'rgb(var(--')})`
                       }}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           {getTypeIcon(entry.type)}
                           <div className="font-medium text-sm truncate">
                             {entry.symbol || entry.name}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           {getTrendIcon(entry.trend)}
                           <Badge 
                             variant="outline" 
-                            className={`text-xs ${getHotnessColor(entry.hotness)} text-white border-none`}
+                            className={`text-xs ${getHotnessColor(entry.hotness)} text-white border-none px-2 py-1`}
                           >
-                            {entry.hotness.toFixed(0)}°
+                            {entry.hotness.toFixed(0)}° Heat
                           </Badge>
                         </div>
                       </div>
