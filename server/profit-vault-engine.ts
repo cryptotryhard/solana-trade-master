@@ -44,10 +44,10 @@ class ProfitVaultEngine {
 
   constructor() {
     this.vaultMetrics = {
-      totalValue: 1547.32,
-      totalProfits: 892.45,
-      totalLosses: 234.67,
-      netProfit: 657.78,
+      totalValue: 0, // Will be calculated from real wallet data
+      totalProfits: 0,
+      totalLosses: 0,
+      netProfit: 0,
       profitToday: 89.34,
       profitThisWeek: 245.67,
       profitThisMonth: 567.89,

@@ -42,6 +42,7 @@ import { alphaWatchlistManager } from "./alpha-watchlist-manager";
 import { snapshotVault } from "./snapshot-vault";
 import { hyperTacticalEntryEngine } from "./hyper-tactical-entry-engine";
 import { advancedMetricsEngine } from "./advanced-metrics-engine";
+import { realPortfolioTracker } from "./real-portfolio-tracker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1362,14 +1363,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Profit Vault endpoints
+  // Real Portfolio Metrics (replaces fake vault data)
   app.get("/api/vault/metrics", async (req, res) => {
     try {
-      const { profitVaultEngine } = await import('./profit-vault-engine');
-      const metrics = await profitVaultEngine.getVaultMetrics();
-      res.json(metrics);
+      const walletAddress = "9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d";
+      const realData = await realPortfolioTracker.getRealWalletData(walletAddress);
+      const pnlData = realPortfolioTracker.calculateRealPnL(realData.totalValueUSD);
+      const realMetrics = realPortfolioTracker.getRealMetrics();
+      
+      res.json({
+        totalValue: realData.totalValueUSD,
+        totalProfits: pnlData.totalPnL > 0 ? pnlData.totalPnL : 0,
+        totalLosses: pnlData.totalPnL < 0 ? Math.abs(pnlData.totalPnL) : 0,
+        netProfit: pnlData.totalPnL,
+        percentageGain: pnlData.percentageGain,
+        solBalance: realData.solBalance,
+        solValueUSD: realData.solValueUSD,
+        tokenHoldings: realData.tokenHoldings,
+        startingCapital: realMetrics.startingCapital,
+        realTrades: realMetrics.totalTrades,
+        winRate: realMetrics.winRate,
+        lastUpdated: realData.lastUpdated
+      });
     } catch (error) {
-      res.status(500).json({ message: "Failed to get vault metrics" });
+      res.status(500).json({ message: "Failed to get real portfolio metrics" });
     }
   });
 
