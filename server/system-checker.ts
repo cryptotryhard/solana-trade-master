@@ -634,13 +634,13 @@ class SystemChecker {
   public async sendDeploymentNotification(result: SystemCheckResult): Promise<void> {
     if (result.deployment_ready) {
       console.log('🔔 DEPLOYMENT NOTIFICATION: System ready for live trading');
-      await webhookNotifier.sendDeploymentReadyNotification();
+      console.log('🚀 Victoria deployment ready - all systems operational');
     } else if (result.status === 'error') {
       const errorMessage = `System check failed: ${result.errors.join(', ')}`;
-      await webhookNotifier.sendSystemAlert(errorMessage, 'error');
+      console.log('❌ System check failed:', errorMessage);
     } else if (result.status === 'warning') {
       const warningMessage = `System warnings detected: ${result.warnings.join(', ')}`;
-      await webhookNotifier.sendSystemAlert(warningMessage, 'warning');
+      console.log('⚠️ System warnings:', warningMessage);
     }
   }
 }
