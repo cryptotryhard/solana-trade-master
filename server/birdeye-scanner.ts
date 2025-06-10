@@ -50,7 +50,7 @@ class BirdeyeScanner {
   
   async getNewTokens(limit: number = 50): Promise<BirdeyeToken[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/defi/tokenlist?sort_by=created_time&sort_type=desc&offset=0&limit=${limit}`, {
+      const response = await fetch(`${this.baseUrl}/defi/tokenlist?offset=0&limit=${limit}`, {
         headers: {
           'Accept': 'application/json',
           'X-API-KEY': this.apiKey
@@ -61,7 +61,7 @@ class BirdeyeScanner {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json() as BirdeyeTokenList;
+      const data = await response.json();
       return data.success ? data.data.tokens : [];
     } catch (error) {
       console.error('Failed to fetch tokens from Birdeye:', error);
@@ -75,7 +75,7 @@ class BirdeyeScanner {
       const response = await fetch(`${this.baseUrl}/defi/price?list_address=${addressList}`, {
         headers: {
           'Accept': 'application/json',
-          'X-API-KEY': process.env.BIRDEYE_API_KEY || 'public'
+          'X-API-KEY': this.apiKey
         }
       });
       
@@ -104,7 +104,7 @@ class BirdeyeScanner {
       const response = await fetch(`${this.baseUrl}/defi/token_overview?address=${address}`, {
         headers: {
           'Accept': 'application/json',
-          'X-API-KEY': process.env.BIRDEYE_API_KEY || 'public'
+          'X-API-KEY': this.apiKey
         }
       });
       
