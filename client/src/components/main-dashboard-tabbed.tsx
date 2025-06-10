@@ -21,6 +21,7 @@ import { SystemStatusPanel } from './system-status-panel';
 import { PortfolioGrowthChart } from './portfolio-growth-chart';
 import { AlphaTradeLog } from './alpha-trade-log';
 import { TradingModeIndicator } from './trading-mode-indicator';
+import { ProfitVault } from './profit-vault';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function MainDashboard() {
@@ -110,10 +111,10 @@ export function MainDashboard() {
             Alpha Heat
           </TabsTrigger>
           <TabsTrigger 
-            value="system" 
+            value="profit-vault" 
             className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-300 font-medium"
           >
-            System Status
+            Profit Vault
           </TabsTrigger>
         </TabsList>
 
@@ -263,24 +264,8 @@ export function MainDashboard() {
           <AlphaHeatDashboard />
         </TabsContent>
 
-        <TabsContent value="system" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <TradingModeIndicator />
-            <SystemStatusPanel />
-            <PortfolioMetaDashboard />
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CrashShieldDashboard />
-            <AccountIntelligenceDashboard />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AdaptiveEngineDashboard />
-            <LearningDashboard />
-          </div>
-
-          <CopyTradingDashboard />
+        <TabsContent value="profit-vault" className="space-y-6">
+          <ProfitVault />
         </TabsContent>
       </Tabs>
     </div>

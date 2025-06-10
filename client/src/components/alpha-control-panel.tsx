@@ -565,14 +565,16 @@ export function AlphaControlPanel() {
                         {getSentimentBadge(token)}
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right flex-shrink-0 min-w-[80px]">
                       <div className="text-xs text-muted-foreground mb-1">AI Score</div>
-                      <Badge 
-                        variant={token.aiScore >= 95 ? "default" : token.aiScore >= 90 ? "secondary" : "outline"}
-                        className="text-xs font-bold"
-                      >
-                        {token.aiScore}/100
-                      </Badge>
+                      <div className="flex items-center justify-end">
+                        <Badge 
+                          variant={token.aiScore >= 95 ? "default" : token.aiScore >= 90 ? "secondary" : "outline"}
+                          className="text-xs font-bold px-2 py-1 whitespace-nowrap"
+                        >
+                          {Math.round(token.aiScore)}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
 
