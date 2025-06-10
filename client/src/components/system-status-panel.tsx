@@ -17,8 +17,11 @@ import {
   DollarSign,
   Settings,
   Play,
-  Activity
+  Activity,
+  Square
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SystemCheckResult {
   status: 'ok' | 'error' | 'warning';
@@ -99,6 +102,11 @@ export function SystemStatusPanel() {
     retry: 2
   });
 
+  const { data: liveTradingStatus } = useQuery({
+    queryKey: ['/api/live-trading/status'],
+    refetchInterval: 10000,
+  });
+
   const systemCheckMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/system-check');
@@ -110,6 +118,46 @@ export function SystemStatusPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/system-check'] });
     }
+  });
+
+  const activateLiveTradingMutation = useMutation({
+    mutationFn: () => apiRequest('/api/live-trading/activate', {
+      method: 'POST',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-trading/status'] });
+      toast({
+        title: "Live Trading Activated",
+        description: "VICTORIA is now actively trading with real funds",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Activation Failed",
+        description: error.message || "Failed to activate live trading",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deactivateLiveTradingMutation = useMutation({
+    mutationFn: () => apiRequest('/api/live-trading/deactivate', {
+      method: 'POST',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-trading/status'] });
+      toast({
+        title: "Live Trading Deactivated",
+        description: "VICTORIA has been switched to simulation mode",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Deactivation Failed", 
+        description: error.message || "Failed to deactivate live trading",
+        variant: "destructive",
+      });
+    },
   });
 
   const runSystemCheck = () => {
@@ -238,6 +286,61 @@ export function SystemStatusPanel() {
             {Object.values(systemStatus.components).length} components operational
           </p>
         </div>
+
+        {/* Live Trading Control */}
+        {systemStatus.deployment_ready && (
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-green-600" />
+                  <span className="font-semibold text-gray-900">Live Trading Mode</span>
+                </div>
+                <Badge 
+                  variant={liveTradingStatus?.active ? "default" : "secondary"}
+                  className={liveTradingStatus?.active 
+                    ? "bg-green-600 text-white animate-pulse" 
+                    : "bg-gray-100 text-gray-600"
+                  }
+                >
+                  {liveTradingStatus?.active ? "LIVE" : "SIMULATION"}
+                </Badge>
+              </div>
+              
+              <div className="flex gap-2">
+                {liveTradingStatus?.active ? (
+                  <Button
+                    onClick={() => deactivateLiveTradingMutation.mutate()}
+                    variant="outline"
+                    size="sm"
+                    disabled={deactivateLiveTradingMutation.isPending}
+                    className="border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    <Square className="w-4 h-4 mr-1" />
+                    {deactivateLiveTradingMutation.isPending ? "Stopping..." : "Stop Trading"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => activateLiveTradingMutation.mutate()}
+                    size="sm"
+                    disabled={activateLiveTradingMutation.isPending || !systemStatus.deployment_ready}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Play className="w-4 h-4 mr-1" />
+                    {activateLiveTradingMutation.isPending ? "Activating..." : "Activate Live Trading"}
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-600 mt-2">
+              {liveTradingStatus?.active 
+                ? "VICTORIA is actively trading with real funds. Monitor performance carefully."
+                : "Click to enable live trading with real SOL. Ensure you understand the risks."
+              }
+            </p>
+          </div>
+        )}
 
         {/* Errors and Warnings Summary */}
         {(systemStatus.errors.length > 0 || systemStatus.warnings.length > 0) && (
