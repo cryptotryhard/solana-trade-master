@@ -418,7 +418,7 @@ export function CopyTradingDashboard() {
                   <div className="flex gap-2">
                     <Button 
                       onClick={handleAddWallet}
-                      disabled={!newWalletAddress || !newWalletName || addWalletMutation.isPending || (eligibilityResult && !eligibilityResult.isEligible)}
+                      disabled={!newWalletAddress || !newWalletName || addWalletMutation.isPending || (eligibilityResult !== null && !eligibilityResult.isEligible)}
                       className="flex-1"
                     >
                       {addWalletMutation.isPending ? 'Adding...' : 'Add Wallet'}
