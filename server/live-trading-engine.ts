@@ -147,21 +147,56 @@ class LiveTradingEngine {
     console.log(`🔥 FORCE EXECUTING TRADE - REAL JUPITER SWAP`);
     
     try {
-      // Get available alpha tokens
-      const alphaTokens = await this.getAlphaOpportunities();
-      console.log(`📊 Found ${alphaTokens.length} alpha opportunities`);
-      
-      let targetToken = alphaTokens[0]; // Default to first token
-      
-      if (tokenSymbol) {
-        const specificToken = alphaTokens.find(t => t.symbol === tokenSymbol);
-        if (specificToken) {
-          targetToken = specificToken;
+      // Define known token for testing if external APIs fail
+      const testTokens = [
+        {
+          symbol: 'BONK',
+          mintAddress: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+          price: 0.000024,
+          confidence: 0.85
+        },
+        {
+          symbol: 'WIF',
+          mintAddress: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
+          price: 2.45,
+          confidence: 0.80
+        },
+        {
+          symbol: 'JUPITER',
+          mintAddress: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
+          price: 0.85,
+          confidence: 0.75
         }
+      ];
+
+      let targetToken;
+
+      // Try to get alpha tokens first
+      try {
+        const alphaTokens = await this.getAlphaOpportunities();
+        console.log(`📊 Found ${alphaTokens.length} alpha opportunities`);
+        
+        if (alphaTokens.length > 0) {
+          targetToken = alphaTokens[0];
+          if (tokenSymbol) {
+            const specificToken = alphaTokens.find(t => t.symbol === tokenSymbol);
+            if (specificToken) {
+              targetToken = specificToken;
+            }
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Alpha tokens unavailable, using test token');
       }
-      
+
+      // Fallback to test tokens if no alpha tokens available
       if (!targetToken) {
-        return { success: false, error: 'No suitable alpha tokens found' };
+        if (tokenSymbol) {
+          targetToken = testTokens.find(t => t.symbol === tokenSymbol) || testTokens[0];
+        } else {
+          targetToken = testTokens[0];
+        }
+        console.log(`🎯 Using test token: ${targetToken.symbol} (${targetToken.mintAddress})`);
       }
       
       console.log(`🎯 Force executing trade for: ${targetToken.symbol} (${targetToken.mintAddress})`);
@@ -185,20 +220,23 @@ class LiveTradingEngine {
 
   private async executeLiveTrade(token: any): Promise<void> {
     console.log(`🎯 Executing LIVE trade for ${token.symbol} (${token.mintAddress})`);
+    console.log(`💰 Wallet balance: ${await this.getWalletBalance()} SOL`);
     
     const trade: LiveTrade = {
       id: `live_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       symbol: token.symbol,
       mintAddress: token.mintAddress,
       side: 'buy',
-      amount: Math.min(this.maxTradeSize, 0.1), // Start with smaller amounts
+      amount: 0.05, // Fixed 0.05 SOL for safety
       price: token.price || 0,
       timestamp: new Date(),
       confidence: token.confidence,
-      strategy: 'alpha_acceleration',
+      strategy: 'live_execution_test',
       walletAddress: this.walletAddress,
       status: 'pending'
     };
+
+    console.log(`🔥 EXECUTING REAL JUPITER SWAP: ${trade.amount} SOL -> ${trade.symbol}`);
 
     try {
       // Execute the actual Jupiter swap
@@ -211,7 +249,9 @@ class LiveTradingEngine {
         trade.slippage = swapResult.slippage;
         trade.gasUsed = swapResult.gasUsed;
         
-        console.log(`✅ Live trade executed: ${trade.symbol} - TX: ${trade.txHash}`);
+        console.log(`✅ LIVE TRADE EXECUTED: ${trade.symbol}`);
+        console.log(`✅ TX HASH: ${trade.txHash}`);
+        console.log(`✅ View on Solscan: https://solscan.io/tx/${trade.txHash}`);
       } else {
         trade.status = 'failed';
         console.log(`❌ Live trade failed: ${trade.symbol} - ${swapResult.error}`);

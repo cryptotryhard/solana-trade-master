@@ -34,6 +34,7 @@ class JupiterSwapEngine {
   
   constructor() {
     this.connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    console.log('🚀 Jupiter Swap Engine initialized with V6 API');
   }
 
   async getQuote(

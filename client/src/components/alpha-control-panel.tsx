@@ -103,6 +103,15 @@ export function AlphaControlPanel() {
     }
   });
 
+  const forceExecuteTradeMutation = useMutation({
+    mutationFn: (tokenSymbol?: string) => apiRequest('POST', "/api/trading/force-execute", { tokenSymbol }),
+    onSuccess: (data) => {
+      console.log('Force trade result:', data);
+      queryClient.invalidateQueries({ queryKey: ["/api/trading/live-trades"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/alpha/positions"] });
+    }
+  });
+
   const handleToggleAlpha = () => {
     if (alphaStatus?.active) {
       deactivateAlphaMutation.mutate();
