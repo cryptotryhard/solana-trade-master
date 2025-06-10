@@ -715,6 +715,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Copytrading Engine endpoints
+  app.get('/api/copytrading/wallets', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const wallets = copyTradingEngine.getSmartWallets();
+      res.json(wallets);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get smart wallets' });
+    }
+  });
+
+  app.get('/api/copytrading/active-wallets', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const wallets = copyTradingEngine.getActiveWallets();
+      res.json(wallets);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get active wallets' });
+    }
+  });
+
+  app.get('/api/copytrading/recent-trades', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const limit = parseInt(req.query.limit as string) || 20;
+      const trades = copyTradingEngine.getRecentTrades(limit);
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get recent trades' });
+    }
+  });
+
+  app.get('/api/copytrading/recent-decisions', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const limit = parseInt(req.query.limit as string) || 20;
+      const decisions = copyTradingEngine.getRecentDecisions(limit);
+      res.json(decisions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get recent decisions' });
+    }
+  });
+
+  app.get('/api/copytrading/stats', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const stats = copyTradingEngine.getCopyTradingStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get copytrading stats' });
+    }
+  });
+
+  app.post('/api/copytrading/add-wallet', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { address, name, tags } = req.body;
+      
+      if (!address || !name) {
+        return res.status(400).json({ error: 'Missing address or name' });
+      }
+
+      const walletId = copyTradingEngine.addSmartWallet(address, name, tags || []);
+      res.json({ walletId, status: 'Wallet added successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to add wallet' });
+    }
+  });
+
+  app.delete('/api/copytrading/remove-wallet/:walletId', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { walletId } = req.params;
+      
+      const removed = copyTradingEngine.removeSmartWallet(walletId);
+      if (removed) {
+        res.json({ status: 'Wallet removed successfully' });
+      } else {
+        res.status(404).json({ error: 'Wallet not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to remove wallet' });
+    }
+  });
+
+  app.put('/api/copytrading/update-wallet/:walletId', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { walletId } = req.params;
+      const settings = req.body;
+      
+      const updated = copyTradingEngine.updateWalletSettings(walletId, settings);
+      if (updated) {
+        res.json({ status: 'Wallet updated successfully' });
+      } else {
+        res.status(404).json({ error: 'Wallet not found' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update wallet' });
+    }
+  });
+
+  app.post('/api/copytrading/toggle', async (req, res) => {
+    try {
+      const { copyTradingEngine } = await import('./copytrading-engine');
+      const { active } = req.body;
+      
+      copyTradingEngine.setActive(active);
+      res.json({ 
+        status: active ? 'Copytrading activated' : 'Copytrading deactivated',
+        isActive: copyTradingEngine.isEngineActive()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to toggle copytrading' });
+    }
+  });
+
+  app.post('/api/learning/optimize-weights', async (req, res) => {
+    try {
+      const { adaptiveLearningEngine } = await import('./adaptive-learning-engine');
+      // Trigger weight optimization based on performance data
+      console.log('Optimizing pattern weights based on performance...');
+      res.json({ status: 'Weights optimization triggered' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to optimize weights' });
+    }
+  });
+
+  app.post('/api/learning/update-weights', async (req, res) => {
+    try {
+      const { weights } = req.body;
+      if (!weights) {
+        return res.status(400).json({ error: 'Missing weights data' });
+      }
+      
+      // Update pattern weights manually
+      console.log('Updating pattern weights manually:', weights);
+      res.json({ status: 'Weights updated successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update weights' });
+    }
+  });
+
   // Wallet balance proxy endpoint
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {

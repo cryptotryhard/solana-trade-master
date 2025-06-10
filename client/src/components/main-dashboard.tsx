@@ -14,6 +14,7 @@ import { CrashShieldDashboard } from './crash-shield-dashboard';
 import { AccountIntelligenceDashboard } from './account-intelligence-dashboard';
 import { AdaptiveEngineDashboard } from './adaptive-engine-dashboard';
 import { LearningDashboard } from './learning-dashboard';
+import { CopyTradingDashboard } from './copytrading-dashboard';
 
 export function MainDashboard() {
   const { data: tokens, isLoading: tokensLoading } = useQuery({
@@ -215,6 +216,9 @@ export function MainDashboard() {
 
       {/* Self-Learning Analytics */}
       <LearningDashboard />
+
+      {/* Smart Wallet Copytrading */}
+      <CopyTradingDashboard />
     </div>
   );
 }

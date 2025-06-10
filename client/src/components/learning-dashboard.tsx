@@ -289,7 +289,23 @@ export function LearningDashboard() {
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground">Weight</div>
-                      <div className="font-medium">{pattern.weight.toFixed(2)}x</div>
+                      {editingWeights ? (
+                        <div className="flex items-center gap-2">
+                          <Slider
+                            value={[patternWeights[pattern.patternId] || pattern.weight]}
+                            onValueChange={(value) => handleWeightChange(pattern.patternId, value)}
+                            min={0.1}
+                            max={2.0}
+                            step={0.1}
+                            className="flex-1"
+                          />
+                          <span className="text-xs min-w-[3rem]">
+                            {(patternWeights[pattern.patternId] || pattern.weight).toFixed(1)}x
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="font-medium">{pattern.weight.toFixed(2)}x</div>
+                      )}
                     </div>
                   </div>
                   

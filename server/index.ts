@@ -72,6 +72,10 @@ app.use((req, res, next) => {
     await learningDemoSimulator.initializeLearningData();
     await learningDemoSimulator.simulateOngoingLearning();
     console.log('🎓 Learning demo simulator activated');
+    
+    // Initialize copytrading engine
+    await import('./copytrading-engine');
+    console.log('🎯 Copytrading engine initialized');
   }, 3000); // Activate after 3 seconds
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
