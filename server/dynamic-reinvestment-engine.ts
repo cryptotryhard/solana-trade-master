@@ -21,11 +21,11 @@ interface ReinvestmentOpportunity {
 
 class DynamicReinvestmentEngine {
   private config: ReinvestmentConfig = {
-    minProfitThreshold: 25, // $25 minimum profit - more aggressive
-    profitReinvestPercent: 50, // Reinvest 50% of profits - compounding upgrade
-    maxReinvestAmount: 500, // Max $500 per reinvestment - scaled up
-    cooldownMinutes: 15, // 15 minute cooldown - faster cycles
-    winRateThreshold: 55 // 55% win rate for aggressive mode - optimized
+    minProfitThreshold: 15, // $15 minimum profit - ultra aggressive
+    profitReinvestPercent: 75, // Reinvest 75% of profits - maximum compounding
+    maxReinvestAmount: 1000, // Max $1000 per reinvestment - scaled for growth
+    cooldownMinutes: 5, // 5 minute cooldown - maximum velocity
+    winRateThreshold: 45 // 45% win rate for aggressive mode - risk tolerance
   };
 
   private lastReinvestment: Date | null = null;
