@@ -2478,17 +2478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🚀 LIVE TRADING ACTIVATED - VICTORIA IS NOW TRADING WITH REAL FUNDS');
       
       // Send webhook notification
-      webhookNotifier.sendNotification(
-        '🚀 LIVE TRADING ACTIVATED',
-        '🚀 VICTORIA has been activated for live trading with real SOL funds.',
-        'SUCCESS',
-        {
-          system: 'VICTORIA Trading AI',
-          event: 'live_trading_activated',
-          timestamp: new Date().toISOString(),
-          mode: 'live',
-          action_required: 'Monitor performance carefully'
-        }
+      webhookNotifier.sendSystemAlert(
+        '🚀 LIVE TRADING ACTIVATED - VICTORIA is now trading with real SOL funds.',
+        'warning'
       );
 
       res.json({
@@ -2518,17 +2510,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('⏸️ LIVE TRADING DEACTIVATED - VICTORIA SWITCHED TO SIMULATION MODE');
       
       // Send webhook notification
-      webhookNotifier.sendNotification(
-        '⏸️ LIVE TRADING DEACTIVATED',
-        '⏸️ VICTORIA has been switched to simulation mode.',
-        'INFO',
-        {
-          system: 'VICTORIA Trading AI',
-          event: 'live_trading_deactivated',
-          timestamp: new Date().toISOString(),
-          mode: 'simulation',
-          action_required: 'None - simulation mode active'
-        }
+      webhookNotifier.sendSystemAlert(
+        '⏸️ LIVE TRADING DEACTIVATED - VICTORIA switched to simulation mode.',
+        'warning'
       );
 
       res.json({

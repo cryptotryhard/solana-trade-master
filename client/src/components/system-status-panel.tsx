@@ -95,6 +95,7 @@ const componentNames = {
 export function SystemStatusPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: systemStatus, isLoading, error } = useQuery<SystemCheckResult>({
     queryKey: ['/api/system-check'],
