@@ -556,6 +556,3 @@ class PumpPatternMemory {
 }
 
 export const pumpPatternMemory = new PumpPatternMemory();
-
-// Import pattern performance tracker for integration
-import { patternPerformanceTracker } from "./pattern-performance-tracker";

@@ -44,7 +44,7 @@ app.use((req, res, next) => {
     const { alphaAccelerationEngine } = await import('./alpha-acceleration-engine');
     const { liveTradingEngine } = await import('./live-trading-engine');
     
-    await alphaAccelerationEngine.startAlphaMode();
+    alphaAccelerationEngine.start();
     await liveTradingEngine.activate();
     
     console.log('⚡ VICTORIA ALPHA ACCELERATION MODE AUTO-ACTIVATED ⚡');
