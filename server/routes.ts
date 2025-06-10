@@ -27,6 +27,8 @@ import { realTimeProfitHeatmap } from "./real-time-profit-heatmap";
 import { alphaLeakHunter } from "./alpha-leak-hunter";
 import { liquidityTrapPredictor } from "./liquidity-trap-predictor";
 import { tradeExplanationGenerator } from "./trade-explanation-generator";
+import { alphaAutoFollowEngine } from "./alpha-auto-follow";
+import { simulationModeEngine } from "./simulation-mode";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -2230,6 +2232,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(explanation);
     } catch (error) {
       res.status(500).json({ error: 'Failed to generate trade explanation' });
+    }
+  });
+
+  // Alpha Auto-Follow Routes
+  app.get('/api/auto-follow/wallets', (req, res) => {
+    try {
+      const wallets = alphaAutoFollowEngine.getFollowedWallets();
+      res.json(wallets);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get followed wallets' });
+    }
+  });
+
+  app.get('/api/auto-follow/stats', (req, res) => {
+    try {
+      const stats = alphaAutoFollowEngine.getAutoFollowStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get auto-follow stats' });
+    }
+  });
+
+  app.get('/api/auto-follow/config', (req, res) => {
+    try {
+      const config = alphaAutoFollowEngine.getConfig();
+      res.json(config);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get auto-follow config' });
+    }
+  });
+
+  app.post('/api/auto-follow/toggle', (req, res) => {
+    try {
+      const { enabled } = req.body;
+      alphaAutoFollowEngine.toggleAutoFollow(enabled);
+      res.json({ success: true, enabled });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to toggle auto-follow' });
+    }
+  });
+
+  app.post('/api/auto-follow/config', (req, res) => {
+    try {
+      alphaAutoFollowEngine.updateConfig(req.body);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update auto-follow config' });
+    }
+  });
+
+  app.delete('/api/auto-follow/wallets/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      await alphaAutoFollowEngine.unfollowWallet(address);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to unfollow wallet' });
+    }
+  });
+
+  // Simulation Mode Routes
+  app.get('/api/simulation/status', (req, res) => {
+    try {
+      const isEnabled = simulationModeEngine.isEnabled();
+      res.json({ enabled: isEnabled });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get simulation status' });
+    }
+  });
+
+  app.post('/api/simulation/toggle', (req, res) => {
+    try {
+      const { enabled } = req.body;
+      simulationModeEngine.toggleSimulationMode(enabled);
+      res.json({ success: true, enabled });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to toggle simulation mode' });
+    }
+  });
+
+  app.get('/api/simulation/metrics', (req, res) => {
+    try {
+      const metrics = simulationModeEngine.getSimulationMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get simulation metrics' });
+    }
+  });
+
+  app.get('/api/simulation/balance', (req, res) => {
+    try {
+      const balance = simulationModeEngine.getSimulatedBalance();
+      res.json({ balance });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get simulated balance' });
+    }
+  });
+
+  app.get('/api/simulation/trades', (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const trades = simulationModeEngine.getRecentSimulatedTrades(limit);
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get simulation trades' });
+    }
+  });
+
+  app.post('/api/simulation/trade', async (req, res) => {
+    try {
+      const { symbol, side, amount, price, strategy, confidence } = req.body;
+      const trade = await simulationModeEngine.simulateTrade(
+        symbol, side, amount, price, strategy, confidence
+      );
+      res.json(trade);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to simulate trade' });
+    }
+  });
+
+  app.post('/api/simulation/reset', (req, res) => {
+    try {
+      simulationModeEngine.resetSimulation();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to reset simulation' });
+    }
+  });
+
+  app.get('/api/simulation/export', (req, res) => {
+    try {
+      const results = simulationModeEngine.exportSimulationResults();
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to export simulation results' });
+    }
+  });
+
+  app.get('/api/simulation/config', (req, res) => {
+    try {
+      const config = simulationModeEngine.getConfig();
+      res.json(config);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get simulation config' });
+    }
+  });
+
+  app.post('/api/simulation/config', (req, res) => {
+    try {
+      simulationModeEngine.updateConfig(req.body);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update simulation config' });
+    }
+  });
+
+  // Add missing heatmap by-type routes
+  app.get('/api/heatmap/by-type/pattern', (req, res) => {
+    try {
+      const data = realTimeProfitHeatmap.getHeatmapData();
+      const patterns = data.filter(item => item.type === 'pattern');
+      res.json(patterns);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get pattern heatmap data' });
+    }
+  });
+
+  app.get('/api/heatmap/by-type/wallet', (req, res) => {
+    try {
+      const data = realTimeProfitHeatmap.getHeatmapData();
+      const wallets = data.filter(item => item.type === 'wallet');
+      res.json(wallets);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get wallet heatmap data' });
+    }
+  });
+
+  app.get('/api/heatmap/by-type/token', (req, res) => {
+    try {
+      const data = realTimeProfitHeatmap.getHeatmapData();
+      const tokens = data.filter(item => item.type === 'token');
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get token heatmap data' });
     }
   });
 

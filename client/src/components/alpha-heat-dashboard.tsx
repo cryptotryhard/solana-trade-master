@@ -37,6 +37,9 @@ interface ProfitMetrics {
 }
 
 export function AlphaHeatDashboard() {
+  const [typeFilter, setTypeFilter] = useState<'all' | 'pattern' | 'wallet' | 'token'>('all');
+  const [selectedEntry, setSelectedEntry] = useState<HeatmapEntry | null>(null);
+
   const { data: heatmapData, isLoading: heatmapLoading } = useQuery<HeatmapEntry[]>({
     queryKey: ['/api/heatmap/data'],
     refetchInterval: 10000
@@ -55,6 +58,21 @@ export function AlphaHeatDashboard() {
   const { data: hottestItems } = useQuery<HeatmapEntry[]>({
     queryKey: ['/api/heatmap/hottest'],
     refetchInterval: 10000
+  });
+
+  const { data: patternData } = useQuery<HeatmapEntry[]>({
+    queryKey: ['/api/heatmap/by-type/pattern'],
+    refetchInterval: 15000
+  });
+
+  const { data: walletData } = useQuery<HeatmapEntry[]>({
+    queryKey: ['/api/heatmap/by-type/wallet'],
+    refetchInterval: 15000
+  });
+
+  const { data: tokenData } = useQuery<HeatmapEntry[]>({
+    queryKey: ['/api/heatmap/by-type/token'],
+    refetchInterval: 15000
   });
 
   const getHotnessColor = (hotness: number) => {
@@ -101,14 +119,32 @@ export function AlphaHeatDashboard() {
     );
   }
 
+  const filteredData = heatmapData?.filter(item => 
+    typeFilter === 'all' || item.type === typeFilter
+  ) || [];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Flame className="h-6 w-6 text-orange-500" />
-        <h2 className="text-2xl font-bold">Alpha Heat</h2>
-        <Badge variant="outline" className="ml-auto">
-          Live 24h
-        </Badge>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Flame className="h-6 w-6 text-orange-500" />
+          <h2 className="text-2xl font-bold">Alpha Heat</h2>
+          <Badge variant="outline">Live 24h</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4" />
+          <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pattern">Patterns</SelectItem>
+              <SelectItem value="wallet">Wallets</SelectItem>
+              <SelectItem value="token">Tokens</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Global Metrics */}
@@ -176,9 +212,9 @@ export function AlphaHeatDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {heatmapData && heatmapData.length > 0 ? (
+              {filteredData && filteredData.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {heatmapData.slice(0, 12).map((entry) => (
+                  {filteredData.slice(0, 12).map((entry) => (
                     <div
                       key={entry.id}
                       className={`p-4 rounded-lg border transition-all duration-300 ${getHotnessColor(entry.hotness)}/10 border-${getHotnessColor(entry.hotness).split('-')[1]}-500/20`}
@@ -356,6 +392,116 @@ export function AlphaHeatDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Detail Modal */}
+      {selectedEntry && (
+        <Dialog open={!!selectedEntry} onOpenChange={() => setSelectedEntry(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedEntry.type === 'pattern' && <Activity className="w-5 h-5" />}
+                {selectedEntry.type === 'wallet' && <Users className="w-5 h-5" />}
+                {selectedEntry.type === 'token' && <Zap className="w-5 h-5" />}
+                {selectedEntry.name}
+                {selectedEntry.symbol && (
+                  <Badge variant="outline">{selectedEntry.symbol}</Badge>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="text-sm text-gray-500">Profit</div>
+                    <div className={`text-lg font-bold ${selectedEntry.profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {selectedEntry.profit >= 0 ? '+' : ''}${selectedEntry.profit.toFixed(2)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="text-sm text-gray-500">ROI</div>
+                    <div className={`text-lg font-bold ${selectedEntry.profitPercentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {selectedEntry.profitPercentage >= 0 ? '+' : ''}{selectedEntry.profitPercentage.toFixed(1)}%
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="text-sm text-gray-500">Win Rate</div>
+                    <div className="text-lg font-bold">{selectedEntry.winRate.toFixed(1)}%</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="text-sm text-gray-500">Trades</div>
+                    <div className="text-lg font-bold">{selectedEntry.trades}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Hotness & Trend */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Hotness Level</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{selectedEntry.hotness}%</span>
+                    <div className={`w-3 h-3 rounded-full ${getHotnessColor(selectedEntry.hotness)} animate-pulse`} />
+                  </div>
+                </div>
+                <Progress value={selectedEntry.hotness} className="h-3" />
+                
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Trend</span>
+                  <div className="flex items-center gap-2">
+                    {selectedEntry.trend === 'rising' && <TrendingUp className="w-4 h-4 text-green-500" />}
+                    {selectedEntry.trend === 'falling' && <TrendingDown className="w-4 h-4 text-red-500" />}
+                    {selectedEntry.trend === 'stable' && <Minus className="w-4 h-4 text-gray-500" />}
+                    <span className="capitalize">{selectedEntry.trend}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-500">Volume</div>
+                  <div className="font-medium">{formatSOL(selectedEntry.volume)}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Avg Hold Time</div>
+                  <div className="font-medium">{selectedEntry.avgHoldTime.toFixed(1)}h</div>
+                </div>
+              </div>
+
+              {/* Sparkline Chart */}
+              {selectedEntry.sparklineData && selectedEntry.sparklineData.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium mb-2">Performance Chart</div>
+                  <div className="h-20 bg-gray-50 dark:bg-gray-800 rounded flex items-end justify-between px-2 py-1">
+                    {selectedEntry.sparklineData.map((value, index) => (
+                      <div
+                        key={index}
+                        className="bg-blue-500 w-1 rounded-t"
+                        style={{
+                          height: `${Math.max(2, (value / Math.max(...selectedEntry.sparklineData)) * 100)}%`
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Last Update */}
+              <div className="text-xs text-gray-500 text-center">
+                Last updated: {new Date(selectedEntry.lastUpdate).toLocaleString()}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
