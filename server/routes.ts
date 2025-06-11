@@ -1111,5 +1111,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Execute Real Trade Endpoint
+  app.post('/api/execute-real-trade', async (req, res) => {
+    try {
+      console.log('🚀 EXECUTING REAL MOONSHOT TRADE - API TRIGGERED');
+      
+      const { realTransactionExecutor } = await import('./real-transaction-executor');
+      
+      if (!realTransactionExecutor.isReadyForTrading()) {
+        return res.status(400).json({
+          error: 'Real executor not ready',
+          message: 'Private key not initialized'
+        });
+      }
+
+      // Execute real MOONSHOT swap
+      const realTrade = await realTransactionExecutor.executeRealSwap(
+        'So11111111111111111111111111111111111111112', // SOL
+        'DEhAasscXF4kEGxFgJ3bq4PpVGp5wyUxMRvn6TzGVHaw', // MOONSHOT mint
+        100000000, // 0.1 SOL in lamports
+        50 // 0.5% slippage
+      );
+
+      console.log('✅ REAL MOONSHOT TRADE EXECUTED');
+      console.log('🔗 TX Hash:', realTrade.txHash);
+      console.log('📍 Sender:', realTrade.senderAddress);
+      console.log('💰 Amount Out:', realTrade.amountOut);
+      console.log('🌐 Verify: https://solscan.io/tx/' + realTrade.txHash);
+
+      res.json({
+        success: true,
+        txHash: realTrade.txHash,
+        senderAddress: realTrade.senderAddress,
+        amountOut: realTrade.amountOut,
+        solscanUrl: `https://solscan.io/tx/${realTrade.txHash}`,
+        message: 'MOONSHOT trade executed successfully'
+      });
+
+    } catch (error) {
+      console.error('❌ Real trade execution failed:', error);
+      res.status(500).json({
+        error: 'Trade execution failed',
+        message: error.message
+      });
+    }
+  });
+
   return httpServer;
 }

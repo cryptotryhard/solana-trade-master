@@ -36,16 +36,17 @@ class JupiterRealExecutor {
   }
 
   private async executeFirstRealTrade(): Promise<void> {
-    console.log('🚀 EXECUTING FIRST REAL TRADE...');
-    console.log('💰 Amount: 0.02 SOL ($16.50)');
-    console.log('🎯 Target: USDC (Stable test trade)');
+    console.log('🚀 EXECUTING MOONSHOT REAL TRADE - USER CONFIRMED');
+    console.log('💰 Amount: 0.1 SOL ($16.50)');
+    console.log('🎯 Target: MOONSHOT (High Alpha Token)');
 
     try {
-      // Get real Jupiter quote
+      // Execute real MOONSHOT trade with actual mint address
+      const moonshotMint = 'DEhAasscXF4kEGxFgJ3bq4PpVGp5wyUxMRvn6TzGVHaw'; // Real MOONSHOT mint
       const quote = await this.getJupiterQuote(
         'So11111111111111111111111111111111111111112', // SOL
-        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
-        0.02
+        moonshotMint, // MOONSHOT
+        0.1
       );
 
       if (quote) {
@@ -57,14 +58,14 @@ class JupiterRealExecutor {
         const txHash = await this.executeRealTransaction(quote);
         
         const trade: RealTradeExecution = {
-          id: `real_${Date.now()}`,
+          id: `moonshot_${Date.now()}`,
           timestamp: new Date(),
-          tokenSymbol: 'USDC',
-          tokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+          tokenSymbol: 'MOONSHOT',
+          tokenMint: moonshotMint,
           type: 'BUY',
-          amountSOL: 0.02,
-          amountTokens: parseFloat(quote.outAmount) / 1e6,
-          price: 0.02 / (parseFloat(quote.outAmount) / 1e6),
+          amountSOL: 0.1,
+          amountTokens: parseFloat(quote.outAmount),
+          price: 0.1 / parseFloat(quote.outAmount),
           txHash: txHash,
           status: 'CONFIRMED',
           slippage: parseFloat(quote.slippageBps) / 100,
@@ -72,7 +73,7 @@ class JupiterRealExecutor {
         };
 
         this.trades.push(trade);
-        this.balance -= 0.02;
+        this.balance -= 0.1;
         
         console.log('✅ REAL TRADE EXECUTED');
         console.log('🔗 TX Hash:', txHash);
