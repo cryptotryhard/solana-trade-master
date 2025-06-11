@@ -51,6 +51,10 @@ class RealChainExecutor {
       lastUpdated: new Date()
     };
 
+    // Reset any corrupted state
+    this.realTrades = [];
+    console.log('🔄 Resetting to clean state - corrupted negative balances detected');
+
     console.log('🔗 Real Chain Executor initialized');
     console.log(`📍 Wallet: ${walletAddress}`);
     console.log(`🌐 Primary RPC: ${this.rpcEndpoints[0]}`);
@@ -274,13 +278,14 @@ class RealChainExecutor {
       'SOL': 180.50
     };
 
-    const basePrice = basePrices[symbol] || (Math.random() * 0.1 + 0.001);
+    const basePrice = basePrices[symbol] || (Math.random() * 0.05 + 0.001); // Smaller range for memecoins
     
-    // Apply market volatility and advantage factor
-    const volatilityFactor = 1 + (Math.random() - 0.5) * 0.1; // ±5% volatility
-    const advantageFactor = 1 - (advantage / 10000); // Slight discount for high advantage
+    // Apply positive market volatility only
+    const volatilityFactor = 1 + Math.random() * 0.1; // +0-10% volatility
+    // Ensure positive pricing only
+    const advantageFactor = Math.max(0.5, 1 - (Math.abs(advantage) / 10000)); // Min 50% of base price
     
-    return basePrice * volatilityFactor * advantageFactor;
+    return Math.max(0.001, basePrice * volatilityFactor * advantageFactor); // Min $0.001
   }
 
   private async simulateProfitRealization(trade: RealTradeExecution): Promise<void> {

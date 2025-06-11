@@ -59,11 +59,11 @@ class AggressiveExecutionManager extends EventEmitter {
   ): Promise<AggressiveTradeExecution> {
     const tradeId = `AGG_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Calculate aggressive position size based on advantage
-    const basePosition = Math.min(this.freedCapital * 0.2, this.maxPositionSize); // Increased to 20%
-    const advantageMultiplier = Math.min(advantage / 100, 8); // Increased to 8x for extreme advantages
-    const confidenceMultiplier = confidence / 100;
-    const positionSize = basePosition * advantageMultiplier * confidenceMultiplier;
+    // Calculate aggressive position size based on advantage - ensure positive values
+    const basePosition = Math.min(Math.abs(this.freedCapital) * 0.15, this.maxPositionSize);
+    const advantageMultiplier = Math.min(Math.abs(advantage) / 100, 3); // Cap at 3x
+    const confidenceMultiplier = Math.abs(confidence) / 100;
+    const positionSize = Math.max(10, basePosition * advantageMultiplier * confidenceMultiplier); // Min $10
 
     console.log(`🚀 EXECUTING REAL HIGH-ADVANTAGE ENTRY: ${symbol}`);
     console.log(`   Advantage: ${advantage.toFixed(1)}%`);
