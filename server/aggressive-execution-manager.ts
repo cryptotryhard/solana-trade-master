@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { autoSellManager } from './auto-sell-manager';
 
 interface AggressiveTradeExecution {
   id: string;
@@ -104,6 +105,17 @@ class AggressiveExecutionManager extends EventEmitter {
       console.log(`   TX Hash: ${trade.txHash}`);
       console.log(`   Tokens Received: ${trade.tokensReceived.toFixed(2)}`);
       console.log(`   Expected ROI: ${advantage.toFixed(1)}%`);
+
+      // Add position to auto-sell manager for monitoring
+      autoSellManager.addPosition({
+        symbol,
+        mintAddress: 'synthetic_mint_' + symbol, // In real implementation would use actual mint
+        entryPrice: trade.actualPrice,
+        currentPrice: trade.actualPrice,
+        tokenAmount: trade.tokensReceived,
+        positionValue: trade.positionSize,
+        txHash: trade.txHash
+      });
 
       return trade;
     } catch (error) {

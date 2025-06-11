@@ -63,7 +63,7 @@ class AlphaAccelerationEngine {
     averageAIScore: 0,
     successRate: 0,
     lastScanTime: new Date(),
-    scanFrequency: 15000, // 15 seconds optimized
+    scanFrequency: 8000, // 8 seconds for higher frequency
     currentPhase: 'hunting'
   };
 

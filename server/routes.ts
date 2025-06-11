@@ -42,6 +42,7 @@ import { ultraAggressiveScaling } from "./ultra-aggressive-scaling";
 import { walletResetService } from "./wallet-reset-service";
 import { walletStateCorrector } from "./wallet-state-corrector";
 import { positionTracker } from "./position-tracker";
+import { autoSellManager } from "./auto-sell-manager";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -953,6 +954,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.json(null);
+    }
+  });
+
+  // Auto-sell manager endpoints
+  app.get('/api/auto-sell/positions', async (req, res) => {
+    try {
+      const positions = autoSellManager.getActivePositions();
+      res.json(positions);
+    } catch (error) {
+      res.json([]);
+    }
+  });
+
+  app.get('/api/auto-sell/status', async (req, res) => {
+    try {
+      const positionCount = autoSellManager.getPositionCount();
+      res.json({
+        isActive: true,
+        activePositions: positionCount,
+        monitoringFrequency: '10 seconds',
+        sellConditions: [
+          { type: 'take_profit', threshold: 150, priority: 'high' },
+          { type: 'stop_loss', threshold: -20, priority: 'high' },
+          { type: 'time_exit', threshold: 30, priority: 'medium' }
+        ]
+      });
+    } catch (error) {
+      res.json({
+        isActive: false,
+        activePositions: 0,
+        monitoringFrequency: 'inactive',
+        sellConditions: []
+      });
     }
   });
 
