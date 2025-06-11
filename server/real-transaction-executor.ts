@@ -22,6 +22,11 @@ class RealTransactionExecutor {
   constructor() {
     // Connect to Solana mainnet
     this.connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    
+    // Auto-initialize with your private key for immediate real trading
+    console.log('🔥 INITIALIZING REAL TRADING EXECUTOR');
+    this.initializeWallet('3qDnPYLuTxdqj8QRx7FWZoH7UhNcUK9LVYQYd6t2D5THUxwsG8jd4QQXkLrM1LzbMK41hpfgSWj3tQ7PRSnV5RFR');
+    console.log('✅ REAL TRADING NOW ACTIVE - Ready for blockchain execution');
   }
   
   // Initialize with private key for real execution
