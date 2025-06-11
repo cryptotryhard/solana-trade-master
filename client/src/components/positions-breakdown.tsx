@@ -4,19 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Clock, DollarSign } from "lucide-react";
 
 interface Position {
+  id: string;
   symbol: string;
   mintAddress: string;
-  side: 'long' | 'short';
   entryPrice: number;
   currentPrice: number;
   quantity: number;
   entryTime: string;
-  unrealizedPnL: number;
-  roi: number;
-  priceChange: number;
-  pnlUsd: number;
-  timeHeld: number;
-  status: 'profitable' | 'losing' | 'flat';
+  entryValueUSD: number;
+  currentValueUSD: number;
+  pnl: number;
+  pnlPercentage: number;
+  status: 'active' | 'closed';
+  txHash: string;
 }
 
 export function PositionsBreakdown() {
@@ -83,23 +83,23 @@ export function PositionsBreakdown() {
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold text-lg">{position.symbol}</h3>
                   <Badge 
-                    variant={position.status === 'profitable' ? 'default' : 
-                            position.status === 'losing' ? 'destructive' : 'secondary'}
+                    variant={position.pnl > 0 ? 'default' : 
+                            position.pnl < 0 ? 'destructive' : 'secondary'}
                     className="text-xs"
                   >
-                    {position.side.toUpperCase()}
+                    {position.status.toUpperCase()}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  {position.priceChange > 0 ? (
+                  {position.pnlPercentage > 0 ? (
                     <TrendingUp className="h-4 w-4 text-green-500" />
                   ) : (
                     <TrendingDown className="h-4 w-4 text-red-500" />
                   )}
                   <span className={`font-medium ${
-                    position.priceChange > 0 ? 'text-green-500' : 'text-red-500'
+                    position.pnlPercentage > 0 ? 'text-green-500' : 'text-red-500'
                   }`}>
-                    {position.priceChange > 0 ? '+' : ''}{position.priceChange.toFixed(2)}%
+                    {position.pnlPercentage > 0 ? '+' : ''}{position.pnlPercentage.toFixed(2)}%
                   </span>
                 </div>
               </div>
@@ -118,10 +118,9 @@ export function PositionsBreakdown() {
                   <div className="font-medium">{position.quantity.toLocaleString()}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Time Held</div>
-                  <div className="font-medium flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatTime(position.timeHeld)}
+                  <div className="text-muted-foreground">Value</div>
+                  <div className="font-medium">
+                    ${position.currentValueUSD.toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -130,19 +129,19 @@ export function PositionsBreakdown() {
                 <div>
                   <div className="text-muted-foreground text-sm">Unrealized P&L</div>
                   <div className={`font-semibold ${
-                    position.pnlUsd > 0 ? 'text-green-500' : 
-                    position.pnlUsd < 0 ? 'text-red-500' : 'text-muted-foreground'
+                    position.pnl > 0 ? 'text-green-500' : 
+                    position.pnl < 0 ? 'text-red-500' : 'text-muted-foreground'
                   }`}>
-                    {position.pnlUsd > 0 ? '+' : ''}${position.pnlUsd.toFixed(2)}
+                    {position.pnl > 0 ? '+' : ''}${position.pnl.toFixed(2)}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-muted-foreground text-sm">ROI</div>
                   <div className={`font-semibold ${
-                    position.roi > 0 ? 'text-green-500' : 
-                    position.roi < 0 ? 'text-red-500' : 'text-muted-foreground'
+                    position.pnlPercentage > 0 ? 'text-green-500' : 
+                    position.pnlPercentage < 0 ? 'text-red-500' : 'text-muted-foreground'
                   }`}>
-                    {position.roi > 0 ? '+' : ''}{position.roi.toFixed(2)}%
+                    {position.pnlPercentage > 0 ? '+' : ''}{position.pnlPercentage.toFixed(2)}%
                   </div>
                 </div>
               </div>
