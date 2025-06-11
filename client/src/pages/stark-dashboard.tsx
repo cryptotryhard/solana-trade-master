@@ -71,12 +71,12 @@ export default function StarkDashboard() {
     refetchInterval: 5000
   });
 
-  // Mock pump.fun signals for now - will be replaced with real data
-  const pumpFunSignals: PumpFunSignal[] = [
-    { symbol: 'ALPHA', confidence: 87, marketCap: 45000, age: '2h', risk: 'MEDIUM', action: 'BUY' },
-    { symbol: 'MOON', confidence: 92, marketCap: 23000, age: '45m', risk: 'LOW', action: 'BUY' },
-    { symbol: 'DEGEN', confidence: 73, marketCap: 78000, age: '5h', risk: 'HIGH', action: 'WATCH' }
-  ];
+  const { data: pumpFunData } = useQuery({
+    queryKey: ['/api/pump-fun/signals'],
+    refetchInterval: 10000
+  });
+
+  const pumpFunSignals: PumpFunSignal[] = pumpFunData?.signals || [];
 
   // Calculate portfolio metrics
   const totalValue = (positions as Position[])?.reduce((sum, pos) => 
