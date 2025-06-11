@@ -39,6 +39,7 @@ import { realPortfolioTracker } from "./real-portfolio-tracker";
 import { positionRotationManager } from "./position-rotation-manager";
 import { aggressiveAlphaFilter } from "./aggressive-alpha-filter";
 import { ultraAggressiveScaling } from "./ultra-aggressive-scaling";
+import { walletResetService } from "./wallet-reset-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -576,6 +577,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       await ultraAggressiveScaling.forceExitAll();
       res.json({ success: true, message: "All positions exited" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Emergency wallet reset endpoint
+  app.post('/api/wallet/emergency-reset', async (req, res) => {
+    try {
+      console.log('🚨 EMERGENCY WALLET RESET REQUESTED');
+      const resetMetrics = await walletResetService.performEmergencyReset();
+      res.json({ 
+        success: true, 
+        resetMetrics,
+        message: 'Wallet successfully reset to clean state'
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Wallet state validation endpoint
+  app.get('/api/wallet/validate', async (req, res) => {
+    try {
+      const isValid = await walletResetService.validateWalletState();
+      res.json({ 
+        valid: isValid,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }

@@ -189,8 +189,8 @@ class HyperTacticalEntryEngine extends EventEmitter {
 
   private calculateOptimalEntry(signal: VolatilitySignal): EntryTiming {
     const currentPrice = 0.001 + Math.random() * 0.1; // Mock current price
-    const volatilityAdjustment = signal.volatilityScore / 1000;
-    const optimalEntry = currentPrice - volatilityAdjustment;
+    const volatilityAdjustment = Math.min(signal.volatilityScore / 10000, currentPrice * 0.3); // Max 30% discount
+    const optimalEntry = Math.max(0.0001, currentPrice - volatilityAdjustment); // Ensure positive minimum
     const entryAdvantage = ((currentPrice - optimalEntry) / currentPrice) * 100;
     
     const executionWindow = signal.timeWindow === 'immediate' ? 15 : 
@@ -217,7 +217,7 @@ class HyperTacticalEntryEngine extends EventEmitter {
       this.metrics.totalEntrySignals++;
       
       console.log(`🚀 EXECUTING HYPER ENTRY: ${entry.symbol}`);
-      console.log(`💰 Entry Price: $${entry.optimalEntry.toFixed(6)}`);
+      console.log(`💰 Entry Price: $${Math.max(0.0001, entry.optimalEntry).toFixed(6)}`);
       console.log(`⚡ Advantage: ${entry.entryAdvantage.toFixed(2)}%`);
       console.log(`🎯 Confidence: ${entry.confidence.toFixed(1)}%`);
       console.log(`⏱️ Window: ${entry.executionWindow}s`);
