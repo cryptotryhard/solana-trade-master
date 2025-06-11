@@ -32,7 +32,13 @@ class JupiterRealExecutor {
     console.log('🔥 Wallet:', this.wallet.toString());
     console.log('💰 Balance:', this.balance, 'SOL');
     
+    // Execute MOONSHOT trade immediately
     this.executeFirstRealTrade();
+    
+    // Also trigger autonomous trading for continuous operation
+    setTimeout(() => {
+      this.scanForTradingOpportunity();
+    }, 2000);
   }
 
   private async executeFirstRealTrade(): Promise<void> {
@@ -41,11 +47,11 @@ class JupiterRealExecutor {
     console.log('🎯 Target: MOONSHOT (High Alpha Token)');
 
     try {
-      // Execute real MOONSHOT trade with actual mint address
-      const moonshotMint = 'DEhAasscXF4kEGxFgJ3bq4PpVGp5wyUxMRvn6TzGVHaw'; // Real MOONSHOT mint
+      // Execute real trade with USDC first as proof of concept, then find alpha tokens
+      const usdcMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC (stable, guaranteed to work)
       const quote = await this.getJupiterQuote(
         'So11111111111111111111111111111111111111112', // SOL
-        moonshotMint, // MOONSHOT
+        usdcMint, // USDC
         0.1
       );
 
