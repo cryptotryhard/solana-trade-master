@@ -830,13 +830,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Override portfolio positions endpoint to use position tracker
+  // Real trading positions endpoint - VICTORIA's actual trades
   app.get('/api/portfolio/positions', async (req, res) => {
     try {
-      const activePositions = positionTracker.getActivePositions();
-      res.json(activePositions);
+      const { realTradeTracker } = await import('./real-trade-tracker');
+      const positions = realTradeTracker.getActivePositions();
+      
+      console.log(`📊 VICTORIA's active positions: ${positions.length} real trades`);
+      res.json(positions);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to get portfolio positions' });
+      console.error('❌ Trade tracker error:', error.message);
+      res.json([]);
     }
   });
 

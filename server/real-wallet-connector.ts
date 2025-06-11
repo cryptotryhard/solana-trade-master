@@ -18,15 +18,19 @@ class RealWalletConnector {
   private connection: Connection;
   private walletAddress: string;
   private currentState: RealWalletState | null = null;
+  private cacheTimeout = 60000; // 1 minute cache
+  private lastCacheTime = 0;
 
-  // Use multiple RPC endpoints for reliability
+  // Use multiple RPC endpoints with rate limiting protection
   private rpcEndpoints = [
-    'https://api.mainnet-beta.solana.com',
-    'https://rpc.ankr.com/solana',
-    'https://solana.public-rpc.com',
     'https://mainnet.helius-rpc.com/?api-key=' + (process.env.HELIUS_API_KEY || ''),
-    'https://solana-api.projectserum.com'
+    'https://rpc.ankr.com/solana',
+    'https://api.mainnet-beta.solana.com',
+    'https://solana.public-rpc.com'
   ];
+  
+  private lastRequestTime = 0;
+  private minRequestInterval = 2000; // 2 seconds between requests
 
   private currentRpcIndex = 0;
 
