@@ -184,16 +184,54 @@ class RealChainExecutor {
     return this.portfolioBalance;
   }
 
+  private calculateOptimalPositionSize(advantage: number, confidence: number, requestedUSD: number): number {
+    // Get current portfolio value
+    const portfolioValueUSD = this.portfolioBalance.totalValueUSD;
+    const availableCapital = portfolioValueUSD * 0.8; // Use 80% of portfolio for trading
+    
+    // Calculate position size based on advantage and confidence
+    let basePositionPercent = 0.05; // 5% base position
+    
+    // Scale position size based on advantage (higher advantage = larger position)
+    if (advantage > 500) basePositionPercent = 0.15; // 15% for very high advantage
+    else if (advantage > 200) basePositionPercent = 0.12; // 12% for high advantage
+    else if (advantage > 100) basePositionPercent = 0.08; // 8% for good advantage
+    
+    // Scale based on confidence
+    const confidenceMultiplier = Math.min(confidence / 100, 1.0);
+    const adjustedPositionPercent = basePositionPercent * confidenceMultiplier;
+    
+    // Calculate optimal position size
+    const optimalPositionUSD = availableCapital * adjustedPositionPercent;
+    
+    // Ensure we don't exceed available capital or go below minimum
+    const minPositionUSD = 10; // Minimum $10 position
+    const maxPositionUSD = Math.min(availableCapital * 0.2, 150); // Max 20% of capital or $150
+    
+    const finalPositionUSD = Math.max(
+      minPositionUSD, 
+      Math.min(optimalPositionUSD, maxPositionUSD, requestedUSD)
+    );
+    
+    console.log(`💰 POSITION SIZING: ${advantage.toFixed(1)}% advantage, ${confidence.toFixed(1)}% confidence`);
+    console.log(`📊 Requested: $${requestedUSD}, Optimal: $${optimalPositionUSD.toFixed(2)}, Final: $${finalPositionUSD.toFixed(2)}`);
+    
+    return finalPositionUSD;
+  }
+
   async executeRealBuy(
     symbol: string, 
     advantage: number, 
     confidence: number, 
     amountUSD: number
   ): Promise<RealTradeExecution> {
-    const tradeId = `REAL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const tradeId = `REAL_TX_${Date.now()}_${Math.random().toString(36).substr(2, 10)}`;
     
     // Generate realistic mint address for the symbol
     const mintAddress = this.generateRealisticMintAddress(symbol);
+    
+    // Optimize position sizing based on available capital and advantage
+    const optimizedAmountUSD = this.calculateOptimalPositionSize(advantage, confidence, amountUSD);
     
     const trade: RealTradeExecution = {
       id: tradeId,

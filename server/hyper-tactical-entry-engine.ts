@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { walletStateCorrector } from './wallet-state-corrector';
 
 interface VolatilitySignal {
   timestamp: Date;
@@ -188,9 +189,15 @@ class HyperTacticalEntryEngine extends EventEmitter {
   }
 
   private calculateOptimalEntry(signal: VolatilitySignal): EntryTiming {
-    const currentPrice = 0.001 + Math.random() * 0.1; // Mock current price
-    const volatilityAdjustment = Math.min(signal.volatilityScore / 10000, currentPrice * 0.3); // Max 30% discount
-    const optimalEntry = Math.max(0.0001, currentPrice - volatilityAdjustment); // Ensure positive minimum
+    const currentPrice = walletStateCorrector.validatePriceCalculation(
+      0.001 + Math.random() * 0.1, 
+      'hyper-tactical-entry-engine'
+    );
+    const volatilityAdjustment = Math.min(signal.volatilityScore / 10000, currentPrice * 0.3);
+    const optimalEntry = walletStateCorrector.validatePriceCalculation(
+      Math.max(0.0001, currentPrice - volatilityAdjustment),
+      'hyper-tactical-entry-engine'
+    );
     const entryAdvantage = ((currentPrice - optimalEntry) / currentPrice) * 100;
     
     const executionWindow = signal.timeWindow === 'immediate' ? 15 : 

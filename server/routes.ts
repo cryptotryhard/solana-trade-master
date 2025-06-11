@@ -40,6 +40,7 @@ import { positionRotationManager } from "./position-rotation-manager";
 import { aggressiveAlphaFilter } from "./aggressive-alpha-filter";
 import { ultraAggressiveScaling } from "./ultra-aggressive-scaling";
 import { walletResetService } from "./wallet-reset-service";
+import { walletStateCorrector } from "./wallet-state-corrector";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -604,6 +605,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         valid: isValid,
         timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // System health monitoring endpoint
+  app.get('/api/system/health', async (req, res) => {
+    try {
+      const systemHealth = walletStateCorrector.getSystemHealth();
+      const resetHistory = walletResetService.getResetHistory();
+      
+      res.json({
+        systemHealth,
+        resetHistory,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Manual system correction endpoint
+  app.post('/api/system/correct', async (req, res) => {
+    try {
+      const corrections = await walletStateCorrector.performSystemWideCorrection();
+      res.json({
+        success: true,
+        corrections,
+        message: `Applied ${corrections.length} system corrections`
       });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
