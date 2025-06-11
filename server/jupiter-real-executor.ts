@@ -35,10 +35,8 @@ class JupiterRealExecutor {
     // Execute MOONSHOT trade immediately
     this.executeFirstRealTrade();
     
-    // Also trigger autonomous trading for continuous operation
-    setTimeout(() => {
-      this.scanForTradingOpportunity();
-    }, 2000);
+    // Start continuous autonomous trading
+    this.startAutonomousTrading();
   }
 
   private async executeFirstRealTrade(): Promise<void> {
@@ -203,17 +201,22 @@ class JupiterRealExecutor {
   }
 
   private async startAutonomousTrading(): Promise<void> {
-    console.log('🤖 STARTING AUTONOMOUS REAL TRADING');
-    console.log('🎯 Target: 3-5 trades per hour');
-    console.log('💰 Budget: 0.05-0.1 SOL per trade');
+    console.log('🤖 STARTING AUTONOMOUS REAL TRADING - AGGRESSIVE MODE');
+    console.log('🎯 Target: 10-15 trades per hour');
+    console.log('💰 Budget: 0.05-0.2 SOL per trade');
+    console.log('⚡ Scanning every 2 minutes for opportunities');
     
+    // Immediate first scan
+    this.scanForTradingOpportunity();
+    
+    // Aggressive scanning every 2 minutes
     setInterval(async () => {
       try {
         await this.scanForTradingOpportunity();
       } catch (error) {
         console.error('Trading scan error:', error);
       }
-    }, 1200000); // Every 20 minutes
+    }, 120000); // Every 2 minutes
   }
 
   private async scanForTradingOpportunity(): Promise<void> {
