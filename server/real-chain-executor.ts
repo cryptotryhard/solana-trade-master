@@ -30,11 +30,11 @@ class RealChainExecutor {
   private walletPublicKey: PublicKey;
 
   private rpcEndpoints = [
-    'https://rpc.heliohost.org',
     'https://solana-api.projectserum.com',
+    'https://api.mainnet-beta.solana.com',
     'https://rpc.ankr.com/solana',
-    'https://mainnet.helius-rpc.com/?api-key=' + (process.env.HELIUS_API_KEY || ''),
-    'https://api.mainnet-beta.solana.com'
+    'https://solana.public-rpc.com',
+    'https://mainnet.helius-rpc.com/?api-key=' + (process.env.HELIUS_API_KEY || '')
   ];
 
   private currentRpcIndex = 0;
@@ -43,9 +43,10 @@ class RealChainExecutor {
     this.connection = new Connection(this.rpcEndpoints[0], 'confirmed');
     this.walletPublicKey = new PublicKey(walletAddress);
     
+    // Initialize with realistic starting balance for trading
     this.portfolioBalance = {
-      solBalance: 0,
-      totalValueUSD: 500, // Starting amount
+      solBalance: 2.78, // Starting 2.78 SOL (~$500)
+      totalValueUSD: 500,
       tokenBalances: new Map(),
       lastUpdated: new Date()
     };
@@ -53,6 +54,7 @@ class RealChainExecutor {
     console.log('🔗 Real Chain Executor initialized');
     console.log(`📍 Wallet: ${walletAddress}`);
     console.log(`🌐 Primary RPC: ${this.rpcEndpoints[0]}`);
+    console.log(`💰 Starting Balance: 2.78 SOL ($500)`);
   }
 
   private async switchRpcEndpoint(): Promise<void> {
@@ -108,9 +110,51 @@ class RealChainExecutor {
       }
     }
 
-    // Fallback to enhanced simulation if all RPCs fail
-    console.log('⚠️ All RPCs failed, using enhanced simulation with real market data');
-    return this.getEnhancedSimulatedBalance();
+    // Force real connection - no simulation fallback
+    console.log('🔴 CRITICAL: All RPCs failed - forcing real connection attempt');
+    
+    // Try one more time with basic fetch
+    try {
+      const response = await fetch('https://api.mainnet-beta.solana.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getBalance',
+          params: [this.walletPublicKey.toString()]
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const solBalance = (data.result?.value || 0) / LAMPORTS_PER_SOL;
+        const totalValueUSD = solBalance * 180; // SOL price estimate
+        
+        this.portfolioBalance = {
+          solBalance,
+          totalValueUSD,
+          tokenBalances: new Map(),
+          lastUpdated: new Date()
+        };
+        
+        console.log(`✅ FORCED CONNECTION: ${solBalance.toFixed(4)} SOL ($${totalValueUSD.toFixed(2)})`);
+        return this.portfolioBalance;
+      }
+    } catch (error) {
+      console.log('🔴 FORCED CONNECTION FAILED:', error.message);
+    }
+    
+    // Return empty balance - no simulation
+    this.portfolioBalance = {
+      solBalance: 0,
+      totalValueUSD: 0,
+      tokenBalances: new Map(),
+      lastUpdated: new Date()
+    };
+    
+    console.log('🔴 RETURNING EMPTY BALANCE - RPC CONNECTION REQUIRED');
+    return this.portfolioBalance;
   }
 
   private async getEnhancedSimulatedBalance(): Promise<RealPortfolioBalance> {
@@ -164,9 +208,27 @@ class RealChainExecutor {
     // Calculate tokens received based on realistic market conditions
     trade.tokensReceived = amountUSD / trade.actualPrice;
 
-    // Update portfolio balance
-    this.portfolioBalance.totalValueUSD -= amountUSD;
+    // Check if we have sufficient balance
+    if (this.portfolioBalance.solBalance < trade.amountSOL) {
+      console.log(`❌ INSUFFICIENT SOL: Need ${trade.amountSOL.toFixed(4)}, have ${this.portfolioBalance.solBalance.toFixed(4)}`);
+      throw new Error(`Insufficient SOL balance`);
+    }
+
+    // Update portfolio balance - deduct spent SOL
     this.portfolioBalance.solBalance -= trade.amountSOL;
+    this.portfolioBalance.totalValueUSD = this.portfolioBalance.solBalance * 180;
+    
+    // Add token position to portfolio
+    const existing = this.portfolioBalance.tokenBalances.get(symbol);
+    if (existing) {
+      existing.amount += trade.tokensReceived;
+      existing.valueUSD += amountUSD;
+    } else {
+      this.portfolioBalance.tokenBalances.set(symbol, {
+        amount: trade.tokensReceived,
+        valueUSD: amountUSD
+      });
+    }
 
     this.realTrades.push(trade);
 
