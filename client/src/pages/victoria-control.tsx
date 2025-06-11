@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, Activity, Target, Zap, Brain, DollarSign, BarChart3, Eye, ExternalLink, Clock, Shield } from 'lucide-react';
-import LiveTokenCharts from '@/components/live-token-charts';
+import { LiveTokenCharts } from '@/components/live-token-charts';
 
 interface LiveTrade {
   id: string;
@@ -623,6 +623,160 @@ export default function VictoriaControl() {
           </Card>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="live-charts" className="space-y-6">
+          <LiveTokenCharts />
+        </TabsContent>
+
+        <TabsContent value="trades" className="space-y-6">
+          <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl text-orange-400 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Live Trading Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {(liveTrades as any[]).map((trade: any) => (
+                  <div key={trade.id} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-3">
+                        <Badge className={`${
+                          trade.type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {trade.type}
+                        </Badge>
+                        <span className="font-bold text-lg">{trade.tokenSymbol}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-400">
+                          {new Date(trade.timestamp).toLocaleTimeString()}
+                        </div>
+                        <Badge className={`${
+                          trade.status === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {trade.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-400">Amount: </span>
+                        <span className="text-white">{formatSOL(trade.amountSOL)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Tokens: </span>
+                        <span className="text-white">{(trade.amountTokens || 0).toLocaleString()}</span>
+                      </div>
+                      {trade.pnl !== undefined && (
+                        <div>
+                          <span className="text-gray-400">P&L: </span>
+                          <span className={`${trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {formatCurrency(trade.pnl)}
+                          </span>
+                        </div>
+                      )}
+                      {trade.roi !== undefined && (
+                        <div>
+                          <span className="text-gray-400">ROI: </span>
+                          <span className={`${trade.roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {trade.roi.toFixed(2)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {trade.txHash && (
+                      <div className="mt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          onClick={() => window.open(`https://solscan.io/tx/${trade.txHash}`, '_blank')}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          View on Solscan
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {(liveTrades as any[]).length === 0 && (
+                  <div className="p-8 text-center text-gray-400">
+                    No live trades yet.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="positions" className="space-y-6">
+          <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl text-purple-400 flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Portfolio Positions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {(positions as any[]).map((position: any) => (
+                  <div key={position.symbol} className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <div className="font-bold text-lg">{position.symbol}</div>
+                        <div className="text-sm text-gray-400">
+                          Balance: {(position.balance || 0).toLocaleString()} tokens
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-white">
+                          {formatCurrency(position.valueUSD)}
+                        </div>
+                        <div className={`text-sm ${(position.roi || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {(position.roi || 0) >= 0 ? '+' : ''}{(position.roi || 0).toFixed(2)}% ROI
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-400">Entry: </span>
+                        <span className="text-white">${(position.entryPrice || 0).toFixed(6)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Current: </span>
+                        <span className="text-white">${(position.currentPrice || 0).toFixed(6)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">P&L: </span>
+                        <span className={`${(position.pnl || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {formatCurrency(position.pnl || 0)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Confidence: </span>
+                        <span className="text-white">{position.confidence || 'N/A'}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {(positions as any[]).length === 0 && (
+                  <div className="p-8 text-center text-gray-400">
+                    No active positions.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
