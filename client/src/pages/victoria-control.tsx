@@ -397,7 +397,7 @@ export default function VictoriaControl() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="max-h-96 overflow-y-auto">
-                {liveTrades.map((trade: LiveTrade) => (
+                {(liveTrades as any[]).map((trade: any) => (
                   <Dialog key={trade.id}>
                     <DialogTrigger asChild>
                       <div className="p-4 border-b border-gray-700 last:border-b-0 hover:bg-gray-800/50 transition-colors cursor-pointer">
@@ -511,7 +511,7 @@ export default function VictoriaControl() {
                   </Dialog>
                 ))}
                 
-                {liveTrades.length === 0 && (
+                {(liveTrades as any[]).length === 0 && (
                   <div className="p-8 text-center text-gray-400">
                     No live trades yet. Launch Victoria to start trading.
                   </div>
@@ -532,7 +532,7 @@ export default function VictoriaControl() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="max-h-96 overflow-y-auto">
-                {positions.map((position: Position) => (
+                {(positions as any[]).map((position: any) => (
                   <div key={position.symbol} className="p-4 border-b border-gray-700 last:border-b-0">
                     <div className="flex justify-between items-start mb-3">
                       <div className="font-bold text-lg">{position.symbol || 'Unknown'}</div>
@@ -572,7 +572,7 @@ export default function VictoriaControl() {
                     
                     {position.signals && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {position.signals.map((signal) => (
+                        {position.signals.map((signal: string) => (
                           <Badge key={signal} className="text-xs bg-purple-500/20 text-purple-400">
                             {signal}
                           </Badge>
@@ -582,7 +582,7 @@ export default function VictoriaControl() {
                   </div>
                 ))}
                 
-                {positions.length === 0 && (
+                {(positions as any[]).length === 0 && (
                   <div className="p-8 text-center text-gray-400">
                     No active positions.
                   </div>
