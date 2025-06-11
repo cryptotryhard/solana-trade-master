@@ -13,9 +13,10 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={VictoriaControl} />
+      <Route path="/" component={EnhancedVictoriaDashboard} />
+      <Route path="/victoria" component={VictoriaControl} />
       <Route path="/dashboard" component={Dashboard} />
-      <Route path="/victoria" component={VictoriaTradingDashboard} />
+      <Route path="/trading" component={VictoriaTradingDashboard} />
       <Route path="/real-trading" component={RealTradingPage} />
       <Route component={NotFound} />
     </Switch>

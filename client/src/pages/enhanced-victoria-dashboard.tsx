@@ -54,7 +54,7 @@ export default function EnhancedVictoriaDashboard() {
     refetchInterval: 1000
   });
 
-  const { data: liveData = [] } = useQuery({
+  const { data: liveData = [] } = useQuery<any[]>({
     queryKey: ['/api/trades/live'],
     refetchInterval: 1000
   });
@@ -66,29 +66,31 @@ export default function EnhancedVictoriaDashboard() {
 
   // Real-time notifications
   useEffect(() => {
-    if (liveData.length > lastTradeCount) {
+    if (Array.isArray(liveData) && liveData.length > lastTradeCount) {
       const newTrades = liveData.slice(lastTradeCount);
       newTrades.forEach((trade: any) => {
-        const alert: RealTimeAlert = {
-          id: `alert_${Date.now()}_${Math.random()}`,
-          type: 'trade_executed',
-          message: `VICTORIA executed ${trade.symbol} trade - TX: ${trade.txHash?.slice(0, 8)}...`,
-          timestamp: new Date().toISOString(),
-          severity: 'success'
-        };
-        setAlerts(prev => [alert, ...prev].slice(0, 10));
+        if (trade && trade.symbol) {
+          const alert: RealTimeAlert = {
+            id: `alert_${Date.now()}_${Math.random()}`,
+            type: 'trade_executed',
+            message: `VICTORIA executed ${trade.symbol} trade - TX: ${trade.txHash?.slice(0, 8)}...`,
+            timestamp: new Date().toISOString(),
+            severity: 'success'
+          };
+          setAlerts(prev => [alert, ...prev].slice(0, 10));
+        }
       });
       setLastTradeCount(liveData.length);
     }
   }, [liveData, lastTradeCount]);
 
-  const totalPortfolioValue = positions.reduce((sum, pos) => 
-    sum + (pos.quantity * pos.currentPrice), 0
-  );
+  const totalPortfolioValue = Array.isArray(positions) ? positions.reduce((sum, pos) => 
+    sum + ((pos?.quantity || 0) * (pos?.currentPrice || 0)), 0
+  ) : 0;
 
-  const totalProfit = positions.reduce((sum, pos) => sum + pos.profit, 0);
-  const totalRoi = positions.length > 0 ? 
-    (totalProfit / positions.reduce((sum, pos) => sum + (pos.quantity * pos.entryPrice), 0)) * 100 : 0;
+  const totalProfit = Array.isArray(positions) ? positions.reduce((sum, pos) => sum + (pos?.profit || 0), 0) : 0;
+  const totalEntryValue = Array.isArray(positions) ? positions.reduce((sum, pos) => sum + ((pos?.quantity || 0) * (pos?.entryPrice || 0)), 0) : 0;
+  const totalRoi = totalEntryValue > 0 ? (totalProfit / totalEntryValue) * 100 : 0;
 
   const getStatusColor = (mode: string) => {
     if (mode === 'autonomous') return 'bg-green-500/20 text-green-300';
@@ -128,7 +130,7 @@ export default function EnhancedVictoriaDashboard() {
             <div className="text-right">
               <div className="text-sm text-gray-400">Wallet Balance</div>
               <div className="font-bold text-green-400">
-                {walletBalance?.balance?.toFixed(4) || '0'} SOL
+                {(walletBalance as any)?.balance?.toFixed(4) || '0.0000'} SOL
               </div>
             </div>
           </div>
@@ -171,7 +173,7 @@ export default function EnhancedVictoriaDashboard() {
                 <div>
                   <p className="text-gray-400 text-sm">Portfolio Value</p>
                   <p className="text-2xl font-bold text-white">
-                    ${totalPortfolioValue.toFixed(2)}
+                    ${(totalPortfolioValue || 0).toFixed(2)}
                   </p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-400" />
@@ -184,8 +186,8 @@ export default function EnhancedVictoriaDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">Total P&L</p>
-                  <p className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    ${totalProfit.toFixed(2)}
+                  <p className={`text-2xl font-bold ${(totalProfit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    ${(totalProfit || 0).toFixed(2)}
                   </p>
                 </div>
                 {totalProfit >= 0 ? (
@@ -292,37 +294,41 @@ export default function EnhancedVictoriaDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {liveData.slice(0, 6).map((trade: any) => (
-                      <div key={trade.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                    {Array.isArray(liveData) ? liveData.slice(0, 6).map((trade: any) => (
+                      <div key={trade?.id || Math.random()} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Zap className="w-4 h-4 text-yellow-400" />
-                            <span className="font-semibold text-white">{trade.symbol}</span>
+                            <span className="font-semibold text-white">{trade?.symbol || 'UNKNOWN'}</span>
                             <Badge variant="outline" className="text-green-400 border-green-400">
                               BUY
                             </Badge>
                           </div>
                           <div className="text-right">
                             <div className="text-white font-semibold">
-                              {trade.amountSOL?.toFixed(4)} SOL
+                              {trade?.amountSOL?.toFixed(4) || '0.0000'} SOL
                             </div>
                             <div className="text-xs text-gray-400">
-                              {new Date(trade.timestamp).toLocaleTimeString()}
+                              {trade?.timestamp ? new Date(trade.timestamp).toLocaleTimeString() : 'N/A'}
                             </div>
                           </div>
                         </div>
                         <div className="mt-2">
                           <a 
-                            href={`https://solscan.io/tx/${trade.txHash}`}
+                            href={`https://solscan.io/tx/${trade?.txHash || ''}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-400 hover:text-blue-300"
                           >
-                            View on Solscan: {trade.txHash?.slice(0, 12)}...
+                            View on Solscan: {trade?.txHash?.slice(0, 12) || 'N/A'}...
                           </a>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-gray-400 text-center py-4">
+                        No recent trades available
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

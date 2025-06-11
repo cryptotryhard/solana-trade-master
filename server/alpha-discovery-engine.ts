@@ -55,10 +55,10 @@ class AlphaDiscoveryEngine {
     // Initial scan
     this.performFullScan();
     
-    // Set up continuous scanning
+    // Set up aggressive scanning - 15-30 second intervals for maximum alpha capture
     this.scanInterval = setInterval(() => {
       this.performFullScan();
-    }, 120000); // Every 2 minutes
+    }, 20000); // Every 20 seconds - aggressive alpha hunting mode
   }
 
   public stopDiscovery(): void {
