@@ -43,7 +43,7 @@ import { walletResetService } from "./wallet-reset-service";
 import { walletStateCorrector } from "./wallet-state-corrector";
 import { positionTracker } from "./position-tracker";
 import { autoSellManager } from "./auto-sell-manager";
-import { realTradeExecutor } from "./real-trade-executor";
+import { jupiterRealExecutor } from "./jupiter-real-executor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -994,7 +994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Real trading endpoints
   app.get('/api/trade/logs', (req, res) => {
     try {
-      const trades = realTradeExecutor.getRecentTrades(10);
+      const trades = jupiterRealExecutor.getAllTrades();
       res.json(trades);
     } catch (error) {
       res.json([]);
@@ -1003,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/trade/stats', (req, res) => {
     try {
-      const stats = realTradeExecutor.getTradingStats();
+      const stats = jupiterRealExecutor.getTradeStats();
       res.json(stats);
     } catch (error) {
       res.json({
@@ -1018,7 +1018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/health', (req, res) => {
     try {
-      const health = realTradeExecutor.getHealthStatus();
+      const health = jupiterRealExecutor.getHealthStatus();
       res.json(health);
     } catch (error) {
       res.json({

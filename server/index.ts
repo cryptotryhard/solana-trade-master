@@ -39,12 +39,12 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
   
-  // Initialize Real Trading Executor
+  // Initialize Jupiter Real Trading
   setTimeout(async () => {
-    const { realTradeExecutor } = await import('./real-trade-executor');
-    console.log('🔥 REAL TRADE EXECUTOR INITIALIZED');
-    console.log('💰 REAL WALLET BALANCE:', '3.1047 SOL');
-    console.log('🚀 EXECUTING TEST TRADE NOW...');
+    const { jupiterRealExecutor } = await import('./jupiter-real-executor');
+    console.log('🔥 JUPITER REAL EXECUTOR ACTIVE');
+    console.log('💰 WALLET: 9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d');
+    console.log('🚀 EXECUTING FIRST REAL TRADE...');
     console.log('🎯 Target: Exponential Growth to $1B Portfolio');
     console.log('🔥 Ultra-aggressive scanning: pump.fun every 20 seconds');
     console.log('📈 Layered position stacking: Up to 3 layers per token');

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import VictoriaTradingDashboard from "@/components/victoria-trading-dashboard";
+import RealTradingPage from "@/pages/real-trading";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -12,6 +13,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/victoria" component={VictoriaTradingDashboard} />
+      <Route path="/real-trading" component={RealTradingPage} />
       <Route component={NotFound} />
     </Switch>
   );
