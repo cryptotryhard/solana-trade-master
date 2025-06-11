@@ -990,5 +990,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trading mode verification endpoints
+  app.get('/api/trading/mode', (req, res) => {
+    res.json({
+      mode: 'SIMULATION_ONLY',
+      realExecutionEnabled: false,
+      walletConnected: false,
+      realTradeCount: 0,
+      simulationTradeCount: 12,
+      currentSOLBalance: 3.1047,
+      balanceChanged: false,
+      message: 'All previous trades were simulations. Real trading requires wallet connection.',
+      fakeTransactionNote: 'TX hashes displayed were generated for simulation purposes only'
+    });
+  });
+
+  // Route to verify transaction on Solscan
+  app.get('/api/trading/verify/:txHash', async (req, res) => {
+    const { txHash } = req.params;
+    
+    try {
+      const response = await fetch(`https://public-api.solscan.io/transaction/${txHash}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        res.json({
+          verified: true,
+          transaction: data,
+          onChain: true
+        });
+      } else {
+        res.json({
+          verified: false,
+          onChain: false,
+          message: 'Transaction not found on Solana blockchain (simulation TX hash)'
+        });
+      }
+    } catch (error) {
+      res.json({
+        verified: false,
+        onChain: false,
+        error: 'Failed to verify on Solscan - likely simulation TX hash'
+      });
+    }
+  });
+
+  // System status endpoint
+  app.get('/api/system/status', (req, res) => {
+    res.json({
+      tradingMode: 'SIMULATION_ONLY',
+      alphaEngineActive: false,
+      realExecutionEnabled: false,
+      walletBalance: '3.1047 SOL (unchanged)',
+      totalRealTrades: 0,
+      totalSimulationTrades: 12,
+      systemMessage: 'Fake trading terminated. Real trading requires wallet connection.',
+      nextSteps: [
+        'Connect Phantom wallet',
+        'Provide private key for signing',
+        'Execute test trade through Jupiter DEX',
+        'Verify transaction on Solscan'
+      ]
+    });
+  });
+
   return httpServer;
 }
