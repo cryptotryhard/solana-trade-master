@@ -738,6 +738,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real Trading Status Endpoint
+  app.get('/api/trading/status', async (req, res) => {
+    try {
+      const { realWalletConnector } = await import('./real-wallet-connector');
+      const currentState = realWalletConnector.getCurrentState();
+      
+      res.json({
+        mode: 'REAL_TRADING_REQUIRED',
+        walletConnected: !!currentState,
+        realBalance: currentState ? {
+          solBalance: currentState.solBalance,
+          totalValueUSD: currentState.totalValueUSD,
+          address: currentState.address,
+          lastUpdated: currentState.lastUpdated
+        } : null,
+        requirements: {
+          privateKeyIntegration: false,
+          walletApproval: false,
+          jupiterDexAccess: false
+        },
+        tradingCapabilities: {
+          readWalletBalance: true,
+          executeRealTrades: false,
+          simulationMode: true
+        },
+        message: 'Real trading requires private key integration and user wallet approval for transaction signing.'
+      });
+    } catch (error) {
+      res.json({
+        mode: 'CONNECTION_FAILED',
+        walletConnected: false,
+        realBalance: null,
+        requirements: {
+          privateKeyIntegration: false,
+          walletApproval: false,
+          jupiterDexAccess: false
+        },
+        tradingCapabilities: {
+          readWalletBalance: false,
+          executeRealTrades: false,
+          simulationMode: true
+        },
+        message: 'Unable to connect to wallet or blockchain RPC endpoints.'
+      });
+    }
+  });
+
   // Override portfolio positions endpoint to use position tracker
   app.get('/api/portfolio/positions', async (req, res) => {
     try {
