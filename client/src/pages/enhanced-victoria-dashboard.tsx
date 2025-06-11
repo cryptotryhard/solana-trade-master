@@ -190,7 +190,7 @@ export default function EnhancedVictoriaDashboard() {
                     ${(totalProfit || 0).toFixed(2)}
                   </p>
                 </div>
-                {totalProfit >= 0 ? (
+                {(totalProfit || 0) >= 0 ? (
                   <TrendingUp className="w-8 h-8 text-green-400" />
                 ) : (
                   <TrendingDown className="w-8 h-8 text-red-400" />
@@ -204,8 +204,8 @@ export default function EnhancedVictoriaDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-400 text-sm">ROI</p>
-                  <p className={`text-2xl font-bold ${totalRoi >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {totalRoi.toFixed(2)}%
+                  <p className={`text-2xl font-bold ${(totalRoi || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {(totalRoi || 0).toFixed(2)}%
                   </p>
                 </div>
                 <Target className="w-8 h-8 text-purple-400" />
@@ -271,16 +271,16 @@ export default function EnhancedVictoriaDashboard() {
                           </div>
                           <div className="text-right">
                             <div className={`font-bold ${position.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              ${position.profit.toFixed(2)}
+                              ${(position.profit || 0).toFixed(2)}
                             </div>
                             <div className={`text-sm ${position.roi >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                              {position.roi.toFixed(2)}%
+                              {(position.roi || 0).toFixed(2)}%
                             </div>
                           </div>
                         </div>
                         <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                          <span>Entry: ${position.entryPrice.toFixed(6)}</span>
-                          <span>Current: ${position.currentPrice.toFixed(6)}</span>
+                          <span>Entry: ${(position.entryPrice || 0).toFixed(6)}</span>
+                          <span>Current: ${(position.currentPrice || 0).toFixed(6)}</span>
                         </div>
                       </div>
                     ))}
@@ -358,19 +358,19 @@ export default function EnhancedVictoriaDashboard() {
                       <div>
                         <p className="text-gray-400 text-sm">Entry Price</p>
                         <p className="text-white font-semibold">
-                          ${position.entryPrice.toFixed(6)}
+                          ${(position.entryPrice || 0).toFixed(6)}
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-400 text-sm">Current Price</p>
                         <p className="text-white font-semibold">
-                          ${position.currentPrice.toFixed(6)}
+                          ${(position.currentPrice || 0).toFixed(6)}
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-400 text-sm">P&L</p>
-                        <p className={`font-semibold ${position.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          ${position.profit.toFixed(2)} ({position.roi.toFixed(2)}%)
+                        <p className={`font-semibold ${(position.profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          ${(position.profit || 0).toFixed(2)} ({(position.roi || 0).toFixed(2)}%)
                         </p>
                       </div>
                     </div>
