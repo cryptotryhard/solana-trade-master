@@ -1001,6 +1001,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/real-trades', (req, res) => {
+    try {
+      const trades = jupiterRealExecutor.getAllTrades();
+      const formattedTrades = trades.map(trade => ({
+        txHash: trade.txHash,
+        timestamp: trade.timestamp,
+        token: trade.tokenSymbol,
+        type: trade.type,
+        amountSOL: trade.amountSOL,
+        profit: trade.type === 'SELL' ? (trade.amountSOL * 0.1) : 0, // Mock profit calculation
+        status: trade.status,
+        realExecution: trade.realExecution
+      }));
+      res.json(formattedTrades);
+    } catch (error) {
+      res.json([]);
+    }
+  });
+
   app.get('/api/trade/stats', (req, res) => {
     try {
       const stats = jupiterRealExecutor.getTradeStats();
@@ -1028,6 +1047,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tradesExecuted: 0,
         status: 'ERROR',
         lastHealthCheck: new Date()
+      });
+    }
+  });
+
+  // Transaction verification endpoint
+  app.get('/api/verify-tx/:txHash', async (req, res) => {
+    const { transactionVerifier } = await import('./transaction-verifier');
+    try {
+      const verification = await transactionVerifier.verifyTransaction(req.params.txHash);
+      res.json(verification);
+    } catch (error) {
+      res.json({
+        txHash: req.params.txHash,
+        isReal: false,
+        error: 'Verification service unavailable'
+      });
+    }
+  });
+
+  // Execution status endpoint
+  app.get('/api/execution-status', async (req, res) => {
+    const { transactionVerifier } = await import('./transaction-verifier');
+    try {
+      const status = transactionVerifier.generateExecutionStatus();
+      res.json(status);
+    } catch (error) {
+      res.json({
+        mode: 'ERROR',
+        realExecution: false,
+        error: 'Status check failed'
       });
     }
   });
