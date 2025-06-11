@@ -58,7 +58,6 @@ class VictoriaUnifiedEngine extends EventEmitter {
     super();
     this.connection = new Connection(this.HELIUS_RPC, 'confirmed');
     this.initializeWallet();
-    this.startTradingEngine();
   }
 
   /**
