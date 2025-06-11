@@ -89,13 +89,13 @@ class AlphaAccelerationEngine {
     
     this.isActive = true;
     this.status.isActive = true;
-    console.log('🔴 ALPHA ENGINE DISABLED - Switching to REAL-ONLY mode');
-    console.log('🔴 Fake trading has been stopped - awaiting real Jupiter integration');
+    console.log('🔴 ALPHA ENGINE PERMANENTLY DISABLED');
+    console.log('🔴 All fake trading operations terminated');
+    console.log('🔴 Real execution requires wallet connection and private key');
     
-    // Don't start scanning until real execution is confirmed
-    // this.scanInterval = setInterval(() => {
-    //   this.hunt();
-    // }, this.status.scanFrequency);
+    // Permanently disable all scanning
+    this.isActive = false;
+    this.status.isActive = false;
   }
 
   stop(): void {
