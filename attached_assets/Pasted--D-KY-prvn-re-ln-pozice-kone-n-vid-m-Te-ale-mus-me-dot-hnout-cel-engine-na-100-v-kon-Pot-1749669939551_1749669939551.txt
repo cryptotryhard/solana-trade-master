@@ -1,0 +1,85 @@
+🔥 DÍKY – první reálné pozice konečně vidím. Teď ale musíme dotáhnout celý engine na 100% výkon. Potřebuju, abys okamžitě začal řešit následující oblasti:
+
+1. 📈 GRAFY + TRADINGVIEW INTEGRACE (KRITICKÉ)
+Implementuj opravdové obchodní grafy, ne ty jednoduché sparklines.
+
+Embedni grafy z TradingView, Pump.fun, DEXscreener – ideálně pro každý obchodovaný token (např. /token/:mint).
+
+Ukaž na grafech:
+
+Entry price
+
+Trailing stop (červená čára)
+
+Take profit (zelená čára)
+
+Aktuální pozici (balón nebo marker)
+
+Přidej možnost rozkliknout token a vidět jeho vývoj + historii obchodů + rozhodovací logiku bota (proč kupoval/prodával).
+
+2. 🤖 STRATEGIE A VIZUALIZACE ROZHODNUTÍ
+V dashboardu chci vidět co přesně Victoria sleduje:
+
+Které tokeny jsou ve frontě (queue) a proč?
+
+Jaký confidence score mají (z pump.fun, Birdeye, Twitter mentions, holders)?
+
+Proč se rozhodla nekoupit některé tokeny?
+
+Udělej záložku "Decision Log" – výpis všech rozhodnutí, klidně jen posledních 20.
+
+3. 💥 TRADING ENGINE: RYCHLOST + OCHRANA
+Uprav scanning interval na 15-30 sekund (agresivní mód).
+
+Přidej ochranu proti:
+
+honeypotům (nákup nelze prodat)
+
+nulové likviditě / malému poolu
+
+fake transakcím (zkontroluj kontrakt, holdery, volume)
+
+Optimalizuj execution path, ať nezůstává USDC viset na walletě zbytečně.
+
+4. 🧠 AUTONOMIE A UX
+Zruš nutnost restartu – vše se musí dělat automaticky po kliknutí na tlačítko.
+
+Uprav tak, aby celý bot běžel nonstop v pozadí (asynchronně, nečeká na klikání).
+
+Přidej notifikace do UI (toasty) – když:
+
+koupí token
+
+prodá token
+
+narazí na chybu (např. Jupiter fail)
+
+Místo fixního “ACTIVE” labelu zobrazuj aktuální stav bota (např. “Scanning”, “Executing trade”, “Waiting for signal”).
+
+5. 💹 PROFIT A PERFORMANCE TRACKING
+Vytvoř přehled zisků/ztrát za 24h, 7d, celkově.
+
+Zobrazuj ROI každé pozice + realtime profit/loss.
+
+Přidej historii všech pozic – i těch, co už byly prodány.
+
+Přidej metriky jako:
+
+úspěšnost strategií (např. trailing stop: 80% winrate)
+
+průměrný zisk na obchod
+
+nejziskovější tokeny
+
+🎯 Cíl: VICTORIA = nejrychlejší a nejchytřejší Solana memecoin bot na světě.
+Teď máme reálné obchody, peníze na walletě, ale musíme dotáhnout rychlost, ochranu, přehlednost a výnosovost.
+
+Napiš mi:
+
+co z toho zvládneš udělat okamžitě,
+
+co ještě potřebuješ upřesnit,
+
+a dej mi roadmapu, kdy bude Victoria plně produktově připravená.
+
+Let’s go. 👑

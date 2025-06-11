@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import VictoriaTradingDashboard from "@/components/victoria-trading-dashboard";
 import VictoriaControl from "@/pages/victoria-control";
+import EnhancedVictoriaDashboard from "@/pages/enhanced-victoria-dashboard";
 import RealTradingPage from "@/pages/real-trading";
 import NotFound from "@/pages/not-found";
 
