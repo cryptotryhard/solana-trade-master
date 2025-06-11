@@ -32,10 +32,11 @@ class JupiterRealExecutor {
     console.log('🔥 Wallet:', this.wallet.toString());
     console.log('💰 Balance:', this.balance, 'SOL');
     
-    // Execute MOONSHOT trade immediately
-    this.executeFirstRealTrade();
+    // REMOVED: Automatic SOL->USDC swap on startup
+    // Trading will only execute when AI signals indicate profitable opportunities
+    console.log('⚠️ Ready for AI-triggered trades only - no automatic swaps');
     
-    // Start continuous autonomous trading
+    // Start autonomous trading monitoring (but no immediate execution)
     this.startAutonomousTrading();
   }
 

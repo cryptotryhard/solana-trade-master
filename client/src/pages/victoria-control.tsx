@@ -9,6 +9,7 @@ import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, Activity, Target, Zap, Brain, DollarSign, BarChart3, Eye, ExternalLink, Clock, Shield } from 'lucide-react';
 import LiveTokenCharts from '@/components/live-token-charts';
+import AdvancedTradingCharts from '@/components/advanced-trading-charts';
 
 interface LiveTrade {
   id: string;
@@ -626,7 +627,7 @@ export default function VictoriaControl() {
         </TabsContent>
 
         <TabsContent value="live-charts" className="space-y-6">
-          <LiveTokenCharts />
+          <AdvancedTradingCharts />
         </TabsContent>
 
         <TabsContent value="trades" className="space-y-6">
