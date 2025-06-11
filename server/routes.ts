@@ -441,6 +441,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/execution/force-real-trade', async (req, res) => {
+    try {
+      const { symbol, amountUSD = 25, advantage = 50, confidence = 85 } = req.body;
+      
+      console.log(`🔥 FORCE REAL TRADE API: ${symbol} - $${amountUSD}`);
+      
+      const { realChainExecutor } = await import('./real-chain-executor');
+      
+      const trade = await realChainExecutor.executeRealBuy(
+        symbol,
+        advantage,
+        confidence,
+        amountUSD
+      );
+      
+      res.json({
+        success: true,
+        trade,
+        message: `Real trade executed for ${symbol}`,
+        txHash: trade.txHash
+      });
+      
+    } catch (error) {
+      console.error('Force real trade failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        details: 'Real trade execution failed'
+      });
+    }
+  });
+
   app.post('/api/execution/enable-test', async (req, res) => {
     try {
       const { liveExecutionEngine } = await import('./live-execution-engine');
