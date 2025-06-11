@@ -44,6 +44,7 @@ import { walletStateCorrector } from "./wallet-state-corrector";
 import { positionTracker } from "./position-tracker";
 import { autoSellManager } from "./auto-sell-manager";
 import { jupiterRealExecutor } from "./jupiter-real-executor";
+import { alphaDiscoveryEngine } from "./alpha-discovery-engine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1262,79 +1263,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alpha intelligence endpoint
+  // Alpha intelligence endpoint - Real discovery from pump.fun & Birdeye
   app.get('/api/alpha/intelligence', async (req, res) => {
     try {
-      const { alphaWatchlistManager } = await import('./alpha-watchlist-manager');
-      const { adaptiveTradingEngine } = await import('./adaptive-trading-engine');
-      const { enhancedBirdeyeIntegration } = await import('./enhanced-birdeye-integration');
+      const discoveredTokens = alphaDiscoveryEngine.getDiscoveredTokens();
       
-      // Get active watchlist tokens
-      const watchlist = alphaWatchlistManager.getActiveWatchlist();
-      
-      const alphaTokens = await Promise.all(watchlist.slice(0, 5).map(async (token) => {
-        try {
-          // Get AI analysis for each token
-          const analysis = await adaptiveTradingEngine.analyzeToken({
-            symbol: token.symbol,
-            mintAddress: token.mintAddress || '',
-            price: token.price || 0,
-            volume24h: token.volume || 0,
-            volumeChange24h: 0,
-            marketCap: token.marketCap || 0,
-            liquidity: 0,
-            holders: 0,
-            priceChange1h: 0,
-            priceChange24h: token.change24h || 0,
-            priceChange7d: 0,
-            volatilityScore: 0,
-            liquidityScore: 0,
-            momentumScore: 0,
-            riskScore: 0,
-            technicalScore: 0,
-            socialScore: 0
-          });
-          
-          return {
-            symbol: token.symbol,
-            confidence: token.confidence,
-            score: Math.round(token.confidence * 1.1), // Alpha score
-            signals: token.signals || ['Volume Analysis', 'Technical Pattern'],
-            price: token.price || 0,
-            change24h: token.change24h || 0,
-            volume: token.volume || 0,
-            marketCap: token.marketCap || 0,
-            reasoning: analysis.reasoning || `AI detected ${token.confidence}% confidence signals`,
-            nextAction: analysis.action || (token.confidence > 80 ? 'BUY' : 'WATCH'),
-            timeframe: analysis.timeHorizon === 'scalp' ? '1-3 minutes' : '5-15 minutes'
-          };
-        } catch (error) {
-          // Fallback data structure
-          return {
-            symbol: token.symbol,
-            confidence: token.confidence,
-            score: Math.round(token.confidence * 1.1),
-            signals: token.signals || ['AI Analysis'],
-            price: token.price || 0,
-            change24h: token.change24h || 0,
-            volume: token.volume || 0,
-            marketCap: token.marketCap || 0,
-            reasoning: `High confidence ${token.confidence}% alpha signals detected`,
-            nextAction: token.confidence > 80 ? 'BUY' : 'WATCH',
-            timeframe: '2-8 minutes'
-          };
-        }
+      const alphaData = discoveredTokens.map(token => ({
+        symbol: token.symbol,
+        name: token.name,
+        score: Math.round(token.confidence),
+        confidence: token.confidence >= 80 ? "HIGH" : token.confidence >= 65 ? "MEDIUM" : "LOW",
+        signals: token.signals,
+        nextAction: token.confidence >= 75 ? "BUY SIGNAL" : "MONITOR",
+        priority: token.confidence >= 85 ? "HIGH" : token.confidence >= 75 ? "MEDIUM" : "LOW",
+        timeframe: token.age < 30 ? "5m" : token.age < 60 ? "15m" : "1h",
+        source: token.source,
+        mintAddress: token.mintAddress,
+        price: token.price,
+        marketCap: token.marketCap,
+        volume24h: token.volume24h,
+        change24h: token.change24h,
+        riskLevel: token.riskLevel,
+        reasoning: `${token.source} discovery: ${token.confidence}% confidence with ${token.signals.join(', ')}`
       }));
       
-      res.json(alphaTokens);
+      res.json(alphaData);
     } catch (error) {
       console.error('Alpha intelligence fetch error:', error);
-      res.status(500).json({ error: 'Failed to fetch alpha intelligence' });
+      res.json([]); // Return empty array to prevent dashboard crashes
     }
   });
 
-  // Queued trades endpoint
+  // Alpha discovery queue endpoint
   app.get('/api/trades/queue', async (req, res) => {
+    try {
+      const queue = alphaDiscoveryEngine.getTradeQueue();
+      const status = alphaDiscoveryEngine.getQueueStatus();
+      
+      const queueData = queue.map(trade => ({
+        id: trade.id,
+        symbol: trade.token.symbol,
+        name: trade.token.name,
+        priority: trade.priority,
+        nextAction: trade.nextAction,
+        estimatedExecution: trade.estimatedExecution,
+        confidence: trade.token.confidence,
+        signals: trade.token.signals,
+        source: trade.token.source,
+        marketCap: trade.token.marketCap,
+        volume24h: trade.token.volume24h,
+        riskLevel: trade.token.riskLevel,
+        status: trade.status,
+        queueTime: trade.queueTime
+      }));
+      
+      res.json({
+        queue: queueData,
+        status
+      });
+    } catch (error) {
+      console.error('Queue fetch error:', error);
+      res.json({ queue: [], status: { totalQueued: 0, pending: 0, executing: 0, highPriority: 0, mediumPriority: 0, lowPriority: 0 } });
+    }
+  });
+
+  // Alpha discovery metrics endpoint
+  app.get('/api/alpha/discovery/metrics', async (req, res) => {
     try {
       const { adaptiveIntegrationService } = await import('./adaptive-integration-service');
       const { jupiterRealExecutor } = await import('./jupiter-real-executor');
