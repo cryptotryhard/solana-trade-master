@@ -1250,6 +1250,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('💰 Amount Out:', realTrade.amountOut);
       console.log('🌐 Verify: https://solscan.io/tx/' + realTrade.txHash);
 
+      // Record the trade in the real trade tracker
+      const { realTradeTracker } = await import('./real-trade-tracker');
+      realTradeTracker.recordRealTrade(
+        'MOONSHOT',
+        'DEhAasscXF4kEGxFgJ3bq4PpVGp5wyUxMRvn6TzGVHaw',
+        realTrade.txHash,
+        'buy',
+        0.1, // SOL amount
+        realTrade.amountOut
+      );
+
       res.json({
         success: true,
         txHash: realTrade.txHash,
