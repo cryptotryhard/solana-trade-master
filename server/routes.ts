@@ -1262,5 +1262,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wallet balance endpoint
+  app.get('/api/wallet/balance/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      if (!address) {
+        return res.status(400).json({ error: 'Wallet address required' });
+      }
+
+      const { Connection, PublicKey, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
+      
+      const rpcEndpoints = [
+        'https://api.mainnet-beta.solana.com',
+        'https://solana-mainnet.rpc.extrnode.com',
+        'https://rpc.ankr.com/solana',
+        'https://solana.public-rpc.com'
+      ];
+      
+      let balance = 0;
+      let usedEndpoint = '';
+      
+      for (const endpoint of rpcEndpoints) {
+        try {
+          const connection = new Connection(endpoint, 'confirmed');
+          const publicKey = new PublicKey(address);
+          balance = await connection.getBalance(publicKey);
+          usedEndpoint = endpoint;
+          break;
+        } catch (endpointError) {
+          console.log(`RPC ${endpoint} failed, trying next...`);
+          continue;
+        }
+      }
+      
+      const solBalance = balance / LAMPORTS_PER_SOL;
+      
+      res.json({
+        address,
+        balance: solBalance,
+        solBalance,
+        endpoint: usedEndpoint
+      });
+      
+    } catch (error) {
+      console.error('Wallet balance fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet balance' });
+    }
+  });
+
   return httpServer;
 }

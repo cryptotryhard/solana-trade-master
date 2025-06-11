@@ -84,10 +84,15 @@ export default function VictoriaControl() {
     }
   };
 
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const formatCurrency = (amount?: number) => {
+    if (amount === undefined || amount === null || isNaN(amount)) return '$0.00';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
 
-  const formatSOL = (amount: number) => `${amount.toFixed(4)} SOL`;
+  const formatSOL = (amount?: number) => {
+    if (amount === undefined || amount === null || isNaN(amount)) return '0.0000 SOL';
+    return `${amount.toFixed(4)} SOL`;
+  };
 
   return (
     <div className="min-h-screen bg-black text-white p-6">
@@ -118,7 +123,7 @@ export default function VictoriaControl() {
         <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-400">
-              {walletData?.balance ? formatSOL(walletData.balance) : '0.0000 SOL'}
+              {walletData?.solBalance ? formatSOL(walletData.solBalance) : '0.0000 SOL'}
             </div>
             <div className="text-sm text-gray-400">Wallet Balance</div>
           </CardContent>
@@ -127,7 +132,7 @@ export default function VictoriaControl() {
         <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-blue-400">
-              {botStatus?.totalTrades || 0}
+              {botStatus?.totalTrades ?? 0}
             </div>
             <div className="text-sm text-gray-400">Total Trades</div>
           </CardContent>
@@ -136,9 +141,9 @@ export default function VictoriaControl() {
         <Card className="bg-gray-900 border-gray-700">
           <CardContent className="p-4">
             <div className={`text-2xl font-bold ${
-              (botStatus?.pnl24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'
+              (botStatus?.pnl24h ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'
             }`}>
-              {formatCurrency(botStatus?.pnl24h || 0)}
+              {formatCurrency(botStatus?.pnl24h)}
             </div>
             <div className="text-sm text-gray-400">24h P&L</div>
           </CardContent>
@@ -222,11 +227,11 @@ export default function VictoriaControl() {
               {positions.map((position) => (
                 <div key={position.symbol} className="p-4 border-b border-gray-700 last:border-b-0">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="font-bold text-lg">{position.symbol}</div>
+                    <div className="font-bold text-lg">{position.symbol || 'Unknown'}</div>
                     <div className={`font-bold ${
-                      position.roi >= 0 ? 'text-green-400' : 'text-red-400'
+                      (position.roi ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {position.roi >= 0 ? '+' : ''}{position.roi.toFixed(2)}%
+                      {(position.roi ?? 0) >= 0 ? '+' : ''}{(position.roi ?? 0).toFixed(2)}%
                     </div>
                   </div>
                   
@@ -237,7 +242,7 @@ export default function VictoriaControl() {
                     </div>
                     <div>
                       <span className="text-gray-400">P&L: </span>
-                      <span className={position.pnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                      <span className={(position.pnl ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}>
                         {formatCurrency(position.pnl)}
                       </span>
                     </div>
