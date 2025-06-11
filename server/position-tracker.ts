@@ -29,75 +29,59 @@ class PositionTracker {
   private totalCapital: number = 71005.16; // Current portfolio value
 
   constructor() {
-    console.log('📊 Position Tracker initialized');
-    this.initializeWithActivePositions();
+    console.log('📊 Position Tracker initialized - Real wallet mode only');
+    this.initializeWithRealWalletData();
+  }
+
+  private async initializeWithRealWalletData(): Promise<void> {
+    try {
+      const { realWalletConnector } = await import('./real-wallet-connector');
+      const walletState = await realWalletConnector.fetchRealWalletState();
+      
+      console.log('🔗 Initializing positions from real wallet data');
+      console.log(`📍 Wallet: ${walletState.address}`);
+      console.log(`💰 SOL Balance: ${walletState.solBalance.toFixed(4)} SOL`);
+      console.log(`🪙 Token Accounts: ${walletState.tokenBalances.length}`);
+      
+      // Clear any fake positions
+      this.positions.clear();
+      
+      // Add real token positions from wallet
+      walletState.tokenBalances.forEach((token, index) => {
+        if (token.valueUSD > 1) { // Only track positions worth more than $1
+          const position: TradingPosition = {
+            id: `real_${Date.now()}_${index}`,
+            symbol: token.symbol || 'UNKNOWN',
+            mintAddress: token.mint,
+            entryPrice: token.valueUSD / token.amount,
+            currentPrice: token.valueUSD / token.amount,
+            quantity: token.amount,
+            entryTime: new Date(),
+            entryValueUSD: token.valueUSD,
+            currentValueUSD: token.valueUSD,
+            pnl: 0, // No historical data for existing positions
+            pnlPercentage: 0,
+            status: 'active',
+            txHash: 'existing_position'
+          };
+          
+          this.positions.set(position.id, position);
+          console.log(`✅ Added real position: ${token.symbol} ($${token.valueUSD.toFixed(2)})`);
+        }
+      });
+      
+      this.totalCapital = walletState.totalValueUSD;
+      console.log(`💼 Total Portfolio Value: $${walletState.totalValueUSD.toFixed(2)}`);
+      
+    } catch (error) {
+      console.error('❌ Failed to initialize with real wallet data:', error);
+      // Don't add fake data - leave empty if real data fails
+    }
   }
 
   private initializeWithActivePositions(): void {
-    // Add recent active positions based on logged trades
-    const activePositions = [
-      {
-        symbol: 'ALPHABOT37',
-        mintAddress: 'ALPHABot37Address123',
-        entryPrice: 0.002056,
-        quantity: 4866.56,
-        entryValueUSD: 10.00
-      },
-      {
-        symbol: 'MOONSHOT82',
-        mintAddress: 'MOONSHOT82Address456',
-        entryPrice: 0.058828,
-        quantity: 170.02,
-        entryValueUSD: 10.00
-      },
-      {
-        symbol: 'ALPHABOT5',
-        mintAddress: 'ALPHABOT5Address789',
-        entryPrice: 0.055183,
-        quantity: 181.24,
-        entryValueUSD: 10.00
-      },
-      {
-        symbol: 'ROCKETX39',
-        mintAddress: 'ROCKETX39Address101',
-        entryPrice: 0.075890,
-        quantity: 131.78,
-        entryValueUSD: 10.00
-      },
-      {
-        symbol: 'ALPHABOT95',
-        mintAddress: 'ALPHABOT95Address112',
-        entryPrice: 0.016585,
-        quantity: 603.05,
-        entryValueUSD: 10.00
-      }
-    ];
-
-    activePositions.forEach((pos, index) => {
-      const position: TradingPosition = {
-        id: `pos_${Date.now()}_${index}`,
-        symbol: pos.symbol,
-        mintAddress: pos.mintAddress,
-        entryPrice: pos.entryPrice,
-        currentPrice: pos.entryPrice * (1 + Math.random() * 0.3 - 0.1), // Simulate price movement
-        quantity: pos.quantity,
-        entryTime: new Date(Date.now() - (index + 1) * 60000), // Stagger entry times
-        entryValueUSD: pos.entryValueUSD,
-        currentValueUSD: 0,
-        pnl: 0,
-        pnlPercentage: 0,
-        status: 'active',
-        txHash: `SIM_REAL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      };
-
-      position.currentValueUSD = position.currentPrice * position.quantity;
-      position.pnl = position.currentValueUSD - position.entryValueUSD;
-      position.pnlPercentage = (position.pnl / position.entryValueUSD) * 100;
-
-      this.positions.set(position.id, position);
-    });
-
-    console.log(`📊 Initialized with ${this.positions.size} active positions`);
+    // Deprecated - replaced with real wallet initialization
+    console.log('⚠️ Fake position initialization disabled - using real wallet data only');
   }
 
   addPosition(symbol: string, mintAddress: string, entryPrice: number, quantity: number, entryValueUSD: number, txHash: string): TradingPosition {
