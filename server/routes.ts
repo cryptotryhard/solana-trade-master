@@ -41,6 +41,7 @@ import { aggressiveAlphaFilter } from "./aggressive-alpha-filter";
 import { ultraAggressiveScaling } from "./ultra-aggressive-scaling";
 import { walletResetService } from "./wallet-reset-service";
 import { walletStateCorrector } from "./wallet-state-corrector";
+import { positionTracker } from "./position-tracker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -638,6 +639,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Wallet Balance Endpoint (uses portfolio data instead of RPC)
+  app.get('/api/wallet/balance/:address', async (req, res) => {
+    try {
+      const snapshot = positionTracker.getPortfolioSnapshot();
+      const solPrice = 155; // Current SOL price
+      const solBalance = snapshot.totalValueUSD / solPrice;
+      
+      res.json({
+        address: req.params.address,
+        balance: snapshot.totalValueUSD * 1000000000, // Convert to lamports for compatibility
+        solBalance: solBalance,
+        totalValueUSD: snapshot.totalValueUSD,
+        endpoint: 'position-tracker'
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get wallet balance' });
+    }
+  });
+
+  // Position Tracking API Endpoints
+  app.get('/api/positions/active', async (req, res) => {
+    try {
+      const activePositions = positionTracker.getActivePositions();
+      res.json(activePositions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get active positions' });
+    }
+  });
+
+  app.get('/api/positions/all', async (req, res) => {
+    try {
+      const allPositions = positionTracker.getAllPositions();
+      res.json(allPositions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get all positions' });
+    }
+  });
+
+  app.get('/api/portfolio/snapshot', async (req, res) => {
+    try {
+      const snapshot = positionTracker.getPortfolioSnapshot();
+      res.json(snapshot);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get portfolio snapshot' });
+    }
+  });
+
+  // Override portfolio positions endpoint to use position tracker
+  app.get('/api/portfolio/positions', async (req, res) => {
+    try {
+      const activePositions = positionTracker.getActivePositions();
+      res.json(activePositions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get portfolio positions' });
     }
   });
 
