@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, Activity, Target, Zap, Brain, DollarSign, BarChart3, Eye, ExternalLink, Clock, Shield } from 'lucide-react';
-import { LiveTokenCharts } from '@/components/live-token-charts';
+import LiveTokenCharts from '@/components/live-token-charts';
 
 interface LiveTrade {
   id: string;
@@ -682,8 +682,8 @@ export default function VictoriaControl() {
                       {trade.roi !== undefined && (
                         <div>
                           <span className="text-gray-400">ROI: </span>
-                          <span className={`${trade.roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {trade.roi.toFixed(2)}%
+                          <span className={`${(trade.roi || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {(trade.roi || 0).toFixed(2)}%
                           </span>
                         </div>
                       )}
