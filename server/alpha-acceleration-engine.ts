@@ -68,14 +68,15 @@ class AlphaAccelerationEngine {
   };
 
   private entryConditions = {
-    minAIScore: 78, // Optimized from 85 for faster execution
-    maxAge: 45, // Maximum token age in minutes
-    minVolume: 8000, // Minimum 24h volume
-    minUniqueWallets: 8,
-    minVolumeSpike: 150, // Minimum volume spike percentage
-    maxOwnershipRisk: 30,
-    aggressiveSentimentMode: true, // Enabled for faster entries
-    ultraEarlyBoost: 0.25 // Boost for tokens < 10 minutes old
+    minAIScore: 65, // Aggressively lowered for more opportunities
+    maxAge: 120, // Extended age limit
+    minVolume: 1000, // Much lower volume requirement
+    minUniqueWallets: 3, // Very low holder requirement
+    minVolumeSpike: 50, // Lower spike requirement
+    maxOwnershipRisk: 50, // Higher risk tolerance
+    minLiquidity: 5000, // Lower liquidity requirement
+    aggressiveSentimentMode: true,
+    ultraEarlyBoost: 0.25
   };
 
   constructor() {
