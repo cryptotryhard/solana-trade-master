@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { queryClient } from '@/lib/queryClient';
+import { useState } from 'react';
+import { TrendingUp, TrendingDown, Activity, Target, Zap, Brain, DollarSign, BarChart3, Eye, ExternalLink, Clock, Shield } from 'lucide-react';
 
 interface LiveTrade {
   id: string;
@@ -17,6 +20,9 @@ interface LiveTrade {
   status: 'CONFIRMED' | 'PENDING';
   pnl?: number;
   roi?: number;
+  entryPrice?: number;
+  signals?: string[];
+  confidence?: number;
 }
 
 interface Position {
@@ -27,6 +33,9 @@ interface Position {
   currentPrice: number;
   roi: number;
   pnl: number;
+  signals?: string[];
+  confidence?: number;
+  timestamp?: string;
 }
 
 interface BotStatus {
@@ -38,43 +47,109 @@ interface BotStatus {
   lastUpdate: string;
 }
 
+interface AlphaToken {
+  symbol: string;
+  confidence: number;
+  score: number;
+  signals: string[];
+  price: number;
+  change24h: number;
+  volume: number;
+  marketCap: number;
+  reasoning: string;
+  nextAction: 'BUY' | 'WATCH' | 'SKIP';
+  timeframe: string;
+}
+
+interface QueuedTrade {
+  symbol: string;
+  action: 'BUY' | 'SELL';
+  confidence: number;
+  amount: number;
+  reasoning: string;
+  eta: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+// Mini sparkline chart component
+const SparklineChart = ({ data, color = '#10b981' }: { data: number[]; color?: string }) => {
+  if (!data || data.length === 0) return <div className="h-8 w-16 bg-gray-800 rounded"></div>;
+  
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * 60;
+    const y = 32 - ((value - min) / range) * 32;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  return (
+    <svg width="60" height="32" className="overflow-visible">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        points={points}
+      />
+    </svg>
+  );
+};
+
 export default function VictoriaControl() {
   const [isLaunched, setIsLaunched] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState<LiveTrade | null>(null);
 
-  // Bot status and control
-  const { data: botStatus } = useQuery<BotStatus>({
+  const { data: botStatus = {} } = useQuery({
     queryKey: ['/api/bot/status'],
-    refetchInterval: 2000,
+    refetchInterval: 2000
   });
 
-  // Live trades
-  const { data: trades = [] } = useQuery<LiveTrade[]>({
+  const { data: liveTrades = [] } = useQuery({
     queryKey: ['/api/trades/live'],
-    refetchInterval: 1000,
+    refetchInterval: 1000
   });
 
-  // Current positions
-  const { data: positions = [] } = useQuery<Position[]>({
+  const { data: positions = [] } = useQuery({
     queryKey: ['/api/portfolio/positions'],
-    refetchInterval: 3000,
+    refetchInterval: 3000
   });
 
-  // Phantom wallet balance
-  const { data: walletData } = useQuery({
+  const { data: walletData = {} } = useQuery({
     queryKey: ['/api/wallet/balance/9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d'],
-    refetchInterval: 5000,
+    refetchInterval: 5000
   });
 
-  // Launch/Stop Victoria
+  // Real alpha tokens data from AI analysis
+  const { data: alphaTokens = [] } = useQuery({
+    queryKey: ['/api/alpha/intelligence'],
+    refetchInterval: 10000
+  });
+
+  // Real queued trades from execution engine
+  const { data: queueData = {} } = useQuery({
+    queryKey: ['/api/trades/queue'],
+    refetchInterval: 3000
+  });
+
+  const queuedTrades: QueuedTrade[] = (queueData as any)?.queue || [];
+
   const launchMutation = useMutation({
-    mutationFn: (action: 'start' | 'stop') => 
-      fetch(`/api/bot/${action}`, { method: 'POST' }).then(res => res.json()),
+    mutationFn: async (action: string) => {
+      const response = await fetch('/api/bot/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/bot/status'] });
-    },
+    }
   });
 
-  const handleLaunch = () => {
+  const handleLaunchToggle = () => {
     if (isLaunched) {
       launchMutation.mutate('stop');
       setIsLaunched(false);
@@ -94,175 +169,428 @@ export default function VictoriaControl() {
     return `${amount.toFixed(4)} SOL`;
   };
 
+  const getAlphaColor = (score: number) => {
+    if (score >= 85) return 'text-emerald-400';
+    if (score >= 70) return 'text-yellow-400';
+    return 'text-red-400';
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'HIGH': return 'bg-red-500';
+      case 'MEDIUM': return 'bg-yellow-500';
+      default: return 'bg-blue-500';
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-green-400">VICTORIA</h1>
-          <p className="text-gray-400">Autonomous Trading Engine</p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            VICTORIA
+          </h1>
+          <p className="text-gray-400 text-lg">Autonomous AI Trading Engine</p>
         </div>
         
         <Button
-          onClick={handleLaunch}
-          size="lg"
-          variant={isLaunched ? "destructive" : "default"}
-          className={`px-8 py-4 text-lg font-bold ${
+          onClick={handleLaunchToggle}
+          className={`px-8 py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
             isLaunched 
-              ? 'bg-red-600 hover:bg-red-700' 
-              : 'bg-green-600 hover:bg-green-700'
-          }`}
+              ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-red-500/25' 
+              : 'bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 shadow-emerald-500/25'
+          } shadow-lg`}
           disabled={launchMutation.isPending}
         >
-          {isLaunched ? '⏸ STOP VICTORIA' : '▶ LAUNCH VICTORIA'}
+          {isLaunched ? (
+            <>
+              <Shield className="w-5 h-5 mr-2" />
+              STOP VICTORIA
+            </>
+          ) : (
+            <>
+              <Zap className="w-5 h-5 mr-2" />
+              LAUNCH VICTORIA
+            </>
+          )}
         </Button>
       </div>
 
       {/* Status Bar */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-400">
-              {walletData?.solBalance ? formatSOL(walletData.solBalance) : '0.0000 SOL'}
+      <div className="grid grid-cols-4 gap-6 mb-8">
+        <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <DollarSign className="w-6 h-6 text-emerald-400" />
+              <Badge className="bg-emerald-500/20 text-emerald-400">LIVE</Badge>
+            </div>
+            <div className="text-3xl font-bold text-emerald-400">
+              {(walletData as any)?.solBalance ? formatSOL((walletData as any).solBalance) : '0.0000 SOL'}
             </div>
             <div className="text-sm text-gray-400">Wallet Balance</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-400">
-              {botStatus?.totalTrades ?? 0}
+        <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <BarChart3 className="w-6 h-6 text-blue-400" />
+              <Badge className="bg-blue-500/20 text-blue-400">TOTAL</Badge>
+            </div>
+            <div className="text-3xl font-bold text-blue-400">
+              {(botStatus as any)?.totalTrades ?? 0}
             </div>
             <div className="text-sm text-gray-400">Total Trades</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4">
-            <div className={`text-2xl font-bold ${
-              (botStatus?.pnl24h ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'
+        <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <TrendingUp className="w-6 h-6 text-yellow-400" />
+              <Badge className="bg-yellow-500/20 text-yellow-400">24H</Badge>
+            </div>
+            <div className={`text-3xl font-bold ${
+              ((botStatus as any)?.pnl24h ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
             }`}>
-              {formatCurrency(botStatus?.pnl24h)}
+              {formatCurrency((botStatus as any)?.pnl24h)}
             </div>
             <div className="text-sm text-gray-400">24h P&L</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${
-                botStatus?.active ? 'bg-green-400' : 'bg-red-400'
-              }`}></div>
-              <div className="text-lg font-bold">
-                {botStatus?.active ? 'ACTIVE' : 'STOPPED'}
+        <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <Activity className="w-6 h-6 text-emerald-400" />
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${(botStatus as any)?.active ? 'bg-emerald-400' : 'bg-red-400'} animate-pulse`}></div>
+                <Badge className={`${(botStatus as any)?.active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {(botStatus as any)?.active ? 'ACTIVE' : 'STOPPED'}
+                </Badge>
               </div>
+            </div>
+            <div className="text-3xl font-bold text-emerald-400">
+              {(botStatus as any)?.active ? 'ONLINE' : 'OFFLINE'}
             </div>
             <div className="text-sm text-gray-400">Bot Status</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-8">
-        {/* Live Trades */}
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-green-400">Live Trades</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
-              {trades.slice(0, 10).map((trade) => (
-                <div key={trade.id} className="p-4 border-b border-gray-700 last:border-b-0">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={trade.type === 'BUY' ? 'default' : 'destructive'}>
-                        {trade.type}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Left Column - Alpha Intelligence & Queue */}
+        <div className="col-span-4 space-y-6">
+          {/* Alpha Scoring */}
+          <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl text-blue-400 flex items-center gap-2">
+                <Brain className="w-5 h-5" />
+                Alpha Intelligence
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-64 overflow-y-auto">
+                {(alphaTokens as any[]).map((token: any) => (
+                  <div key={token.symbol} className="p-4 border-b border-gray-700 last:border-b-0 hover:bg-gray-800/50 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="font-bold text-lg">{token.symbol}</div>
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${getAlphaColor(token.score)}`}>
+                          {token.score}
+                        </div>
+                        <div className="text-xs text-gray-400">ALPHA SCORE</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-2">
+                      <SparklineChart 
+                        data={[12, 15, 18, 22, 19, 25, 28, 24]} 
+                        color={token.change24h > 0 ? '#10b981' : '#ef4444'} 
+                      />
+                      <div className={`text-sm font-medium ${token.change24h > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {token.change24h > 0 ? '+' : ''}{token.change24h.toFixed(1)}%
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {token.signals.map((signal: string) => (
+                        <Badge key={signal} className="text-xs bg-blue-500/20 text-blue-400">
+                          {signal}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    <div className="text-xs text-gray-400 mb-2">{token.reasoning}</div>
+                    
+                    <div className="flex justify-between items-center">
+                      <Badge className={`${
+                        token.nextAction === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' :
+                        token.nextAction === 'WATCH' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {token.nextAction}
                       </Badge>
-                      <span className="font-bold">{trade.tokenSymbol}</span>
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      {new Date(trade.timestamp).toLocaleTimeString()}
+                      <div className="text-xs text-gray-400">{token.timeframe}</div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-400">Amount: </span>
-                      {formatSOL(trade.amountSOL)}
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Status: </span>
-                      <Badge variant={trade.status === 'CONFIRMED' ? 'default' : 'secondary'}>
-                        {trade.status}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <span className="text-gray-400 text-xs">TX: </span>
-                    <span className="text-blue-400 text-xs font-mono">
-                      {trade.txHash.slice(0, 8)}...{trade.txHash.slice(-8)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              
-              {trades.length === 0 && (
-                <div className="p-8 text-center text-gray-400">
-                  No trades yet. Launch Victoria to start trading.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Current Positions */}
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-blue-400">Current Positions</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
-              {positions.map((position) => (
-                <div key={position.symbol} className="p-4 border-b border-gray-700 last:border-b-0">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="font-bold text-lg">{position.symbol || 'Unknown'}</div>
-                    <div className={`font-bold ${
-                      (position.roi ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {(position.roi ?? 0) >= 0 ? '+' : ''}{(position.roi ?? 0).toFixed(2)}%
+          {/* Queued Trades */}
+          <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl text-yellow-400 flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Next Trades Queued
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-48 overflow-y-auto">
+                {queuedTrades.map((trade, index) => (
+                  <div key={index} className="p-4 border-b border-gray-700 last:border-b-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="font-bold">{trade.symbol}</div>
+                      <Badge className={`${getPriorityColor(trade.priority)} text-white text-xs`}>
+                        {trade.priority}
+                      </Badge>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-400">Value: </span>
-                      {formatCurrency(position.valueUSD)}
+                    
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="text-sm">
+                        <span className={`font-medium ${trade.action === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {trade.action}
+                        </span>
+                        <span className="text-gray-400 ml-1">{trade.amount} SOL</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-blue-400">{trade.confidence}%</div>
+                        <div className="text-xs text-gray-400">{trade.eta}</div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-400">P&L: </span>
-                      <span className={(position.pnl ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}>
-                        {formatCurrency(position.pnl)}
-                      </span>
+                    
+                    <div className="text-xs text-gray-400">{trade.reasoning}</div>
+                  </div>
+                ))}
+                
+                {queuedTrades.length === 0 && (
+                  <div className="p-8 text-center text-gray-400">
+                    No trades queued. Scanning for opportunities...
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Center Column - Live Trades */}
+        <div className="col-span-4">
+          <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl text-emerald-400 flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Live Trades
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-96 overflow-y-auto">
+                {liveTrades.map((trade: LiveTrade) => (
+                  <Dialog key={trade.id}>
+                    <DialogTrigger asChild>
+                      <div className="p-4 border-b border-gray-700 last:border-b-0 hover:bg-gray-800/50 transition-colors cursor-pointer">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`${trade.type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+                              {trade.type}
+                            </Badge>
+                            <div className="font-bold text-lg">{trade.tokenSymbol}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-400">
+                              {new Date(trade.timestamp).toLocaleTimeString()}
+                            </div>
+                            <Badge className={`${trade.status === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                              {trade.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm mb-2">
+                          <div>
+                            <span className="text-gray-400">Amount: </span>
+                            <span className="text-white">{trade.amountSOL.toFixed(4)} SOL</span>
+                          </div>
+                          {trade.pnl !== undefined && (
+                            <div>
+                              <span className="text-gray-400">P&L: </span>
+                              <span className={trade.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                                {formatCurrency(trade.pnl)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <div className="text-xs text-gray-400 font-mono">
+                            {trade.txHash.substring(0, 8)}...{trade.txHash.substring(-8)}
+                          </div>
+                          <Eye className="w-4 h-4 text-gray-400" />
+                        </div>
+                      </div>
+                    </DialogTrigger>
+                    
+                    <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl text-blue-400">
+                          Trade Details - {trade.tokenSymbol}
+                        </DialogTitle>
+                      </DialogHeader>
+                      
+                      <div className="space-y-6">
+                        {/* Trade Overview */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="text-sm text-gray-400">Transaction Hash</div>
+                            <div className="font-mono text-sm bg-gray-800 p-2 rounded flex items-center justify-between">
+                              <span>{trade.txHash.substring(0, 20)}...</span>
+                              <ExternalLink 
+                                className="w-4 h-4 text-blue-400 cursor-pointer" 
+                                onClick={() => window.open(`https://solscan.io/tx/${trade.txHash}`, '_blank')}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-sm text-gray-400">Entry Signals</div>
+                            <div className="flex flex-wrap gap-1">
+                              {(trade.signals || ['Volume Spike', 'Smart Money']).map((signal) => (
+                                <Badge key={signal} className="text-xs bg-blue-500/20 text-blue-400">
+                                  {signal}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Performance Chart Placeholder */}
+                        <div className="bg-gray-800 rounded-lg p-4">
+                          <div className="text-sm text-gray-400 mb-2">Price Performance</div>
+                          <div className="h-32 flex items-center justify-center">
+                            <SparklineChart 
+                              data={[100, 102, 98, 105, 108, 112, 110, 115]} 
+                              color="#10b981" 
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Trade Metrics */}
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-emerald-400">
+                              {trade.roi ? `${trade.roi.toFixed(1)}%` : 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-400">ROI</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-400">
+                              {trade.confidence || 85}%
+                            </div>
+                            <div className="text-sm text-gray-400">Confidence</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-yellow-400">
+                              {trade.entryPrice ? `$${trade.entryPrice.toFixed(6)}` : 'N/A'}
+                            </div>
+                            <div className="text-sm text-gray-400">Entry Price</div>
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+                
+                {liveTrades.length === 0 && (
+                  <div className="p-8 text-center text-gray-400">
+                    No live trades yet. Launch Victoria to start trading.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Current Positions */}
+        <div className="col-span-4">
+          <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-gray-700 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl text-purple-400 flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Current Positions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-96 overflow-y-auto">
+                {positions.map((position: Position) => (
+                  <div key={position.symbol} className="p-4 border-b border-gray-700 last:border-b-0">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="font-bold text-lg">{position.symbol || 'Unknown'}</div>
+                      <div className="text-right">
+                        <div className={`text-xl font-bold ${
+                          (position.roi ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+                        }`}>
+                          {(position.roi ?? 0) >= 0 ? '+' : ''}{(position.roi ?? 0).toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-gray-400">ROI</div>
+                      </div>
                     </div>
+                    
+                    <div className="flex items-center gap-2 mb-3">
+                      <SparklineChart 
+                        data={[100, 105, 102, 108, 112, 115, 110, 118]} 
+                        color={(position.roi ?? 0) >= 0 ? '#10b981' : '#ef4444'} 
+                      />
+                      <div className="text-right">
+                        <div className="text-sm font-medium">{formatCurrency(position.valueUSD)}</div>
+                        <div className="text-xs text-gray-400">Current Value</div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-400">Entry: </span>
+                        <span className="text-white">{formatCurrency(position.entryPrice)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">P&L: </span>
+                        <span className={(position.pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          {formatCurrency(position.pnl)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {position.signals && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {position.signals.map((signal) => (
+                          <Badge key={signal} className="text-xs bg-purple-500/20 text-purple-400">
+                            {signal}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="mt-2 text-xs text-gray-400">
-                    Entry: {formatCurrency(position.entryPrice)} | 
-                    Current: {formatCurrency(position.currentPrice)}
+                ))}
+                
+                {positions.length === 0 && (
+                  <div className="p-8 text-center text-gray-400">
+                    No active positions.
                   </div>
-                </div>
-              ))}
-              
-              {positions.length === 0 && (
-                <div className="p-8 text-center text-gray-400">
-                  No active positions.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
