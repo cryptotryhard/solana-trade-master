@@ -223,16 +223,25 @@ class HyperTacticalEntryEngine extends EventEmitter {
     try {
       this.metrics.totalEntrySignals++;
       
-      console.log(`🚀 EXECUTING HYPER ENTRY: ${entry.symbol}`);
+      console.log(`🚀 EXECUTING REAL HYPER ENTRY: ${entry.symbol}`);
       console.log(`💰 Entry Price: $${Math.max(0.0001, entry.optimalEntry).toFixed(6)}`);
       console.log(`⚡ Advantage: ${entry.entryAdvantage.toFixed(2)}%`);
       console.log(`🎯 Confidence: ${entry.confidence.toFixed(1)}%`);
       console.log(`⏱️ Window: ${entry.executionWindow}s`);
       
-      // Simulate execution success rate based on confidence
-      const executionSuccess = Math.random() < (entry.confidence / 100);
+      // Execute real trade through aggressive execution manager
+      const { aggressiveExecutionManager } = await import('./aggressive-execution-manager');
       
-      if (executionSuccess) {
+      try {
+        const positionSize = Math.min(75, entry.entryAdvantage * 2.5); // Dynamic position sizing
+        
+        const realTrade = await aggressiveExecutionManager.executeHighAdvantageEntry(
+          entry.symbol,
+          entry.entryAdvantage,
+          entry.confidence,
+          positionSize
+        );
+        
         this.metrics.successfulEntries++;
         this.metrics.avgAdvantage = ((this.metrics.avgAdvantage * (this.metrics.successfulEntries - 1)) + entry.entryAdvantage) / this.metrics.successfulEntries;
         
@@ -243,12 +252,17 @@ class HyperTacticalEntryEngine extends EventEmitter {
         this.emit('entryExecuted', {
           symbol: entry.symbol,
           advantage: entry.entryAdvantage,
-          success: true
+          success: true,
+          txHash: realTrade.txHash
         });
         
-        console.log(`✅ HYPER ENTRY SUCCESSFUL: ${entry.symbol} (+${entry.entryAdvantage.toFixed(2)}% advantage)`);
-      } else {
-        console.log(`❌ HYPER ENTRY FAILED: ${entry.symbol} (market moved too fast)`);
+        console.log(`✅ REAL HYPER ENTRY EXECUTED: ${entry.symbol}`);
+        console.log(`   TX Hash: ${realTrade.txHash}`);
+        console.log(`   Tokens: ${realTrade.tokensReceived.toFixed(2)}`);
+        console.log(`   Advantage: +${entry.entryAdvantage.toFixed(2)}%`);
+        
+      } catch (executeError) {
+        console.log(`❌ REAL HYPER ENTRY FAILED: ${entry.symbol} - ${executeError.message}`);
       }
 
     } catch (error) {
@@ -307,5 +321,6 @@ class HyperTacticalEntryEngine extends EventEmitter {
   }
 }
 
-export const hyperTacticalEntryEngine = new HyperTacticalEntryEngine();
+// DISABLED - Generates fake trades instead of real execution
+// export const hyperTacticalEntryEngine = new HyperTacticalEntryEngine();
 export { VolatilitySignal, EntryTiming, TacticalMetrics };

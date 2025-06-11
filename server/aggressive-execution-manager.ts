@@ -152,7 +152,6 @@ class AggressiveExecutionManager extends EventEmitter {
       // If all real execution attempts fail, reject the trade entirely
       throw new Error(`All real execution attempts failed for ${symbol}: ${error.message}`);
     }
-    }
   }
 
   private calculateMarketPrice(symbol: string, aiScore: number): number {

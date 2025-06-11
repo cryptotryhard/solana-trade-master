@@ -83,32 +83,25 @@ class VictoriaCore {
     }
   }
 
-  private generateAlphaOpportunities(): any[] {
-    // Generate synthetic high-quality opportunities for demonstration
-    const tokens = [];
-    const baseSymbols = ['ALPHABOT', 'MOONSHOT', 'TURBOAI', 'PUMPAI', 'ROCKETX'];
-    
-    for (let i = 0; i < 5; i++) {
-      const symbol = `${baseSymbols[i % baseSymbols.length]}${Math.floor(Math.random() * 100)}`;
-      const advantage = Math.random() * 2000 + 80; // 80-2080% advantage
+  private async generateAlphaOpportunities(): Promise<any[]> {
+    // Use real alpha detection instead of synthetic tokens
+    try {
+      const { enhancedBirdeyeIntegration } = await import('./enhanced-birdeye-integration');
+      const realAlphas = await enhancedBirdeyeIntegration.getHighConfidenceAlphas();
       
-      tokens.push({
-        symbol,
-        mintAddress: this.generateMintAddress(),
-        price: Math.random() * 0.001 + 0.000001,
-        volume24h: Math.random() * 100000 + 10000,
-        marketCap: Math.random() * 1000000 + 100000,
-        age: Math.random() * 30 + 5,
-        uniqueWallets: Math.floor(Math.random() * 50) + 10,
-        volumeSpike: Math.random() * 500 + 100,
-        aiScore: Math.random() * 20 + 75,
-        liquidityUSD: Math.random() * 50000 + 10000,
-        advantage,
-        confidence: Math.random() * 15 + 85
-      });
+      if (realAlphas.length > 0) {
+        console.log(`🔍 REAL ALPHA DETECTED: ${realAlphas.length} opportunities found`);
+        return realAlphas.slice(0, 3);
+      }
+      
+      // If no real alphas available, return empty array to prevent fake trading
+      console.log(`⏸️ NO REAL ALPHAS AVAILABLE - Waiting for authentic opportunities`);
+      return [];
+      
+    } catch (error) {
+      console.log(`❌ Alpha detection error: ${error.message}`);
+      return [];
     }
-    
-    return tokens.sort((a, b) => b.advantage - a.advantage).slice(0, 3);
   }
 
   private generateMintAddress(): string {
@@ -249,4 +242,5 @@ class VictoriaCore {
   }
 }
 
-export const victoriaCore = new VictoriaCore();
+// DISABLED - Generates fake trades instead of real execution
+// export const victoriaCore = new VictoriaCore();

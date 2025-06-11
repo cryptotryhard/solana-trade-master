@@ -33,7 +33,7 @@ import { tradeLogger } from "./trade-logger";
 import { dynamicReinvestmentEngine } from "./dynamic-reinvestment-engine";
 import { alphaWatchlistManager } from "./alpha-watchlist-manager";
 import { snapshotVault } from "./snapshot-vault";
-import { hyperTacticalEntryEngine } from "./hyper-tactical-entry-engine";
+// import { hyperTacticalEntryEngine } from "./hyper-tactical-entry-engine"; // DISABLED
 import { advancedMetricsEngine } from "./advanced-metrics-engine";
 import { realPortfolioTracker } from "./real-portfolio-tracker";
 import { positionRotationManager } from "./position-rotation-manager";
@@ -192,7 +192,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/tactical/metrics', async (req, res) => {
     try {
-      const metrics = hyperTacticalEntryEngine.getTacticalMetrics();
+      // Simulation engine disabled - return empty metrics
+      const metrics = {
+        totalEntrySignals: 0,
+        successfulEntries: 0,
+        avgAdvantage: 0,
+        bestEntry: 0,
+        worstEntry: 0,
+        avgExecutionTime: 0,
+        volatilityAccuracy: 0
+      };
       res.json(metrics);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get tactical metrics' });
