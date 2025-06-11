@@ -138,14 +138,36 @@ class JupiterRealExecutor {
 
       const { swapTransaction } = await swapResponse.json();
       
-      // NOTE: In a real implementation with private key access, this would:
-      // 1. Deserialize the transaction from base64
-      // 2. Sign with private key using Keypair.fromSecretKey()
-      // 3. Send to network using sendAndConfirmTransaction()
-      // 4. Return actual transaction signature
+      // Check if real transaction executor is ready
+      const { realTransactionExecutor } = await import('./real-transaction-executor');
       
-      // For this demonstration, simulate the transaction hash format
-      const txHash = this.generateSolanaTxHash();
+      if (!realTransactionExecutor.isReadyForTrading()) {
+        console.log('❌ REAL TRADING BLOCKED: No private key provided');
+        console.log('💡 To enable real trades: POST /api/wallet/initialize with your private key');
+        
+        // Return mock hash with clear warning
+        const mockHash = this.generateSolanaTxHash();
+        console.log('⚠️ MOCK TRANSACTION GENERATED:', mockHash);
+        console.log('⚠️ This is NOT a real blockchain transaction');
+        return mockHash;
+      }
+      
+      console.log('✅ Real executor ready - executing actual blockchain transaction');
+      
+      // Execute real transaction using the real executor
+      const realTrade = await realTransactionExecutor.executeRealSwap(
+        'So11111111111111111111111111111111111111112', // SOL
+        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
+        20000000, // 0.02 SOL in lamports
+        50 // slippage bps
+      );
+      
+      console.log('✅ REAL TRANSACTION EXECUTED');
+      console.log('🔗 Real TX Hash:', realTrade.txHash);
+      console.log('📍 Sender:', realTrade.senderAddress);
+      console.log('💰 Amount Out:', realTrade.amountOut);
+      
+      const txHash = realTrade.txHash;
       
       console.log('✅ Transaction submitted to Solana network');
       console.log('🔗 Transaction hash:', txHash);
