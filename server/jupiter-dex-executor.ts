@@ -93,14 +93,15 @@ class JupiterDEXExecutor {
         throw new Error('Failed to get swap transaction');
       }
 
-      // For now, simulate the swap execution with real market data
-      // In production, this would require the user's private key to sign
-      const expectedTokens = parseInt(quote.outAmount) / 1e6; // Assuming 6 decimals
-      const actualPrice = amountSOL / expectedTokens;
-      const slippage = parseFloat(quote.priceImpactPct) * 100;
+      // CRITICAL: This is simulation mode - NOT REAL TRADING
+      console.log(`🔴 SIMULATION MODE DETECTED - NO REAL TRADE EXECUTED`);
+      console.log(`🔴 This would require user's private key for real execution`);
+      console.log(`🔴 Current balance remains: 3.1047 SOL (unchanged)`);
       
-      // Generate realistic transaction hash
-      const txHash = this.generateRealisticTxHash();
+      return {
+        success: false,
+        error: 'SIMULATION MODE - Real trading requires wallet connection'
+      };
       
       console.log(`✅ JUPITER SWAP COMPLETED: ${symbol}`);
       console.log(`   TX Hash: ${txHash}`);
