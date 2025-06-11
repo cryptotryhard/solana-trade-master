@@ -7,13 +7,14 @@ import Dashboard from "@/pages/dashboard";
 import VictoriaTradingDashboard from "@/components/victoria-trading-dashboard";
 import VictoriaControl from "@/pages/victoria-control";
 import EnhancedVictoriaDashboard from "@/pages/enhanced-victoria-dashboard";
+import StarkDashboard from "@/pages/stark-dashboard";
 import RealTradingPage from "@/pages/real-trading";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={EnhancedVictoriaDashboard} />
+      <Route path="/" component={StarkDashboard} />
       <Route path="/victoria" component={VictoriaControl} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/trading" component={VictoriaTradingDashboard} />
