@@ -45,6 +45,7 @@ import { positionTracker } from "./position-tracker";
 import { autoSellManager } from "./auto-sell-manager";
 import { jupiterRealExecutor } from "./jupiter-real-executor";
 import { alphaDiscoveryEngine } from "./alpha-discovery-engine";
+import { liveChartsService } from "./live-charts-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -1324,6 +1325,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Queue fetch error:', error);
       res.json({ queue: [], status: { totalQueued: 0, pending: 0, executing: 0, highPriority: 0, mediumPriority: 0, lowPriority: 0 } });
+    }
+  });
+
+  // Live token charts endpoint
+  app.get('/api/tokens/live-charts', async (req, res) => {
+    try {
+      // Sync with current portfolio and queue
+      const positions = positionTracker.getActivePositions();
+      const queueData = alphaDiscoveryEngine.getTradeQueue();
+      
+      // Initialize service with current data
+      liveChartsService.initializeFromPortfolio(positions);
+      liveChartsService.initializeFromQueue(queueData);
+      
+      res.json(liveChartsService.getAllTokens());
+    } catch (error) {
+      console.error('Live charts fetch error:', error);
+      res.json([]);
     }
   });
 

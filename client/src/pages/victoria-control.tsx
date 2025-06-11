@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { queryClient } from '@/lib/queryClient';
 import { useState } from 'react';
 import { TrendingUp, TrendingDown, Activity, Target, Zap, Brain, DollarSign, BarChart3, Eye, ExternalLink, Clock, Shield } from 'lucide-react';
+import LiveTokenCharts from '@/components/live-token-charts';
 
 interface LiveTrade {
   id: string;
@@ -279,7 +280,37 @@ export default function VictoriaControl() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
+      {/* Main Dashboard with Tabs */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-800/50 border border-gray-700 h-12">
+          <TabsTrigger 
+            value="overview" 
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-300 font-medium"
+          >
+            Trading Overview
+          </TabsTrigger>
+          <TabsTrigger 
+            value="live-charts" 
+            className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-300 font-medium"
+          >
+            Live Charts
+          </TabsTrigger>
+          <TabsTrigger 
+            value="trades" 
+            className="data-[state=active]:bg-orange-600 data-[state=active]:text-white text-gray-300 font-medium"
+          >
+            Live Trades
+          </TabsTrigger>
+          <TabsTrigger 
+            value="positions" 
+            className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-gray-300 font-medium"
+          >
+            Portfolio
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
         {/* Left Column - Alpha Intelligence & Queue */}
         <div className="col-span-4 space-y-6">
           {/* Alpha Scoring */}
