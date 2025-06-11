@@ -1068,15 +1068,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Execution status endpoint
   app.get('/api/execution-status', async (req, res) => {
-    const { transactionVerifier } = await import('./transaction-verifier');
+    const { realTransactionExecutor } = await import('./real-transaction-executor');
     try {
-      const status = transactionVerifier.generateExecutionStatus();
+      const status = realTransactionExecutor.getExecutionStatus();
       res.json(status);
     } catch (error) {
       res.json({
         mode: 'ERROR',
         realExecution: false,
         error: 'Status check failed'
+      });
+    }
+  });
+
+  // Initialize wallet for real trading
+  app.post('/api/wallet/initialize', async (req, res) => {
+    const { realTransactionExecutor } = await import('./real-transaction-executor');
+    try {
+      const { privateKey } = req.body;
+      
+      if (!privateKey) {
+        return res.status(400).json({
+          error: 'Private key required',
+          message: 'Provide your wallet private key in base58 format to enable real trading'
+        });
+      }
+      
+      realTransactionExecutor.initializeWallet(privateKey);
+      const balance = await realTransactionExecutor.getWalletBalance();
+      
+      res.json({
+        success: true,
+        walletAddress: realTransactionExecutor.getWalletAddress(),
+        balance: balance,
+        message: 'Wallet initialized for real trading'
+      });
+    } catch (error) {
+      res.status(400).json({
+        error: 'Wallet initialization failed',
+        message: error.message
       });
     }
   });
