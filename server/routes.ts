@@ -38,6 +38,7 @@ import { advancedMetricsEngine } from "./advanced-metrics-engine";
 import { realPortfolioTracker } from "./real-portfolio-tracker";
 import { positionRotationManager } from "./position-rotation-manager";
 import { aggressiveAlphaFilter } from "./aggressive-alpha-filter";
+import { ultraAggressiveScaling } from "./ultra-aggressive-scaling";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -538,6 +539,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('System update error:', error.message);
     }
   }, 5000);
+
+  // Ultra-Aggressive Scaling Routes
+  app.get("/api/ultra/metrics", (req, res) => {
+    const metrics = ultraAggressiveScaling.getUltraMetrics();
+    res.json(metrics);
+  });
+
+  app.get("/api/ultra/positions", (req, res) => {
+    const positions = ultraAggressiveScaling.getActivePositions();
+    res.json(positions);
+  });
+
+  app.get("/api/ultra/portfolio-value", (req, res) => {
+    const value = ultraAggressiveScaling.getCurrentPortfolioValue();
+    res.json({ value, target: 5000, progress: (value / 5000) * 100 });
+  });
+
+  app.post("/api/ultra/execute-entry", async (req, res) => {
+    try {
+      const { symbol, mintAddress, advantage, confidence, positionSize } = req.body;
+      const position = await ultraAggressiveScaling.executeUltraEntry(
+        symbol, 
+        mintAddress, 
+        advantage, 
+        confidence, 
+        positionSize
+      );
+      res.json({ success: true, position });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/ultra/force-exit", async (req, res) => {
+    try {
+      await ultraAggressiveScaling.forceExitAll();
+      res.json({ success: true, message: "All positions exited" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
 
   return httpServer;
 }

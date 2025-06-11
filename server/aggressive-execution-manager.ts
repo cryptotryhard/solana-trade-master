@@ -148,6 +148,7 @@ class AggressiveExecutionManager extends EventEmitter {
 
       this.emit('tradeExecuted', trade);
       return trade;
+    }
   }
 
   private calculateMarketPrice(symbol: string, aiScore: number): number {
@@ -160,7 +161,7 @@ class AggressiveExecutionManager extends EventEmitter {
       'SOL': 180.50
     };
 
-    const basePrice = basePrices[symbol] || (Math.random() * 0.1 + 0.001);
+    const basePrice = basePrices[symbol as keyof typeof basePrices] || (Math.random() * 0.1 + 0.001);
     const aiMultiplier = (aiScore / 100) * 0.5 + 0.75; // 0.75-1.25x based on AI score
     return basePrice * aiMultiplier;
   }
