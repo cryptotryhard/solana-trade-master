@@ -130,7 +130,7 @@ export default function EnhancedVictoriaDashboard() {
             <div className="text-right">
               <div className="text-sm text-gray-400">Wallet Balance</div>
               <div className="font-bold text-green-400">
-                {(walletBalance as any)?.balance?.toFixed(4) || '0.0000'} SOL
+                {((walletBalance as any)?.balance || 0).toFixed(4)} SOL
               </div>
             </div>
           </div>
@@ -270,10 +270,10 @@ export default function EnhancedVictoriaDashboard() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className={`font-bold ${position.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <div className={`font-bold ${(position.profit || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                               ${(position.profit || 0).toFixed(2)}
                             </div>
-                            <div className={`text-sm ${position.roi >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                            <div className={`text-sm ${(position.roi || 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                               {(position.roi || 0).toFixed(2)}%
                             </div>
                           </div>
@@ -306,7 +306,7 @@ export default function EnhancedVictoriaDashboard() {
                           </div>
                           <div className="text-right">
                             <div className="text-white font-semibold">
-                              {trade?.amountSOL?.toFixed(4) || '0.0000'} SOL
+                              {(trade?.amountSOL || 0).toFixed(4)} SOL
                             </div>
                             <div className="text-xs text-gray-400">
                               {trade?.timestamp ? new Date(trade.timestamp).toLocaleTimeString() : 'N/A'}
