@@ -1,0 +1,54 @@
+🔴 CRITICAL ISSUES
+Fake Trading Engine:
+
+The system is using hardcoded simulation balances (e.g. $3,400, $10,858, $71,000) instead of my actual wallet balance (which is 3.10 SOL = ~$515).
+
+TX hashes like REAL_TX_1749623... are fabricated with Math.random(), not real blockchain transactions.
+
+All "confirmed" trades are fake – marked as completed in the backend with no real execution on Jupiter or Raydium.
+
+Wallet Mismatch:
+
+My actual Phantom wallet shows 3.10469 SOL (~$515).
+
+The dashboard claims I have 458 SOL ($71,000) – this is completely fake and misleading.
+
+Portfolio Growth is Simulated:
+
+Reported profit growth ($1,153+, $10,858, $71k+) is not real – it’s fabricated by simulateProfitRealization().
+
+Live Trading API Is Not Connected Properly:
+
+The wallet balance fetch fails.
+
+RPC endpoints are unreachable (console shows persistent fetch and DOMException errors).
+
+Balance shown in the frontend is memory-only and not synced with Phantom.
+
+UI is Breaking:
+
+Errors like Cannot read properties of undefined (reading 'toFixed') are crashing key dashboard components (e.g. LivePortfolioDashboard).
+
+No active positions are visible despite backend claiming they exist.
+
+✅ WHAT YOU NEED TO DO RIGHT NOW
+Switch the entire system from simulation to REAL execution.
+
+Stop using simulated portfolio balance. Fetch my actual Phantom balance (3.10 SOL).
+
+Only display profit/loss and positions based on confirmed on-chain transactions with TX hashes.
+
+Fix all frontend errors (especially toFixed crash in LivePortfolioDashboard).
+
+Purge all fake data (wallet growth, fake TXs, simulated ROI %).
+
+I trusted this system to grow $500 to $5,000 and eventually $1M, but I will not accept fake data and imaginary results. If it’s not doing real trades, it's worthless. So:
+
+🧠 Fix the entire pipeline – backend, frontend, wallet fetch, and execution engine.
+
+🔐 You already have my Phantom wallet address. If the system requires my private key for signing real transactions, let me know the exact safe integration method.
+
+🔥 The mission remains: $500 → $5,000 → $100k → $1M. But with real trades, real capital, real execution.
+
+Now fix this. I’m watching.
+

@@ -642,22 +642,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wallet Balance Endpoint (uses portfolio data instead of RPC)
+  // Wallet Balance Endpoint - REAL BALANCE ONLY
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {
-      const snapshot = positionTracker.getPortfolioSnapshot();
-      const solPrice = 155; // Current SOL price
-      const solBalance = snapshot.totalValueUSD / solPrice;
+      const { realWalletConnector } = await import('./real-wallet-connector');
+      const realState = await realWalletConnector.fetchRealWalletState();
       
       res.json({
         address: req.params.address,
-        balance: snapshot.totalValueUSD * 1000000000, // Convert to lamports for compatibility
-        solBalance: solBalance,
-        totalValueUSD: snapshot.totalValueUSD,
-        endpoint: 'position-tracker'
+        balance: realState.solBalance * 1000000000, // Convert to lamports
+        solBalance: realState.solBalance,
+        totalValueUSD: realState.totalValueUSD,
+        tokenBalances: realState.tokenBalances,
+        endpoint: 'real-solana-rpc',
+        lastUpdated: realState.lastUpdated
       });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to get wallet balance' });
+      console.error('Failed to fetch real wallet balance:', error);
+      res.status(500).json({ error: 'Failed to get real wallet balance' });
     }
   });
 
@@ -682,32 +684,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/portfolio/snapshot', async (req, res) => {
     try {
-      const snapshot = positionTracker.getPortfolioSnapshot();
-      res.json(snapshot);
-    } catch (error) {
-      console.error('Portfolio snapshot error:', error);
-      // Return empty portfolio structure instead of error
+      const { realWalletConnector } = await import('./real-wallet-connector');
+      const realState = await realWalletConnector.fetchRealWalletState();
+      
+      // Return REAL wallet data only - no fake portfolio growth
       res.json({
-        totalValue: 0,
+        totalValueUSD: realState.totalValueUSD,
+        solBalance: realState.solBalance,
+        totalPnL: 0, // No fake profits
+        totalPnLPercent: 0,
+        positions: realState.tokenBalances || [], // Real token positions only
+        lastUpdated: realState.lastUpdated,
+        tradingStatus: 'REQUIRES_WALLET_CONNECTION'
+      });
+    } catch (error) {
+      console.error('Failed to get real portfolio snapshot:', error);
+      res.json({
+        totalValueUSD: 0,
+        solBalance: 0,
         totalPnL: 0,
         totalPnLPercent: 0,
-        positions: []
+        positions: [],
+        tradingStatus: 'WALLET_CONNECTION_FAILED'
       });
     }
   });
 
   app.get('/api/portfolio/snapshot/:walletAddress', async (req, res) => {
     try {
-      const snapshot = positionTracker.getPortfolioSnapshot();
-      res.json(snapshot);
-    } catch (error) {
-      console.error('Portfolio snapshot error:', error);
-      // Return empty portfolio structure instead of error
+      const { realWalletConnector } = await import('./real-wallet-connector');
+      const realState = await realWalletConnector.fetchRealWalletState();
+      
+      // Return REAL wallet data only - no fake portfolio growth
       res.json({
-        totalValue: 0,
+        totalValueUSD: realState.totalValueUSD,
+        solBalance: realState.solBalance,
+        totalPnL: 0, // No fake profits
+        totalPnLPercent: 0,
+        positions: realState.tokenBalances || [], // Real token positions only
+        lastUpdated: realState.lastUpdated,
+        tradingStatus: 'REQUIRES_WALLET_CONNECTION'
+      });
+    } catch (error) {
+      console.error('Failed to get real portfolio snapshot:', error);
+      res.json({
+        totalValueUSD: 0,
+        solBalance: 0,
         totalPnL: 0,
         totalPnLPercent: 0,
-        positions: []
+        positions: [],
+        tradingStatus: 'WALLET_CONNECTION_FAILED'
       });
     }
   });

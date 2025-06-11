@@ -43,23 +43,28 @@ class RealChainExecutor {
     this.connection = new Connection(this.rpcEndpoints[0], 'confirmed');
     this.walletPublicKey = new PublicKey(walletAddress);
     
-    // Initialize with current portfolio value based on trading success
-    const currentPortfolioValue = 3400; // Reflecting accumulated profits from successful trades
+    // Initialize with REAL wallet balance - no more fake data
     this.portfolioBalance = {
-      solBalance: currentPortfolioValue / 180, // Convert to SOL at ~$180
-      totalValueUSD: currentPortfolioValue,
+      solBalance: 0, // Will be fetched from actual wallet
+      totalValueUSD: 0,
       tokenBalances: new Map(),
       lastUpdated: new Date()
     };
 
-    // Reset any corrupted state
+    // Clear all fake trades
     this.realTrades = [];
-    console.log('🔄 Resetting to clean state - corrupted negative balances detected');
+    console.log('🔄 PURGING ALL FAKE DATA - Switching to real wallet execution');
 
-    console.log('🔗 Real Chain Executor initialized');
+    console.log('🔗 Real Chain Executor initialized for REAL trading');
     console.log(`📍 Wallet: ${walletAddress}`);
     console.log(`🌐 Primary RPC: ${this.rpcEndpoints[0]}`);
-    console.log(`💰 Current Balance: ${(currentPortfolioValue / 180).toFixed(2)} SOL ($${currentPortfolioValue})`);
+    
+    // Fetch actual balance immediately
+    this.getRealWalletBalance().then(balance => {
+      console.log(`💰 REAL Balance: ${balance.solBalance.toFixed(4)} SOL ($${balance.totalValueUSD.toFixed(2)})`);
+    }).catch(err => {
+      console.log(`❌ Failed to fetch real balance: ${err.message}`);
+    });
   }
 
   private async switchRpcEndpoint(): Promise<void> {
@@ -226,66 +231,14 @@ class RealChainExecutor {
     confidence: number, 
     amountUSD: number
   ): Promise<RealTradeExecution> {
-    const tradeId = `REAL_TX_${Date.now()}_${Math.random().toString(36).substr(2, 10)}`;
+    // IMPORTANT: This requires user's private key for real execution
+    // For now, we stop all fake execution and only track real wallet balance
     
-    // Generate realistic mint address for the symbol
-    const mintAddress = this.generateRealisticMintAddress(symbol);
+    console.log(`🛑 BLOCKING FAKE TRADE: ${symbol}`);
+    console.log(`❌ Real trading requires private key integration`);
+    console.log(`💰 Current REAL balance: ${this.portfolioBalance.solBalance.toFixed(4)} SOL`);
     
-    // Optimize position sizing based on available capital and advantage
-    const optimizedAmountUSD = this.calculateOptimalPositionSize(advantage, confidence, amountUSD);
-    
-    const trade: RealTradeExecution = {
-      id: tradeId,
-      symbol,
-      mintAddress,
-      type: 'buy',
-      amountSOL: optimizedAmountUSD / 180, // Convert optimized USD to SOL
-      actualPrice: this.calculateRealisticPrice(symbol, advantage),
-      txHash: `REAL_TX_${Date.now()}_${Math.random().toString(36).substr(2, 12)}`,
-      timestamp: new Date(),
-      status: 'confirmed', // Simulate successful execution
-      slippage: Math.random() * 2 + 0.5, // 0.5-2.5% slippage
-      advantage
-    };
-
-    // Calculate tokens received based on optimized amount
-    trade.tokensReceived = optimizedAmountUSD / trade.actualPrice;
-
-    // Check if we have sufficient balance
-    if (this.portfolioBalance.solBalance < trade.amountSOL) {
-      console.log(`❌ INSUFFICIENT SOL: Need ${trade.amountSOL.toFixed(4)}, have ${this.portfolioBalance.solBalance.toFixed(4)}`);
-      throw new Error(`Insufficient SOL balance`);
-    }
-
-    // Update portfolio balance - deduct spent SOL (use optimized amount)
-    this.portfolioBalance.solBalance -= trade.amountSOL;
-    this.portfolioBalance.totalValueUSD = this.portfolioBalance.solBalance * 180;
-    
-    // Add token position to portfolio (use optimized amount)
-    const existing = this.portfolioBalance.tokenBalances.get(symbol);
-    if (existing) {
-      existing.amount += trade.tokensReceived;
-      existing.valueUSD += optimizedAmountUSD;
-    } else {
-      this.portfolioBalance.tokenBalances.set(symbol, {
-        amount: trade.tokensReceived,
-        valueUSD: optimizedAmountUSD
-      });
-    }
-
-    this.realTrades.push(trade);
-
-    console.log(`🚀 REAL BUY EXECUTED: ${symbol}`);
-    console.log(`   Amount: ${amountUSD.toFixed(2)} USD (${trade.amountSOL.toFixed(4)} SOL)`);
-    console.log(`   Tokens: ${trade.tokensReceived.toFixed(2)}`);
-    console.log(`   Price: $${trade.actualPrice.toFixed(6)}`);
-    console.log(`   Advantage: ${advantage.toFixed(1)}%`);
-    console.log(`   TX Hash: ${trade.txHash}`);
-
-    // Simulate profit realization after some time
-    setTimeout(() => this.simulateProfitRealization(trade), 30000 + Math.random() * 60000);
-
-    return trade;
+    throw new Error(`Real trading not implemented - requires wallet private key integration. Current balance: ${this.portfolioBalance.solBalance.toFixed(4)} SOL`);
   }
 
   private generateRealisticMintAddress(symbol: string): string {
