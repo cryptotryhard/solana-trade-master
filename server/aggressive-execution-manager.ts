@@ -107,47 +107,51 @@ class AggressiveExecutionManager extends EventEmitter {
 
       return trade;
     } catch (error) {
-      console.log(`⚠️ Real execution failed, using enhanced simulation: ${error.message}`);
+      console.log(`❌ REAL EXECUTION FAILED: ${symbol} - ${error.message}`);
+      console.log(`💰 ATTEMPTING RETRY WITH REDUCED POSITION SIZE...`);
       
-      // Fallback to enhanced simulation with real market data
-      const basePrice = this.calculateMarketPrice(symbol, aiScore);
-      const slippage = Math.random() * 2 + 0.5; // 0.5-2.5% slippage
-      const executionPrice = basePrice * (1 + slippage / 100);
-      const tokensReceived = positionSize / executionPrice;
+      // Retry with smaller position size if failed due to size
+      if (error.message.includes('Trade size too large') || error.message.includes('Insufficient')) {
+        try {
+          const reducedPositionSize = positionSize * 0.5; // Try 50% of original size
+          console.log(`🔄 RETRY: ${symbol} with reduced size $${reducedPositionSize.toFixed(2)}`);
+          
+          const retryTrade = await realChainExecutor.executeRealBuy(
+            symbol,
+            advantage,
+            confidence,
+            reducedPositionSize
+          );
 
-      const trade: AggressiveTradeExecution = {
-        id: tradeId,
-        symbol,
-        advantage,
-        entryPrice: basePrice,
-        positionSize,
-        targetPrice: basePrice * (1 + advantage / 100),
-        actualPrice: executionPrice,
-        tokensReceived,
-        txHash: `SIM_REAL_${Date.now()}_${Math.random().toString(36).substr(2, 12)}`,
-        timestamp: new Date(),
-        status: 'executed',
-        unrealizedPnL: 0,
-        realizedPnL: 0,
-        scalingMultiplier: this.scalingMultiplier,
-        reinvestedAmount: 0
-      };
+          const trade: AggressiveTradeExecution = {
+            id: tradeId,
+            symbol,
+            advantage,
+            entryPrice: retryTrade.actualPrice,
+            positionSize: reducedPositionSize,
+            targetPrice: retryTrade.actualPrice * (1 + advantage / 100),
+            actualPrice: retryTrade.actualPrice,
+            tokensReceived: retryTrade.tokensReceived || 0,
+            txHash: retryTrade.txHash,
+            timestamp: new Date(),
+            status: 'executed',
+            unrealizedPnL: 0,
+            realizedPnL: 0,
+            scalingMultiplier: this.scalingMultiplier,
+            reinvestedAmount: 0
+          };
 
-      this.activeTrades.set(tradeId, trade);
-      this.portfolioValue -= positionSize;
-      this.freedCapital -= positionSize;
-
-      console.log(`💰 REAL AGGRESSIVE ENTRY EXECUTED: ${symbol}`);
-      console.log(`   Tokens: ${trade.tokensReceived.toFixed(2)}`);
-      console.log(`   Entry Price: $${trade.actualPrice.toFixed(6)}`);
-      console.log(`   Target Price: $${trade.targetPrice.toFixed(6)}`);
-      console.log(`   TX: ${trade.txHash}`);
-
-      // Start monitoring for aggressive scaling
-      this.monitorForScaling(trade);
-
-      this.emit('tradeExecuted', trade);
-      return trade;
+          console.log(`✅ RETRY SUCCESS: ${symbol} - TX: ${trade.txHash}`);
+          return trade;
+          
+        } catch (retryError) {
+          console.log(`❌ RETRY FAILED: ${symbol} - ${retryError.message}`);
+        }
+      }
+      
+      // If all real execution attempts fail, reject the trade entirely
+      throw new Error(`All real execution attempts failed for ${symbol}: ${error.message}`);
+    }
     }
   }
 
