@@ -25,7 +25,6 @@ interface RealPortfolioBalance {
 
 class RealChainExecutor {
   private connection: Connection;
-  private jupiterApi: any;
   private realTrades: RealTradeExecution[] = [];
   private portfolioBalance: RealPortfolioBalance;
   private walletPublicKey: PublicKey;
@@ -43,7 +42,6 @@ class RealChainExecutor {
   constructor(walletAddress: string = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d') {
     this.connection = new Connection(this.rpcEndpoints[0], 'confirmed');
     this.walletPublicKey = new PublicKey(walletAddress);
-    this.jupiterApi = createJupiterApiClient();
     
     this.portfolioBalance = {
       solBalance: 0,

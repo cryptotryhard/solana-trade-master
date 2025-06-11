@@ -1,6 +1,5 @@
 import fetch from 'node-fetch';
 import { Connection, PublicKey, VersionedTransaction, Keypair } from '@solana/web3.js';
-import base58 from 'bs58';
 
 interface JupiterQuote {
   inputMint: string;
