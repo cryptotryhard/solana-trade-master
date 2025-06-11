@@ -95,7 +95,8 @@ export function LivePortfolioDashboard() {
     }).format(value);
   };
 
-  const formatPercent = (value: number) => {
+  const formatPercent = (value: number | undefined) => {
+    if (!value && value !== 0) return '0.00%';
     return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
 
@@ -205,14 +206,14 @@ export function LivePortfolioDashboard() {
                         <div>
                           <p className="font-medium">{position.symbol}</p>
                           <p className="text-sm text-muted-foreground">
-                            {position.amount.toFixed(6)} tokens
+                            {(position.amount || 0).toFixed(6)} tokens
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{formatCurrency(position.value)}</p>
-                        <p className={`text-sm ${position.pnl > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency(position.pnl)} ({formatPercent(position.pnlPercent)})
+                        <p className="font-medium">{formatCurrency(position.value || 0)}</p>
+                        <p className={`text-sm ${(position.pnl || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(position.pnl || 0)} ({formatPercent(position.pnlPercent)})
                         </p>
                       </div>
                     </div>
