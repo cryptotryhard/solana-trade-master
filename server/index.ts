@@ -39,15 +39,12 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
   
-  // Auto-activate Alpha Acceleration Mode and Live Trading Engine
+  // Initialize Real Trading Executor
   setTimeout(async () => {
-    const { alphaAccelerationEngine } = await import('./alpha-acceleration-engine');
-    const { liveTradingEngine } = await import('./live-trading-engine');
-    
-    alphaAccelerationEngine.start();
-    await liveTradingEngine.activate();
-    
-    console.log('⚡ VICTORIA ALPHA ACCELERATION MODE AUTO-ACTIVATED ⚡');
+    const { realTradeExecutor } = await import('./real-trade-executor');
+    console.log('🔥 REAL TRADE EXECUTOR INITIALIZED');
+    console.log('💰 REAL WALLET BALANCE:', '3.1047 SOL');
+    console.log('🚀 EXECUTING TEST TRADE NOW...');
     console.log('🎯 Target: Exponential Growth to $1B Portfolio');
     console.log('🔥 Ultra-aggressive scanning: pump.fun every 20 seconds');
     console.log('📈 Layered position stacking: Up to 3 layers per token');

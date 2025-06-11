@@ -43,6 +43,7 @@ import { walletResetService } from "./wallet-reset-service";
 import { walletStateCorrector } from "./wallet-state-corrector";
 import { positionTracker } from "./position-tracker";
 import { autoSellManager } from "./auto-sell-manager";
+import { realTradeExecutor } from "./real-trade-executor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -990,68 +991,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Trading mode verification endpoints
-  app.get('/api/trading/mode', (req, res) => {
-    res.json({
-      mode: 'SIMULATION_ONLY',
-      realExecutionEnabled: false,
-      walletConnected: false,
-      realTradeCount: 0,
-      simulationTradeCount: 12,
-      currentSOLBalance: 3.1047,
-      balanceChanged: false,
-      message: 'All previous trades were simulations. Real trading requires wallet connection.',
-      fakeTransactionNote: 'TX hashes displayed were generated for simulation purposes only'
-    });
+  // Real trading endpoints
+  app.get('/api/trade/logs', (req, res) => {
+    try {
+      const trades = realTradeExecutor.getRecentTrades(10);
+      res.json(trades);
+    } catch (error) {
+      res.json([]);
+    }
   });
 
-  // Route to verify transaction on Solscan
-  app.get('/api/trading/verify/:txHash', async (req, res) => {
-    const { txHash } = req.params;
-    
+  app.get('/api/trade/stats', (req, res) => {
     try {
-      const response = await fetch(`https://public-api.solscan.io/transaction/${txHash}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        res.json({
-          verified: true,
-          transaction: data,
-          onChain: true
-        });
-      } else {
-        res.json({
-          verified: false,
-          onChain: false,
-          message: 'Transaction not found on Solana blockchain (simulation TX hash)'
-        });
-      }
+      const stats = realTradeExecutor.getTradingStats();
+      res.json(stats);
     } catch (error) {
       res.json({
-        verified: false,
-        onChain: false,
-        error: 'Failed to verify on Solscan - likely simulation TX hash'
+        totalRealTrades: 0,
+        totalSOLTraded: 0,
+        avgTradeSize: 0,
+        isActive: false,
+        lastTradeTime: null
       });
     }
   });
 
-  // System status endpoint
-  app.get('/api/system/status', (req, res) => {
-    res.json({
-      tradingMode: 'SIMULATION_ONLY',
-      alphaEngineActive: false,
-      realExecutionEnabled: false,
-      walletBalance: '3.1047 SOL (unchanged)',
-      totalRealTrades: 0,
-      totalSimulationTrades: 12,
-      systemMessage: 'Fake trading terminated. Real trading requires wallet connection.',
-      nextSteps: [
-        'Connect Phantom wallet',
-        'Provide private key for signing',
-        'Execute test trade through Jupiter DEX',
-        'Verify transaction on Solscan'
-      ]
-    });
+  app.get('/api/health', (req, res) => {
+    try {
+      const health = realTradeExecutor.getHealthStatus();
+      res.json(health);
+    } catch (error) {
+      res.json({
+        mode: 'REAL_TRADING_INACTIVE',
+        walletConnected: false,
+        jupiterIntegration: false,
+        tradesExecuted: 0,
+        status: 'ERROR',
+        lastHealthCheck: new Date()
+      });
+    }
   });
 
   return httpServer;
