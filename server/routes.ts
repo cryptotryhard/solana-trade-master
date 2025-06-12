@@ -175,31 +175,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Execute Real Trade
-  app.post('/api/execute-real-trade', async (req, res) => {
+  // Live Trading Activation Toggle
+  app.post('/api/trading/activate', async (req, res) => {
     try {
-      const { symbol, amount } = req.body;
+      const { enabled } = req.body;
       
-      const txHash = `real_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      if (enabled) {
+        await victoriaEngine.start();
+        
+        // Broadcast activation to WebSocket clients
+        broadcast({
+          type: 'trading_activated',
+          data: {
+            status: 'ACTIVE',
+            timestamp: new Date().toISOString(),
+            message: 'VICTORIA autonomous trading activated'
+          }
+        });
+        
+        res.json({
+          success: true,
+          status: 'ACTIVE',
+          message: 'Live trading activated successfully'
+        });
+      } else {
+        victoriaEngine.stop();
+        
+        broadcast({
+          type: 'trading_deactivated',
+          data: {
+            status: 'STOPPED',
+            timestamp: new Date().toISOString(),
+            message: 'VICTORIA trading stopped'
+          }
+        });
+        
+        res.json({
+          success: true,
+          status: 'STOPPED',
+          message: 'Live trading deactivated'
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to toggle trading' });
+    }
+  });
+
+  // Real-time Trade Notifications
+  app.post('/api/notify/trade', async (req, res) => {
+    try {
+      const { symbol, type, amount, txHash, profit } = req.body;
       
-      // Broadcast trade to WebSocket clients
+      // Broadcast trade notification to all connected clients
       broadcast({
-        type: 'trade_executed',
+        type: 'trade_notification',
         data: {
           symbol,
+          type,
           amount,
           txHash,
-          timestamp: new Date().toISOString()
+          profit,
+          timestamp: new Date().toISOString(),
+          message: `${type.toUpperCase()} ${symbol} - ${profit > 0 ? 'PROFIT' : 'LOSS'}: $${Math.abs(profit).toFixed(2)}`
         }
       });
 
-      res.json({
-        success: true,
-        txHash,
-        message: `${symbol} trade executed successfully`
-      });
+      res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to execute trade' });
+      res.status(500).json({ error: 'Failed to send notification' });
     }
   });
 
@@ -263,29 +306,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alpha tokens endpoint for testing
-  app.get('/api/alpha/tokens', async (req, res) => {
+  // AI Decision Log
+  app.get('/api/ai/decisions', async (req, res) => {
     try {
-      res.json([
-        {
-          symbol: 'ALPHA',
-          mintAddress: 'alpha_test_mint_123',
-          confidence: 87,
-          marketCap: 45000,
-          age: '2h',
-          risk: 'MEDIUM'
-        },
-        {
-          symbol: 'MOON', 
-          mintAddress: 'moon_test_mint_456',
-          confidence: 92,
-          marketCap: 123000,
-          age: '45m',
-          risk: 'LOW'
-        }
-      ]);
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      
+      const { aiDecisionLogger } = await import('./ai-decision-logger');
+      const decisions = aiDecisionLogger.getRecentDecisions(20);
+      
+      res.json(decisions);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to get alpha tokens' });
+      res.status(500).json({ error: 'Failed to get AI decisions' });
+    }
+  });
+
+  // Ignored Tokens
+  app.get('/api/ai/ignored-tokens', async (req, res) => {
+    try {
+      const { aiDecisionLogger } = await import('./ai-decision-logger');
+      const ignored = aiDecisionLogger.getIgnoredTokens();
+      
+      res.json(ignored);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get ignored tokens' });
+    }
+  });
+
+  // Strategy Adaptations
+  app.get('/api/ai/adaptations', async (req, res) => {
+    try {
+      const { aiDecisionLogger } = await import('./ai-decision-logger');
+      const adaptations = aiDecisionLogger.getStrategyAdaptations();
+      
+      res.json(adaptations);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get strategy adaptations' });
+    }
+  });
+
+  // Performance Metrics
+  app.get('/api/ai/performance', async (req, res) => {
+    try {
+      const { aiDecisionLogger } = await import('./ai-decision-logger');
+      const metrics = aiDecisionLogger.getPerformanceMetrics();
+      
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get performance metrics' });
     }
   });
 
