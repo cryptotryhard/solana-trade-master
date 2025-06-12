@@ -80,8 +80,27 @@ export default function SimpleTradingDashboard() {
     refetchInterval: 2000
   });
 
+  // Real token holdings data (BONK, etc.)
+  const { data: tokenHoldings } = useQuery<any[]>({
+    queryKey: ['/api/wallet/tokens'],
+    refetchInterval: 3000
+  });
+
+  // Combine raw positions and token holdings to show all assets
+  const combinedPositions = [
+    ...(rawPositions || []),
+    ...(tokenHoldings || []).map(token => ({
+      symbol: token.symbol,
+      mint: token.mint,
+      balance: token.uiAmount,
+      estimatedValue: token.valueUSD ? token.valueUSD / 200 : 0, // Convert USD to SOL
+      entryPrice: 0.000001, // Default entry for existing holdings
+      entryTime: new Date().toISOString()
+    }))
+  ];
+
   // Transform positions to include calculated fields
-  const positions: Position[] = (rawPositions || []).map((pos, index) => ({
+  const positions: Position[] = combinedPositions.map((pos, index) => ({
     id: `${pos.symbol}_${index}`,
     symbol: pos.symbol || 'UNKNOWN',
     mint: pos.mint || '',
@@ -89,11 +108,11 @@ export default function SimpleTradingDashboard() {
     entryPrice: pos.entryPrice || 0.000001,
     currentPrice: pos.estimatedValue / Math.max(pos.balance || 1, 1),
     amount: pos.balance || 0,
-    entryTime: new Date().toISOString(),
+    entryTime: pos.entryTime || new Date().toISOString(),
     pnl: (pos.estimatedValue || 0) - (pos.entryPrice || 0.000001) * (pos.balance || 0),
     pnlPercent: pos.estimatedValue > 0 ? 
       (((pos.estimatedValue / Math.max(pos.balance || 1, 1)) - (pos.entryPrice || 0.000001)) / (pos.entryPrice || 0.000001)) * 100 : 0,
-    marketCap: Math.random() * 100000 + 20000, // We don't have real MC data
+    marketCap: Math.random() * 100000 + 20000, // Placeholder since we don't have real MC data
     entryValue: (pos.entryPrice || 0.000001) * (pos.balance || 0),
     currentValue: pos.estimatedValue || 0
   }));

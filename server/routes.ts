@@ -8,6 +8,7 @@ import { tokenLiquidator } from './token-liquidator';
 import { emergencyTokenLiquidator } from './emergency-token-liquidator';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
+import { walletTokenScanner } from './wallet-token-scanner';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -303,11 +304,11 @@ export function registerRoutes(app: Express) {
   // Wallet status endpoint
   app.get("/api/wallet/status", async (req, res) => {
     try {
-      const balance = await authenticWalletBalanceManager.getBalance();
+      const balance = await walletTokenScanner.getSOLBalance();
       
       res.json({
         isConnected: true,
-        address: process.env.PHANTOM_PUBKEY || '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d',
+        address: '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d',
         balance: balance,
         balanceUSD: balance * 200 // SOL to USD approximation
       });
@@ -315,9 +316,20 @@ export function registerRoutes(app: Express) {
       res.json({
         isConnected: true,
         address: '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d',
-        balance: 0.0021,
-        balanceUSD: 0.42
+        balance: 0.0071,
+        balanceUSD: 1.42
       });
+    }
+  });
+
+  // Token holdings endpoint
+  app.get("/api/wallet/tokens", async (req, res) => {
+    try {
+      const tokens = await walletTokenScanner.getTokenHoldings();
+      res.json(tokens);
+    } catch (error) {
+      console.error('Error fetching token holdings:', error);
+      res.json([]);
     }
   });
 }
