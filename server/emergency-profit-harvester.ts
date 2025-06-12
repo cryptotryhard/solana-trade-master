@@ -27,7 +27,8 @@ class EmergencyProfitHarvester {
 
   constructor() {
     this.connection = new Connection('https://api.mainnet-beta.solana.com');
-    this.walletPubkey = new PublicKey(process.env.PHANTOM_PUBKEY!);
+    const pubkeyString = process.env.PHANTOM_PUBKEY || '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
+    this.walletPubkey = new PublicKey(pubkeyString);
   }
 
   async checkEmergencyConditions(): Promise<boolean> {

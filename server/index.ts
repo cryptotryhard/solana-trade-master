@@ -5,6 +5,15 @@ import "./real-wallet-config"; // Load real wallet configuration first
 import "./real-trade-tracker"; // Initialize VICTORIA's trade tracking
 import { emergencyProfitHarvester } from './emergency-profit-harvester';
 import { victoriaMasterController } from './victoria-master-controller';
+import { systematicProfitEngine } from './systematic-profit-engine';
+
+// Activate profit extraction immediately on startup
+setTimeout(async () => {
+  console.log('🚀 ACTIVATING EMERGENCY PROFIT EXTRACTION');
+  await emergencyProfitHarvester.checkEmergencyConditions();
+  await systematicProfitEngine.executeSystematicProfitExtraction();
+  systematicProfitEngine.startSystematicProfitMonitoring();
+}, 10000);
 
 const app = express();
 app.use(express.json());
