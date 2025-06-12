@@ -194,10 +194,22 @@ class PhantomLiveTrader {
         if (walletPrivateKey) {
           try {
             const { Keypair } = await import('@solana/web3.js');
-            const bs58 = await import('bs58');
             
-            // Decode the private key from base58
-            const privateKeyBytes = bs58.decode(walletPrivateKey);
+            // Handle different private key formats
+            let privateKeyBytes: Uint8Array;
+            
+            try {
+              // Try parsing as JSON array first (Phantom export format)
+              if (walletPrivateKey.startsWith('[')) {
+                const keyArray = JSON.parse(walletPrivateKey);
+                privateKeyBytes = new Uint8Array(keyArray);
+              } else {
+                // Try base64 decode
+                privateKeyBytes = new Uint8Array(Buffer.from(walletPrivateKey, 'base64'));
+              }
+            } catch (parseError) {
+              throw new Error(`Invalid private key format: ${parseError}`);
+            }
             const userKeypair = Keypair.fromSecretKey(privateKeyBytes);
             
             console.log(`🔑 Using wallet private key for signing`);
@@ -235,6 +247,7 @@ class PhantomLiveTrader {
         console.log(`⏰ Confirming transaction...`);
         
         // Wait for confirmation if this was a real transaction
+        const commitment = 'confirmed' as const;
         if (walletPrivateKey) {
           const confirmation = await this.connection.confirmTransaction(txSignature, commitment);
           
