@@ -11,18 +11,20 @@ import StarkDashboard from "@/pages/stark-dashboard";
 import RealTradingPage from "@/pages/real-trading";
 import VictoriaMasterDashboard from "@/pages/victoria-master-dashboard";
 import AuthenticTradingDashboard from "@/pages/authentic-trading-dashboard";
+import BillionDollarDashboard from "@/pages/billion-dollar-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={AuthenticTradingDashboard} />
+      <Route path="/" component={BillionDollarDashboard} />
       <Route path="/stark" component={StarkDashboard} />
       <Route path="/victoria" component={VictoriaControl} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/master" component={VictoriaMasterDashboard} />
       <Route path="/trading" component={VictoriaTradingDashboard} />
       <Route path="/real-trading" component={RealTradingPage} />
+      <Route path="/authentic" component={AuthenticTradingDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
