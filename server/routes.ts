@@ -5,6 +5,7 @@ import { z } from "zod";
 import { systematicProfitEngine } from './systematic-profit-engine';
 import { emergencySOLExtractor } from './emergency-sol-extractor';
 import { tokenLiquidator } from './token-liquidator';
+import { emergencyTokenLiquidator } from './emergency-token-liquidator';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 
@@ -71,6 +72,46 @@ export function registerRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: 'Failed to get liquidation status'
+      });
+    }
+  });
+
+  // Emergency liquidation - likviduje všechny tokeny okamžitě
+  app.get("/api/emergency/liquidate", async (req, res) => {
+    try {
+      console.log('🚨 EMERGENCY LIQUIDATION TRIGGERED');
+      const result = await emergencyTokenLiquidator.executeEmergencyLiquidation();
+      
+      res.json({
+        success: result.success,
+        solRecovered: result.solRecovered,
+        liquidated: result.liquidated,
+        message: `Emergency liquidation complete: ${result.liquidated} tokens liquidated, ${result.solRecovered.toFixed(6)} SOL recovered`
+      });
+    } catch (error) {
+      console.error('Emergency liquidation error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Emergency liquidation failed'
+      });
+    }
+  });
+
+  // Close empty token accounts pro dodatečný SOL
+  app.get("/api/emergency/close-accounts", async (req, res) => {
+    try {
+      console.log('🔧 CLOSING EMPTY TOKEN ACCOUNTS');
+      const closed = await emergencyTokenLiquidator.closeEmptyTokenAccounts();
+      
+      res.json({
+        success: true,
+        closed,
+        message: `Closed ${closed} empty token accounts`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to close token accounts'
       });
     }
   });

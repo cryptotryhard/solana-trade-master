@@ -8,11 +8,17 @@ import { emergencyProfitHarvester } from './emergency-profit-harvester';
 import { victoriaMasterController } from './victoria-master-controller';
 import { systematicProfitEngine } from './systematic-profit-engine';
 
-// Activate emergency SOL extraction on startup
+// Activate emergency SOL extraction and auto-recovery system
 import { emergencySOLExtractor } from './emergency-sol-extractor';
+import { autoRecoverySystem } from './auto-recovery-system';
+
 setTimeout(async () => {
-  console.log('🚀 ACTIVATING EMERGENCY SOL EXTRACTION');
+  console.log('🚨 ACTIVATING EMERGENCY RECOVERY SYSTEM');
   try {
+    // Immediate force recovery for critical SOL situation
+    const recoveryResult = await autoRecoverySystem.forceRecovery();
+    console.log(`🚀 Force recovery result: ${recoveryResult.message}`);
+    
     const analysis = await emergencySOLExtractor.analyzeExtractionPotential();
     console.log(`📊 Emergency Analysis: ${analysis.totalTokens} tokens, ${analysis.estimatedSOL.toFixed(6)} SOL potential`);
     
@@ -20,9 +26,9 @@ setTimeout(async () => {
       await emergencySOLExtractor.executeEmergencyExtraction();
     }
   } catch (error) {
-    console.error('Emergency extraction failed:', error);
+    console.error('Emergency recovery failed:', error);
   }
-}, 10000);
+}, 5000);
 
 const app = express();
 app.use(express.json());
