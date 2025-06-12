@@ -13,12 +13,14 @@ import VictoriaMasterDashboard from "@/pages/victoria-master-dashboard";
 import AuthenticTradingDashboard from "@/pages/authentic-trading-dashboard";
 import BillionDollarDashboard from "@/pages/billion-dollar-dashboard";
 import AdvancedTradingDashboard from "@/pages/advanced-trading-dashboard";
+import SimpleTradingDashboard from "@/pages/simple-trading-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={BillionDollarDashboard} />
+      <Route path="/" component={SimpleTradingDashboard} />
+      <Route path="/billion" component={BillionDollarDashboard} />
       <Route path="/stark" component={StarkDashboard} />
       <Route path="/victoria" component={VictoriaControl} />
       <Route path="/dashboard" component={Dashboard} />
