@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TrendingUp, DollarSign, Target, Activity, Zap, ArrowUp, Wallet, Link } from 'lucide-react';
+import { TrendingUp, DollarSign, Target, Activity, Zap, ArrowUp, Wallet, Link, BarChart3 } from 'lucide-react';
+import { Link as RouterLink } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 
 interface BillionTraderStats {
@@ -131,6 +132,14 @@ export default function BillionDollarDashboard() {
                 {stats?.isActive ? 'AKTIVNÍ OBCHODOVÁNÍ' : 'ZASTAVENO'}
               </span>
             </div>
+            
+            {/* Advanced Dashboard Link */}
+            <RouterLink href="/advanced">
+              <Button variant="outline" className="bg-blue-900/20 border-blue-400 text-blue-400 hover:bg-blue-900/30 flex items-center space-x-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Pokročilý Dashboard</span>
+              </Button>
+            </RouterLink>
             
             {/* Wallet Connection Status */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
