@@ -86,6 +86,12 @@ export default function SimpleTradingDashboard() {
     refetchInterval: 3000
   });
 
+  // Pump.fun trader status
+  const { data: pumpFunStatus } = useQuery<any>({
+    queryKey: ['/api/pumpfun/status'],
+    refetchInterval: 2000
+  });
+
   // Combine raw positions and token holdings to show all assets
   const combinedPositions = [
     ...(rawPositions || []),

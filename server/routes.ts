@@ -9,6 +9,7 @@ import { emergencyTokenLiquidator } from './emergency-token-liquidator';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 import { walletTokenScanner } from './wallet-token-scanner';
+import { pumpFunTrader } from './pump-fun-trader';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -330,6 +331,43 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching token holdings:', error);
       res.json([]);
+    }
+  });
+
+  // Pump.fun trader endpoints
+  app.post("/api/pumpfun/start", async (req, res) => {
+    try {
+      pumpFunTrader.start();
+      res.json({ success: true, message: "Pump.fun trader started" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/pumpfun/stop", async (req, res) => {
+    try {
+      pumpFunTrader.stop();
+      res.json({ success: true, message: "Pump.fun trader stopped" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get("/api/pumpfun/status", async (req, res) => {
+    try {
+      const status = pumpFunTrader.getStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/pumpfun/exit-all", async (req, res) => {
+    try {
+      await pumpFunTrader.forceExitAll();
+      res.json({ success: true, message: "All positions exited" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
     }
   });
 }
