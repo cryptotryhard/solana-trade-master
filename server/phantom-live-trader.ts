@@ -199,16 +199,58 @@ class PhantomLiveTrader {
             let privateKeyBytes: Uint8Array;
             
             try {
-              // Try parsing as JSON array first (Phantom export format)
-              if (walletPrivateKey.startsWith('[')) {
-                const keyArray = JSON.parse(walletPrivateKey);
-                privateKeyBytes = new Uint8Array(keyArray);
-              } else {
-                // Try base64 decode
-                privateKeyBytes = new Uint8Array(Buffer.from(walletPrivateKey, 'base64'));
+              // Use the imported bs58 from the top of the file
+              console.log(`🔑 Processing private key (${walletPrivateKey.length} chars)`);
+              
+              // Decode the base58 private key directly
+              privateKeyBytes = Buffer.from(walletPrivateKey, 'base64');
+              
+              // If base64 fails, try as JSON array
+              if (privateKeyBytes.length !== 64) {
+                try {
+                  if (walletPrivateKey.startsWith('[')) {
+                    const keyArray = JSON.parse(walletPrivateKey);
+                    privateKeyBytes = new Uint8Array(keyArray);
+                  } else {
+                    // Try direct buffer conversion for hex
+                    privateKeyBytes = Buffer.from(walletPrivateKey, 'hex');
+                  }
+                } catch {
+                  // For base58 keys, manually decode
+                  const keyData = walletPrivateKey;
+                  // Convert base58 to bytes using a simple implementation
+                  const base58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+                  let decoded = BigInt(0);
+                  for (const char of keyData) {
+                    decoded = decoded * BigInt(58) + BigInt(base58Alphabet.indexOf(char));
+                  }
+                  
+                  // Convert bigint to byte array
+                  const bytes = [];
+                  let num = decoded;
+                  while (num > 0) {
+                    bytes.unshift(Number(num % BigInt(256)));
+                    num = num / BigInt(256);
+                  }
+                  privateKeyBytes = new Uint8Array(bytes);
+                }
               }
-            } catch (parseError) {
-              throw new Error(`Invalid private key format: ${parseError}`);
+              
+              console.log(`🔑 Decoded private key: ${privateKeyBytes.length} bytes`);
+              
+              // Validate key length
+              if (privateKeyBytes.length === 32) {
+                // 32-byte seed, need to generate full keypair
+                const seedKeypair = Keypair.fromSeed(privateKeyBytes);
+                privateKeyBytes = seedKeypair.secretKey;
+              } else if (privateKeyBytes.length !== 64) {
+                throw new Error(`Invalid key length: ${privateKeyBytes.length}, expected 32 or 64 bytes`);
+              }
+              
+              console.log(`✅ Private key validation successful (${privateKeyBytes.length} bytes)`);
+            } catch (parseError: any) {
+              console.error(`❌ Private key parsing failed:`, parseError);
+              throw new Error(`Invalid private key format: ${parseError.message || parseError}`);
             }
             const userKeypair = Keypair.fromSecretKey(privateKeyBytes);
             

@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import "./real-wallet-config"; // Load real wallet configuration first
 import "./real-trade-tracker"; // Initialize VICTORIA's trade tracking
 
 const app = express();
