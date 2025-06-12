@@ -197,15 +197,6 @@ async function executeJupiterSwap(inputMint, outputMint, amount, wallet) {
       }
     }
     
-    // Confirm transaction
-    await connection.confirmTransaction(txHash, 'confirmed');
-    
-    return {
-      success: true,
-      txHash,
-      outputAmount: quote.outAmount
-    };
-    
   } catch (error) {
     console.error('❌ Jupiter swap failed:', error);
     return {
