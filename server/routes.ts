@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { systematicProfitEngine } from './systematic-profit-engine';
 import { emergencySOLExtractor } from './emergency-sol-extractor';
+import { tokenLiquidator } from './token-liquidator';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 
@@ -36,6 +37,40 @@ export function registerRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: 'Failed to analyze extraction potential'
+      });
+    }
+  });
+
+  // Priority token liquidation
+  app.get("/api/liquidate/priority", async (req, res) => {
+    try {
+      console.log('🚀 Priority liquidation triggered via API');
+      const result = await tokenLiquidator.executePriorityLiquidation();
+      
+      res.json({
+        success: true,
+        totalSOL: result.totalSOL,
+        successful: result.successful,
+        failed: result.failed,
+        message: `Liquidated ${result.successful} tokens for ${result.totalSOL.toFixed(6)} SOL`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to execute priority liquidation'
+      });
+    }
+  });
+
+  // Liquidation status
+  app.get("/api/liquidate/status", async (req, res) => {
+    try {
+      const status = await tokenLiquidator.getStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get liquidation status'
       });
     }
   });
