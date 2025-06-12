@@ -31,6 +31,7 @@ class PhantomWalletIntegration {
   private currentState: PhantomWalletState | null = null;
 
   constructor() {
+    // Default to test wallet, will be updated when user connects
     this.walletAddress = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
     
     // Use Helius RPC for better performance
@@ -41,9 +42,17 @@ class PhantomWalletIntegration {
     this.connection = new Connection(rpcUrl, 'confirmed');
     
     console.log('🔗 Phantom Wallet Integration initialized');
-    console.log(`📍 Monitoring wallet: ${this.walletAddress}`);
+    console.log(`📍 Monitoring wallet: ${this.walletAddress} (default)`);
     
     this.startRealTimeMonitoring();
+  }
+
+  // Update wallet address for real user wallet
+  updateWalletAddress(newAddress: string) {
+    this.walletAddress = newAddress;
+    this.currentState = null; // Reset state to fetch fresh data
+    console.log(`🔄 Wallet address updated to: ${newAddress}`);
+    this.fetchWalletState(); // Immediately fetch new wallet data
   }
 
   private async startRealTimeMonitoring() {

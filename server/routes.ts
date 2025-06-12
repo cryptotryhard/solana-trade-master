@@ -434,6 +434,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Wallet Connection Management
+  app.post('/api/wallet/connect', async (req, res) => {
+    try {
+      const { walletAddress } = req.body;
+      
+      if (!walletAddress) {
+        return res.status(400).json({ error: 'Wallet address required' });
+      }
+
+      const { walletConnectionManager } = await import('./wallet-connection');
+      const success = await walletConnectionManager.connectWallet(walletAddress);
+      
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: 'Wallet connected successfully',
+          address: walletAddress
+        });
+      } else {
+        res.status(400).json({ error: 'Failed to connect wallet' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Wallet connection failed' });
+    }
+  });
+
+  app.get('/api/wallet/status', async (req, res) => {
+    try {
+      const { walletConnectionManager } = await import('./wallet-connection');
+      const status = walletConnectionManager.getConnectionState();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get wallet status' });
+    }
+  });
+
+  app.post('/api/wallet/disconnect', async (req, res) => {
+    try {
+      const { walletConnectionManager } = await import('./wallet-connection');
+      walletConnectionManager.disconnectWallet();
+      res.json({ success: true, message: 'Wallet disconnected' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to disconnect wallet' });
+    }
+  });
+
   // Execute Real Trade
   app.post('/api/trading/execute', async (req, res) => {
     try {
