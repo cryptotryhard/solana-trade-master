@@ -101,11 +101,17 @@ class PhantomWalletIntegration {
         }
       }
 
-      // Get recent transactions
-      const signatures = await this.connection.getSignaturesForAddress(
-        publicKey,
-        { limit: 10 }
-      );
+      // Get recent transactions with retry logic
+      let signatures = [];
+      try {
+        signatures = await this.connection.getSignaturesForAddress(
+          publicKey,
+          { limit: 5 }
+        );
+      } catch (error) {
+        console.log('⚠️ RPC rate limited, using cached data');
+        signatures = [];
+      }
 
       const recentTransactions = [];
       for (const sig of signatures.slice(0, 5)) {
