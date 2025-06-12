@@ -52,6 +52,7 @@ class RealJupiterTradingEngine {
   constructor() {
     console.log('🎯 Real Jupiter Trading Engine initialized');
     console.log('🔗 Connected to authentic Phantom wallet data');
+    this.activate(); // Auto-activate for immediate trading
     this.startTradingAnalysis();
   }
 

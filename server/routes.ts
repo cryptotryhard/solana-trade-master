@@ -411,6 +411,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Autonomous Trading Control
+  app.post('/api/autonomous/activate', async (req, res) => {
+    try {
+      const { autonomousTradingController } = await import('./autonomous-trading-controller');
+      await autonomousTradingController.activateTrading();
+      
+      res.json({ 
+        success: true, 
+        message: 'Autonomous trading activated',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to activate autonomous trading' });
+    }
+  });
+
+  app.post('/api/autonomous/deactivate', async (req, res) => {
+    try {
+      const { autonomousTradingController } = await import('./autonomous-trading-controller');
+      await autonomousTradingController.deactivateTrading();
+      
+      res.json({ 
+        success: true, 
+        message: 'Autonomous trading deactivated',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to deactivate autonomous trading' });
+    }
+  });
+
+  // Get Trading Stats
+  app.get('/api/autonomous/stats', async (req, res) => {
+    try {
+      const { autonomousTradingController } = await import('./autonomous-trading-controller');
+      const stats = autonomousTradingController.getTradingStats();
+      
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get trading stats' });
+    }
+  });
+
+  // Get Active Positions
+  app.get('/api/autonomous/positions', async (req, res) => {
+    try {
+      const { autonomousTradingController } = await import('./autonomous-trading-controller');
+      const positions = autonomousTradingController.getActivePositions();
+      
+      console.log(`📊 API: Returning ${positions.length} autonomous positions`);
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get active positions' });
+    }
+  });
+
   // Price history endpoints for charts
   app.get('/api/crypto/price/:symbol', async (req, res) => {
     try {

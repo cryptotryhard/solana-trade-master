@@ -71,7 +71,19 @@ export default function AuthenticTradingDashboard() {
   // Trading opportunities
   const { data: opportunitiesData } = useQuery({
     queryKey: ['/api/trading/opportunities'],
-    refetchInterval: 30000
+    refetchInterval: 15000
+  });
+
+  // Autonomous trading stats
+  const { data: autonomousStats } = useQuery({
+    queryKey: ['/api/autonomous/stats'],
+    refetchInterval: 5000
+  });
+
+  // Active autonomous positions
+  const { data: autonomousPositions = [] } = useQuery({
+    queryKey: ['/api/autonomous/positions'],
+    refetchInterval: 10000
   });
 
   // Execute trade mutation
@@ -167,14 +179,16 @@ export default function AuthenticTradingDashboard() {
 
         <Card className="bg-gray-900 border-gray-700">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Opportunities</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-300">Autonomous Stats</CardTitle>
             <Target className="h-4 w-4 text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {opportunities.length}
+            <div className="text-2xl font-bold text-green-400">
+              {autonomousStats?.isActive ? 'ACTIVE' : 'INACTIVE'}
             </div>
-            <p className="text-xs text-gray-400">High confidence trades</p>
+            <p className="text-xs text-gray-400">
+              {autonomousStats?.tradesExecuted || 0} trades executed
+            </p>
           </CardContent>
         </Card>
       </div>
