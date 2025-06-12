@@ -3,25 +3,39 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { systematicProfitEngine } from './systematic-profit-engine';
+import { emergencySOLExtractor } from './emergency-sol-extractor';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 
 export function registerRoutes(app: Express) {
-  // Profit extraction endpoint
+  // Emergency SOL extraction endpoint
   app.get("/api/profit/extract", async (req, res) => {
     try {
-      console.log('🚀 Manual profit extraction triggered via API');
-      const extractedSOL = await systematicProfitEngine.executeSystematicProfitExtraction();
+      console.log('🚀 Emergency SOL extraction triggered via API');
+      const extractedSOL = await emergencySOLExtractor.executeEmergencyExtraction();
       
       res.json({
         success: true,
         extractedSOL,
-        message: `Successfully extracted ${extractedSOL.toFixed(6)} SOL`
+        message: `Emergency extraction completed: ${extractedSOL.toFixed(6)} SOL potential`
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: 'Failed to extract profits'
+        error: 'Failed to extract SOL'
+      });
+    }
+  });
+
+  // Emergency extraction analysis
+  app.get("/api/profit/analyze", async (req, res) => {
+    try {
+      const analysis = await emergencySOLExtractor.analyzeExtractionPotential();
+      res.json(analysis);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to analyze extraction potential'
       });
     }
   });

@@ -245,9 +245,7 @@ class SystematicProfitEngine {
       const result = await phantomLiveTrader.executeRealJupiterSwap(
         position.mint,
         'So11111111111111111111111111111111111111112', // SOL mint
-        position.currentBalance,
-        process.env.PHANTOM_PUBKEY!,
-        position.symbol
+        position.currentBalance
       );
 
       if (result.success) {
@@ -385,4 +383,30 @@ class SystematicProfitEngine {
   }
 }
 
-export const systematicProfitEngine = new SystematicProfitEngine();
+// Initialize with lazy loading to avoid startup errors
+let systematicProfitEngineInstance: SystematicProfitEngine | null = null;
+
+export const systematicProfitEngine = {
+  getInstance(): SystematicProfitEngine {
+    if (!systematicProfitEngineInstance) {
+      systematicProfitEngineInstance = new SystematicProfitEngine();
+    }
+    return systematicProfitEngineInstance;
+  },
+  
+  async executeSystematicProfitExtraction(): Promise<number> {
+    return this.getInstance().executeSystematicProfitExtraction();
+  },
+  
+  async getSystemStatus(): Promise<any> {
+    return this.getInstance().getSystemStatus();
+  },
+  
+  async analyzeProfitPositions(): Promise<any[]> {
+    return this.getInstance().analyzeProfitPositions();
+  },
+  
+  async startSystematicProfitMonitoring(): Promise<void> {
+    return this.getInstance().startSystematicProfitMonitoring();
+  }
+};

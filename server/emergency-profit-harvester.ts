@@ -163,9 +163,7 @@ class EmergencyProfitHarvester {
         const result = await phantomLiveTrader.executeRealJupiterSwap(
           opportunity.token.mint,
           'So11111111111111111111111111111111111111112',
-          opportunity.token.balance,
-          process.env.PHANTOM_PUBKEY!,
-          opportunity.token.symbol
+          opportunity.token.balance
         );
 
         if (result.success) {

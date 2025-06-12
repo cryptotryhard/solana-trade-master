@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import "./real-wallet-config"; // Load real wallet configuration first
@@ -7,12 +8,20 @@ import { emergencyProfitHarvester } from './emergency-profit-harvester';
 import { victoriaMasterController } from './victoria-master-controller';
 import { systematicProfitEngine } from './systematic-profit-engine';
 
-// Activate profit extraction immediately on startup
+// Activate emergency SOL extraction on startup
+import { emergencySOLExtractor } from './emergency-sol-extractor';
 setTimeout(async () => {
-  console.log('🚀 ACTIVATING EMERGENCY PROFIT EXTRACTION');
-  await emergencyProfitHarvester.checkEmergencyConditions();
-  await systematicProfitEngine.executeSystematicProfitExtraction();
-  systematicProfitEngine.startSystematicProfitMonitoring();
+  console.log('🚀 ACTIVATING EMERGENCY SOL EXTRACTION');
+  try {
+    const analysis = await emergencySOLExtractor.analyzeExtractionPotential();
+    console.log(`📊 Emergency Analysis: ${analysis.totalTokens} tokens, ${analysis.estimatedSOL.toFixed(6)} SOL potential`);
+    
+    if (analysis.totalTokens > 0) {
+      await emergencySOLExtractor.executeEmergencyExtraction();
+    }
+  } catch (error) {
+    console.error('Emergency extraction failed:', error);
+  }
 }, 10000);
 
 const app = express();
@@ -50,7 +59,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  registerRoutes(app);
+  
+  const server = createServer(app);
   
   // Initialize Autonomous Trading System
   setTimeout(async () => {
