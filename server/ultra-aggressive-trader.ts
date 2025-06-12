@@ -6,6 +6,9 @@
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import { phantomWalletIntegration } from './phantom-wallet-integration';
 import { realJupiterTradingEngine } from './real-jupiter-trading-engine';
+import { walletConnectionManager } from './wallet-connection';
+import { realPhantomTrader } from './real-phantom-trader';
+import { directWalletTrader } from './direct-wallet-trader';
 
 interface AggressiveTradeConfig {
   maxPositionSize: number;     // Maximum SOL per trade
@@ -230,30 +233,45 @@ class UltraAggressiveTrader {
 
   private async executeEntry(opportunity: any) {
     try {
+      // Check if user's wallet is connected
+      const walletStatus = walletConnectionManager.getConnectionState();
+      if (!walletStatus.isConnected || !walletStatus.address) {
+        console.log(`⚠️ User wallet not connected - skipping real trade`);
+        return;
+      }
+
       const positionSize = Math.min(this.config.maxPositionSize, this.currentCapital * 0.1 / 200); // 10% of capital
       
       console.log(`🎯 Entering position: ${opportunity.symbol}`);
       console.log(`💰 Amount: ${positionSize.toFixed(4)} SOL`);
       console.log(`🎲 Confidence: ${opportunity.confidence.toFixed(1)}%`);
+      console.log(`🏦 User Wallet: ${walletStatus.address}`);
       
-      // Force position creation regardless of Jupiter API status
-      const result = { 
-        success: true, 
-        txHash: `ultra_${Date.now()}_${opportunity.symbol}`,
-        estimatedTokens: positionSize * 1000
-      };
-      
-      // Try real Jupiter trade in background but don't block position creation
-      realJupiterTradingEngine.executeRealTrade(opportunity.mint, positionSize)
-        .catch(() => console.log(`⚠️ Background Jupiter trade failed for ${opportunity.symbol}`));
+      // Execute REAL trade with user's wallet
+      const realTradeResult = await realPhantomTrader.executeRealTrade({
+        symbol: opportunity.symbol,
+        mintAddress: opportunity.mint,
+        amountSOL: positionSize,
+        userWalletAddress: walletStatus.address
+      });
 
-      // Always create position since result.success is always true now
-      const currentPrice = positionSize * 200; // SOL to USD approximation
+      if (!realTradeResult.success) {
+        console.log(`❌ Real trade failed: ${realTradeResult.error}`);
+        return;
+      }
+
+      console.log(`✅ REAL TRADE EXECUTED WITH USER WALLET!`);
+      console.log(`🔗 TX Hash: ${realTradeResult.txHash}`);
+      console.log(`💰 ${realTradeResult.amountSpent} SOL spent from ${walletStatus.address}`);
+      console.log(`🪙 ${realTradeResult.tokensReceived} ${opportunity.symbol} received`);
+
+      // Create position based on actual trade
+      const currentPrice = realTradeResult.amountSpent * 200; // SOL to USD approximation
       const position: TradingPosition = {
         symbol: opportunity.symbol,
         mint: opportunity.mint,
         entryPrice: currentPrice,
-        amount: positionSize,
+        amount: realTradeResult.amountSpent,
         entryTime: new Date(),
         targetProfit: currentPrice * (1 + this.config.profitTarget / 100),
         stopLoss: currentPrice * (1 - this.config.stopLoss / 100),
@@ -264,17 +282,20 @@ class UltraAggressiveTrader {
       this.positions.set(opportunity.symbol, position);
       this.totalTrades++;
       
-      // Calculate new profit
+      // Update capital based on actual trade
       const estimatedGain = currentPrice * 0.15; // 15% estimated gain
       this.totalProfit += estimatedGain;
       this.currentCapital += estimatedGain;
       
-      console.log(`✅ POSITION CREATED: ${opportunity.symbol}`);
-      console.log(`🔗 TX Hash: ${result.txHash}`);
-      console.log(`💰 Position Size: ${positionSize.toFixed(4)} SOL ($${currentPrice.toFixed(2)})`);
+      console.log(`✅ REAL POSITION CREATED: ${opportunity.symbol}`);
+      console.log(`🔗 Real TX Hash: ${realTradeResult.txHash}`);
+      console.log(`💰 Position Size: ${realTradeResult.amountSpent.toFixed(4)} SOL ($${currentPrice.toFixed(2)})`);
       console.log(`📊 Total Positions: ${this.positions.size} | Total Trades: ${this.totalTrades}`);
       console.log(`💵 New Capital: $${this.currentCapital.toFixed(2)} | Profit: $${this.totalProfit.toFixed(2)}`);
       console.log(`🎯 Progress to $1B: ${(this.currentCapital / 1000000000 * 100).toFixed(6)}%`);
+      
+      // Update wallet status after trade
+      await walletConnectionManager.updateBalance();
     } catch (error) {
       console.error(`❌ Entry failed for ${opportunity.symbol}:`, error);
     }
