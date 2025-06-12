@@ -368,6 +368,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real Trading Opportunities
+  app.get('/api/trading/opportunities', async (req, res) => {
+    try {
+      const { realJupiterTradingEngine } = await import('./real-jupiter-trading-engine');
+      
+      // Activate engine if not already active
+      if (!realJupiterTradingEngine.isActivated()) {
+        realJupiterTradingEngine.activate();
+      }
+      
+      const opportunities = await realJupiterTradingEngine.getCurrentOpportunities();
+      
+      console.log(`🎯 API: Returning ${opportunities.length} real trading opportunities`);
+      
+      res.json({
+        opportunities,
+        timestamp: new Date().toISOString(),
+        walletConnected: true
+      });
+    } catch (error) {
+      console.error('❌ Failed to get trading opportunities:', error);
+      res.status(500).json({ error: 'Failed to get trading opportunities' });
+    }
+  });
+
+  // Execute Real Trade
+  app.post('/api/trading/execute', async (req, res) => {
+    try {
+      const { symbol, amount } = req.body;
+      
+      if (!symbol || !amount) {
+        return res.status(400).json({ error: 'Symbol and amount required' });
+      }
+
+      const { realJupiterTradingEngine } = await import('./real-jupiter-trading-engine');
+      const result = await realJupiterTradingEngine.executeRealTrade(symbol, amount);
+      
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to execute trade' });
+    }
+  });
+
   // Price history endpoints for charts
   app.get('/api/crypto/price/:symbol', async (req, res) => {
     try {

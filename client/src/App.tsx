@@ -10,15 +10,17 @@ import EnhancedVictoriaDashboard from "@/pages/enhanced-victoria-dashboard";
 import StarkDashboard from "@/pages/stark-dashboard";
 import RealTradingPage from "@/pages/real-trading";
 import VictoriaMasterDashboard from "@/pages/victoria-master-dashboard";
+import AuthenticTradingDashboard from "@/pages/authentic-trading-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={VictoriaMasterDashboard} />
+      <Route path="/" component={AuthenticTradingDashboard} />
       <Route path="/stark" component={StarkDashboard} />
       <Route path="/victoria" component={VictoriaControl} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/master" component={VictoriaMasterDashboard} />
       <Route path="/trading" component={VictoriaTradingDashboard} />
       <Route path="/real-trading" component={RealTradingPage} />
       <Route component={NotFound} />
