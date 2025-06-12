@@ -393,6 +393,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Ultra-Aggressive Trader endpoints for $1B target
+  app.get('/api/billion-trader/stats', async (req, res) => {
+    try {
+      const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
+      const stats = ultraAggressiveTrader.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get billion trader stats' });
+    }
+  });
+
+  app.get('/api/billion-trader/positions', async (req, res) => {
+    try {
+      const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
+      const positions = ultraAggressiveTrader.getPositions();
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get billion trader positions' });
+    }
+  });
+
+  app.post('/api/billion-trader/start', async (req, res) => {
+    try {
+      const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
+      await ultraAggressiveTrader.startTrading();
+      res.json({ success: true, message: 'Ultra-aggressive trading activated' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to start billion trader' });
+    }
+  });
+
+  app.post('/api/billion-trader/stop', async (req, res) => {
+    try {
+      const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
+      await ultraAggressiveTrader.stopTrading();
+      res.json({ success: true, message: 'Ultra-aggressive trading stopped' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to stop billion trader' });
+    }
+  });
+
   // Execute Real Trade
   app.post('/api/trading/execute', async (req, res) => {
     try {

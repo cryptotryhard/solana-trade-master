@@ -81,6 +81,13 @@ app.use((req, res, next) => {
     await import('./anti-rug-protection');
     console.log('🛡️ Anti-Rug Protection initialized');
     
+    // Initialize Ultra-Aggressive Trader for $1B target
+    const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
+    await ultraAggressiveTrader.startTrading();
+    console.log('💰 ULTRA-AGGRESSIVE TRADER ACTIVATED');
+    console.log('🎯 Target: $1,000,000,000 through memecoin scalping');
+    console.log('⚡ High-frequency trading with exponential compounding');
+    
     // Learning system integrated within adaptive engines
     console.log('🎓 Adaptive learning systems activated');
     
