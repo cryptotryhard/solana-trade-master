@@ -29,7 +29,18 @@ interface TradingPosition {
   unrealizedPnL: number;
 }
 
+interface WalletStatus {
+  isConnected: boolean;
+  address: string | null;
+  balance: number;
+  lastUpdated: string;
+}
+
 export default function BillionDollarDashboard() {
+  const [walletAddress, setWalletAddress] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: stats, isLoading: statsLoading } = useQuery<BillionTraderStats>({
     queryKey: ['/api/billion-trader/stats'],
     refetchInterval: 2000
@@ -39,6 +50,44 @@ export default function BillionDollarDashboard() {
     queryKey: ['/api/billion-trader/positions'],
     refetchInterval: 3000
   });
+
+  const { data: walletStatus } = useQuery<WalletStatus>({
+    queryKey: ['/api/wallet/status'],
+    refetchInterval: 5000
+  });
+
+  const connectWalletMutation = useMutation({
+    mutationFn: async (address: string) => {
+      const response = await fetch('/api/wallet/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address })
+      });
+      if (!response.ok) throw new Error('Failed to connect wallet');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Wallet připjen!",
+        description: "Váš Phantom wallet je nyní připojen pro reálné obchodování.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/wallet/status'] });
+      setIsDialogOpen(false);
+      setWalletAddress('');
+    },
+    onError: () => {
+      toast({
+        title: "Chyba připojení",
+        description: "Nepodařilo se připojit wallet. Zkontrolujte adresu.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleConnectWallet = () => {
+    if (!walletAddress.trim()) return;
+    connectWalletMutation.mutate(walletAddress.trim());
+  };
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000000) return `$${(value / 1000000000).toFixed(2)}B`;
@@ -75,11 +124,86 @@ export default function BillionDollarDashboard() {
           <p className="text-xl text-gray-300">
             Cesta k 1 miliardě dolarů přes high-frequency memecoin trading
           </p>
-          <div className="flex items-center justify-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${stats?.isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-            <span className="text-white font-semibold">
-              {stats?.isActive ? 'AKTIVNÍ OBCHODOVÁNÍ' : 'ZASTAVENO'}
-            </span>
+          <div className="flex items-center justify-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${stats?.isActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
+              <span className="text-white font-semibold">
+                {stats?.isActive ? 'AKTIVNÍ OBCHODOVÁNÍ' : 'ZASTAVENO'}
+              </span>
+            </div>
+            
+            {/* Wallet Connection Status */}
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant={walletStatus?.isConnected ? "outline" : "default"}
+                  className={`flex items-center space-x-2 ${
+                    walletStatus?.isConnected 
+                      ? 'bg-green-900/20 border-green-400 text-green-400 hover:bg-green-900/30' 
+                      : 'bg-orange-600 hover:bg-orange-700 text-white'
+                  }`}
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span>
+                    {walletStatus?.isConnected 
+                      ? `${walletStatus.address?.slice(0, 6)}...${walletStatus.address?.slice(-4)}`
+                      : 'Připojit Skutečný Wallet'
+                    }
+                  </span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-slate-900 border-slate-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white flex items-center space-x-2">
+                    <Wallet className="w-5 h-5" />
+                    <span>Připojit Phantom Wallet</span>
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="p-4 bg-orange-900/20 border border-orange-500/30 rounded-lg">
+                    <div className="flex items-start space-x-2">
+                      <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center mt-0.5">
+                        <span className="text-xs text-white font-bold">!</span>
+                      </div>
+                      <div>
+                        <p className="text-orange-200 font-medium">Kritické upozornění</p>
+                        <p className="text-orange-300 text-sm mt-1">
+                          Systém právě teď používá testovací wallet. Pro reálné obchodování musíte připojit svůj skutečný Phantom wallet.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-white text-sm font-medium">Adresa vašeho Phantom wallet:</label>
+                    <Input
+                      value={walletAddress}
+                      onChange={(e) => setWalletAddress(e.target.value)}
+                      placeholder="Vložte adresu vašeho Phantom wallet..."
+                      className="bg-slate-800 border-slate-600 text-white"
+                    />
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <Button 
+                      onClick={handleConnectWallet}
+                      disabled={!walletAddress.trim() || connectWalletMutation.isPending}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      <Link className="w-4 h-4 mr-2" />
+                      {connectWalletMutation.isPending ? 'Připojuji...' : 'Připojit Wallet'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsDialogOpen(false)}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    >
+                      Zrušit
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
