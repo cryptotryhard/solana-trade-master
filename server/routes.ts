@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Recent Trades with cache bypass
+  // Recent Trades - Real blockchain transactions only
   app.get('/api/trades/live', async (req, res) => {
     try {
       // Disable cache to ensure fresh data
@@ -112,27 +112,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Expires', '0');
       res.set('ETag', `trades-${Date.now()}`);
       
-      // Get real trades from collector
-      const { realTradeCollector } = await import('./real-trade-collector');
-      const recentTrades = realTradeCollector.getRecentTrades(20);
+      // Get real transactions from Phantom wallet
+      const { phantomWalletIntegration } = await import('./phantom-wallet-integration');
+      const recentTransactions = await phantomWalletIntegration.getRecentTransactions();
       
-      console.log(`🔥 API: Returning ${recentTrades.length} real executed trades with TX hashes`);
+      // Convert to trades format
+      const trades = recentTransactions.map(tx => ({
+        id: `tx_${tx.signature.slice(0, 8)}`,
+        symbol: tx.token === 'SOL' ? 'SOL' : tx.token,
+        type: 'transfer',
+        amount: tx.amount,
+        txHash: tx.signature,
+        timestamp: tx.timestamp.toISOString(),
+        status: 'confirmed'
+      }));
       
-      res.json(recentTrades);
+      console.log(`🔥 API: Returning ${trades.length} real blockchain transactions`);
+      
+      res.json(trades);
     } catch (error) {
-      console.error('❌ API Error getting trades:', error);
+      console.error('❌ API Error getting real trades:', error);
       res.status(500).json({ error: 'Failed to get trades' });
     }
   });
 
-  // Wallet Balance
+  // Wallet Balance - Real Phantom wallet data
   app.get('/api/wallet/balance/:address', async (req, res) => {
     try {
-      res.json({ 
-        balance: 2.7012,
-        usdValue: 445.70 
-      });
+      const { phantomWalletIntegration } = await import('./phantom-wallet-integration');
+      const balanceData = await phantomWalletIntegration.getBalanceData();
+      
+      res.json(balanceData);
     } catch (error) {
+      console.error('❌ Failed to get real wallet balance:', error);
       res.status(500).json({ error: 'Failed to get wallet balance' });
     }
   });
