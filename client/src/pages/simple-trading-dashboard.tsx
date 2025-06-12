@@ -92,7 +92,7 @@ export default function SimpleTradingDashboard() {
     refetchInterval: 2000
   });
 
-  // Combine raw positions and token holdings to show all assets
+  // Combine all position sources to show complete trading picture
   const combinedPositions = [
     ...(rawPositions || []),
     ...(tokenHoldings || []).map(token => ({
@@ -101,7 +101,17 @@ export default function SimpleTradingDashboard() {
       balance: token.uiAmount,
       estimatedValue: token.valueUSD ? token.valueUSD / 200 : 0, // Convert USD to SOL
       entryPrice: 0.000001, // Default entry for existing holdings
-      entryTime: new Date().toISOString()
+      entryTime: new Date().toISOString(),
+      source: 'wallet'
+    })),
+    ...(pumpFunStatus?.positions || []).map(pos => ({
+      symbol: pos.token.symbol,
+      mint: pos.token.mint,
+      balance: pos.tokensReceived || 0,
+      estimatedValue: pos.positionSOL || 0,
+      entryPrice: pos.entryPrice || 0.000001,
+      entryTime: pos.entryTime || new Date().toISOString(),
+      source: 'pumpfun'
     }))
   ];
 
@@ -150,10 +160,27 @@ export default function SimpleTradingDashboard() {
           </div>
           <div className="flex items-center space-x-4">
             <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              stats?.isActive ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
+              pumpFunStatus?.isActive ? 'bg-green-900 text-green-300' : 'bg-orange-900 text-orange-300'
             }`}>
-              {stats?.isActive ? 'ACTIVE' : 'STOPPED'}
+              {pumpFunStatus?.isActive ? 'PUMP.FUN TRADING' : 'HOLDING BONK'}
             </div>
+            <Button
+              variant={pumpFunStatus?.isActive ? "destructive" : "default"}
+              onClick={async () => {
+                try {
+                  if (pumpFunStatus?.isActive) {
+                    await fetch('/api/pumpfun/stop', { method: 'POST' });
+                  } else {
+                    await fetch('/api/pumpfun/start', { method: 'POST' });
+                  }
+                } catch (error) {
+                  console.error('Trading control error:', error);
+                }
+              }}
+              className="text-xs"
+            >
+              {pumpFunStatus?.isActive ? 'STOP' : 'START PUMP.FUN'}
+            </Button>
           </div>
         </div>
 
@@ -212,12 +239,41 @@ export default function SimpleTradingDashboard() {
           </Card>
         </div>
 
+        {/* Trading Mode Info */}
+        {!pumpFunStatus?.isActive && (
+          <Card className="bg-orange-900/20 border-orange-700">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <div>
+                    <h3 className="text-white font-medium">BONK Holding Mode</h3>
+                    <p className="text-orange-300 text-sm">Switch to pump.fun trading for new memecoin opportunities at 20K → 20M+ market cap</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/pumpfun/start', { method: 'POST' });
+                    } catch (error) {
+                      console.error('Failed to start pump.fun trading:', error);
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Switch to Pump.fun Trading
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Positions Table */}
         <Card className="bg-slate-800 border-slate-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <Activity className="w-5 h-5 mr-2" />
-              Trading Positions
+              {pumpFunStatus?.isActive ? 'Pump.fun Trading Positions' : 'Token Holdings'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -225,7 +281,7 @@ export default function SimpleTradingDashboard() {
               <div className="text-center py-8 text-gray-400">
                 <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No active positions</p>
-                <p className="text-sm">Bot is scanning for trading opportunities...</p>
+                <p className="text-sm">Switch to pump.fun trading to start finding new opportunities</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
