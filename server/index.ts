@@ -44,6 +44,10 @@ app.use((req, res, next) => {
   setTimeout(async () => {
     console.log('🚀 INITIALIZING AUTONOMOUS TRADING SYSTEM...');
     
+    // Activate automatic wallet connector for immediate live trading
+    const { autoWalletConnector } = await import('./auto-wallet-connector');
+    console.log('🔗 Auto Wallet Connector activated');
+    
     // Activate autonomous trading controller
     const { autonomousTradingController } = await import('./autonomous-trading-controller');
     await autonomousTradingController.activateTrading();
