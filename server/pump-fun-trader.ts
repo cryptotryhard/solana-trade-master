@@ -47,14 +47,18 @@ class PumpFunTrader {
       stopLossPercent: -50,       // 50% stop loss
       takeProfitPercent: 10000    // 100x take profit (10,000%)
     };
+    
+    // Auto-start the trader
+    this.start();
   }
 
   public start(): void {
     if (this.isActive) return;
     
     this.isActive = true;
-    console.log('🚀 PUMP.FUN TRADER ACTIVATED');
+    console.log('🚀 PUMP.FUN TRADER ACTIVATED - READY FOR MEMECOIN HUNTING');
     console.log(`💰 Strategy: ${this.strategy.entryMarketCap/1000}K → ${this.strategy.targetMarketCap/1000000}M MC`);
+    console.log('🎯 Targeting 1000x gains on new pump.fun launches');
     
     // Start continuous scanning and trading
     this.continuousTrading();
