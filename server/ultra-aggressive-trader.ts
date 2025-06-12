@@ -9,6 +9,9 @@ import { realJupiterTradingEngine } from './real-jupiter-trading-engine';
 import { walletConnectionManager } from './wallet-connection';
 import { realPhantomTrader } from './real-phantom-trader';
 import { directWalletTrader } from './direct-wallet-trader';
+import { phantomLiveTrader } from './phantom-live-trader';
+import { realWalletUpdater } from './real-wallet-updater';
+import { memecoinHunter } from './memecoin-hunter';
 
 interface AggressiveTradeConfig {
   maxPositionSize: number;     // Maximum SOL per trade
@@ -240,32 +243,33 @@ class UltraAggressiveTrader {
       console.log(`💰 Amount: ${positionSize.toFixed(4)} SOL`);
       console.log(`🎲 Confidence: ${opportunity.confidence.toFixed(1)}%`);
       
-      // Execute DIRECT trade with live Jupiter integration
-      const directTradeResult = await directWalletTrader.executeInstantTrade({
+      // Execute REAL Jupiter swap with blockchain transaction
+      const realTradeResult = await phantomLiveTrader.executeRealJupiterSwap({
         symbol: opportunity.symbol,
         mintAddress: opportunity.mint,
         amountSOL: positionSize,
         userWalletAddress: this.getConnectedWalletAddress(),
-        forceExecution: true // Force execution for high-confidence trades
+        slippageBps: 300 // 3% max slippage
       });
 
-      if (!directTradeResult.executed) {
-        console.log(`❌ Direct trade failed: ${directTradeResult.error}`);
+      if (!realTradeResult.success) {
+        console.log(`❌ Real Jupiter swap failed: ${realTradeResult.error}`);
         return;
       }
 
-      console.log(`✅ DIRECT LIVE TRADE EXECUTED!`);
-      console.log(`🔗 TX Hash: ${directTradeResult.txHash}`);
-      console.log(`💰 ${directTradeResult.realAmountSpent} SOL spent`);
-      console.log(`🪙 ${directTradeResult.tokensReceived} ${opportunity.symbol} received`);
+      console.log(`✅ REAL JUPITER SWAP EXECUTED!`);
+      console.log(`🔗 Blockchain TX: ${realTradeResult.txHash}`);
+      console.log(`💰 ${realTradeResult.amountSpent} SOL spent from wallet`);
+      console.log(`🪙 ${realTradeResult.tokensReceived} ${opportunity.symbol} received`);
+      console.log(`📊 Slippage: ${realTradeResult.actualSlippage?.toFixed(2)}%`);
 
       // Create position based on actual trade
-      const currentPrice = directTradeResult.realAmountSpent * 200; // SOL to USD approximation
+      const currentPrice = realTradeResult.amountSpent * 200; // SOL to USD approximation
       const position: TradingPosition = {
         symbol: opportunity.symbol,
         mint: opportunity.mint,
         entryPrice: currentPrice,
-        amount: directTradeResult.realAmountSpent,
+        amount: realTradeResult.amountSpent,
         entryTime: new Date(),
         targetProfit: currentPrice * (1 + this.config.profitTarget / 100),
         stopLoss: currentPrice * (1 - this.config.stopLoss / 100),
@@ -281,9 +285,9 @@ class UltraAggressiveTrader {
       this.totalProfit += estimatedGain;
       this.currentCapital += estimatedGain;
       
-      console.log(`✅ LIVE POSITION CREATED: ${opportunity.symbol}`);
-      console.log(`🔗 Live TX Hash: ${directTradeResult.txHash}`);
-      console.log(`💰 Position Size: ${directTradeResult.realAmountSpent.toFixed(4)} SOL ($${currentPrice.toFixed(2)})`);
+      console.log(`✅ REAL POSITION CREATED: ${opportunity.symbol}`);
+      console.log(`🔗 Blockchain TX: ${realTradeResult.txHash}`);
+      console.log(`💰 Position Size: ${realTradeResult.amountSpent.toFixed(4)} SOL ($${currentPrice.toFixed(2)})`);
       console.log(`📊 Total Positions: ${this.positions.size} | Total Trades: ${this.totalTrades}`);
       console.log(`💵 New Capital: $${this.currentCapital.toFixed(2)} | Profit: $${this.totalProfit.toFixed(2)}`);
       console.log(`🎯 Progress to $1B: ${(this.currentCapital / 1000000000 * 100).toFixed(6)}%`);
