@@ -94,6 +94,17 @@ class UltraAggressiveTrader {
     if (!this.isActive) return;
 
     try {
+      // Check SOL balance and pause new trades if insufficient
+      const solBalance = await this.checkSOLBalance();
+      if (solBalance < 0.01) {
+        console.log(`⚠️ Insufficient SOL for trading: ${solBalance.toFixed(6)} SOL`);
+        console.log(`⏸️ PAUSING NEW TRADES - Focus on liquidating existing positions`);
+        
+        // Try to liquidate existing positions to recover SOL
+        await this.emergencyLiquidatePositions();
+        return;
+      }
+      
       // Get current wallet balance
       const walletData = await phantomWalletIntegration.getBalanceData();
       this.updateCapitalFromWallet(walletData.balance);
@@ -425,6 +436,19 @@ class UltraAggressiveTrader {
 
   getPositions() {
     return Array.from(this.positions.values());
+  }
+
+  // Check current SOL balance
+  private async checkSOLBalance(): Promise<number> {
+    try {
+      const walletAddress = this.getConnectedWalletAddress();
+      const connection = new Connection('https://api.mainnet-beta.solana.com');
+      const balance = await connection.getBalance(new PublicKey(walletAddress));
+      return balance / 1e9; // Convert to SOL
+    } catch (error) {
+      console.log(`Error checking SOL balance:`, error);
+      return 0;
+    }
   }
 
   // Get connected wallet address for trading
