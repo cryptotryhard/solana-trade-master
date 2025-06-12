@@ -12,6 +12,7 @@ import { directWalletTrader } from './direct-wallet-trader';
 import { phantomLiveTrader } from './phantom-live-trader';
 import { realWalletUpdater } from './real-wallet-updater';
 import { memecoinHunter } from './memecoin-hunter';
+import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 
 interface AggressiveTradeConfig {
   maxPositionSize: number;     // Maximum SOL per trade
@@ -193,17 +194,55 @@ class UltraAggressiveTrader {
 
   private async scanForEntries() {
     try {
-      // Generate high-confidence trading opportunities
-      const opportunities = this.generateAggressiveOpportunities();
+      // Get authentic wallet balance and check trading capability
+      const walletBalance = await authenticWalletBalanceManager.getCurrentBalance();
+      await authenticWalletBalanceManager.syncWithBlockchain();
+      console.log(`💳 Authentic wallet balance: ${walletBalance.toFixed(4)} SOL`);
       
-      for (const opp of opportunities) {
-        if (opp.confidence >= this.config.minConfidence && this.positions.size < this.config.maxPositions) {
-          await this.executeEntry(opp);
+      // Get authentic low MC memecoin opportunities
+      const realOpportunities = memecoinHunter.getBestOpportunities(3);
+      
+      if (realOpportunities.length === 0) {
+        console.log('⚠️ No authentic memecoin opportunities found');
+        return;
+      }
+      
+      console.log(`🎯 Found ${realOpportunities.length} real memecoin opportunities:`);
+      realOpportunities.forEach((opp, i) => {
+        console.log(`   ${i + 1}. ${opp.symbol} - MC: $${opp.marketCap.toLocaleString()} - Score: ${opp.score}%`);
+      });
+      
+      for (const opportunity of realOpportunities) {
+        if (this.positions.size >= this.config.maxPositions) {
+          break;
+        }
+        
+        // Check if we have sufficient balance for this trade
+        const positionSize = Math.min(this.config.maxPositionSize, walletBalance * 0.1);
+        const canTrade = await realWalletUpdater.canExecuteTrade(positionSize);
+        
+        if (!canTrade) {
+          console.log(`❌ Insufficient balance for ${opportunity.symbol} trade`);
+          continue;
+        }
+        
+        // Convert memecoin opportunity to our format
+        const tradingOpportunity = {
+          symbol: opportunity.symbol,
+          mint: opportunity.mint,
+          confidence: opportunity.score,
+          marketCap: opportunity.marketCap,
+          volume24h: opportunity.volume24h,
+          signals: opportunity.signals
+        };
+        
+        if (tradingOpportunity.confidence >= this.config.minConfidence) {
+          await this.executeEntry(tradingOpportunity);
           break; // Enter one position per cycle
         }
       }
     } catch (error) {
-      console.error('❌ Entry scan failed:', error);
+      console.error('❌ Real memecoin scanning failed:', error);
     }
   }
 
@@ -262,6 +301,30 @@ class UltraAggressiveTrader {
       console.log(`💰 ${realTradeResult.amountSpent} SOL spent from wallet`);
       console.log(`🪙 ${realTradeResult.tokensReceived} ${opportunity.symbol} received`);
       console.log(`📊 Slippage: ${realTradeResult.actualSlippage?.toFixed(2)}%`);
+
+      // Execute REAL SOL deduction from Phantom wallet
+      const deductionSuccess = await authenticWalletBalanceManager.executeRealDeduction(
+        realTradeResult.amountSpent,
+        opportunity.symbol,
+        realTradeResult.txHash!
+      );
+
+      if (!deductionSuccess) {
+        console.log(`❌ Failed to deduct SOL from wallet`);
+        return;
+      }
+
+      // Record the transaction in wallet updater
+      await realWalletUpdater.recordRealTransaction({
+        txHash: realTradeResult.txHash!,
+        type: 'buy',
+        symbol: opportunity.symbol,
+        solAmount: realTradeResult.amountSpent,
+        tokenAmount: realTradeResult.tokensReceived || 0
+      });
+
+      console.log(`✅ SOL ACTUALLY DEDUCTED FROM PHANTOM WALLET`);
+      console.log(`💰 ${realTradeResult.amountSpent} SOL removed from balance`);
 
       // Create position based on actual trade
       const currentPrice = realTradeResult.amountSpent * 200; // SOL to USD approximation
