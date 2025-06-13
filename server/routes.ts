@@ -339,6 +339,49 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Autonomous trading master endpoints
+  app.post('/api/autonomous/start', async (req, res) => {
+    try {
+      const { autonomousTradingMaster } = await import('./autonomous-trading-master');
+      const result = await autonomousTradingMaster.startAutonomousTrading();
+      res.json(result);
+    } catch (error) {
+      console.error('Autonomous trading start error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to start autonomous trading'
+      });
+    }
+  });
+
+  app.post('/api/autonomous/stop', async (req, res) => {
+    try {
+      const { autonomousTradingMaster } = await import('./autonomous-trading-master');
+      const result = await autonomousTradingMaster.stopAutonomousTrading();
+      res.json(result);
+    } catch (error) {
+      console.error('Autonomous trading stop error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to stop autonomous trading'
+      });
+    }
+  });
+
+  app.get('/api/autonomous/stats', async (req, res) => {
+    try {
+      const { autonomousTradingMaster } = await import('./autonomous-trading-master');
+      const stats = autonomousTradingMaster.getTradingStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Autonomous trading stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get trading stats'
+      });
+    }
+  });
+
   // Advanced trading stats for detailed dashboard
   app.get('/api/billion-trader/advanced-stats', async (req, res) => {
     try {
