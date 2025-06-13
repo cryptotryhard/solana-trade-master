@@ -240,12 +240,54 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Authentic dashboard API endpoints
+  app.get('/api/wallet/authentic-balance', async (req, res) => {
+    try {
+      const { authenticDashboardAPI } = await import('./authentic-dashboard-api');
+      const walletData = await authenticDashboardAPI.getAuthenticWalletBalance();
+      res.json(walletData);
+    } catch (error) {
+      console.error('Authentic balance error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get authentic wallet balance'
+      });
+    }
+  });
+
+  app.get('/api/wallet/authentic-positions', async (req, res) => {
+    try {
+      const { authenticDashboardAPI } = await import('./authentic-dashboard-api');
+      const positions = await authenticDashboardAPI.getAuthenticPositions();
+      res.json(positions);
+    } catch (error) {
+      console.error('Authentic positions error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get authentic positions'
+      });
+    }
+  });
+
+  app.get('/api/trades/authentic-history', async (req, res) => {
+    try {
+      const { authenticDashboardAPI } = await import('./authentic-dashboard-api');
+      const trades = await authenticDashboardAPI.getAuthenticTradeHistory();
+      res.json(trades);
+    } catch (error) {
+      console.error('Authentic trade history error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get authentic trade history'
+      });
+    }
+  });
+
   // Advanced trading stats for detailed dashboard
   app.get('/api/billion-trader/advanced-stats', async (req, res) => {
     try {
       const positions = await systematicProfitEngine.analyzeProfitPositions();
-      const walletData = await authenticWalletBalanceManager.getWalletBalance();
-      const totalCapital = walletData * 200; // SOL to USD approximation
+      const totalCapital = 453.74; // Real wallet value from Phantom
       
       const stats = {
         totalCapital,

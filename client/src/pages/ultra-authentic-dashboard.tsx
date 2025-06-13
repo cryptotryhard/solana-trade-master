@@ -11,12 +11,19 @@ interface AuthenticPosition {
   amount: number;
   currentValue: number;
   entryValue: number;
+  entryPrice: number;
+  currentPrice: number;
   pnl: number;
   roi: number;
   isPumpFun: boolean;
   platform: string;
-  entryTimestamp?: string;
-  txHash?: string;
+  entryTimestamp: string;
+  buyTxHash: string;
+  sellTxHash?: string;
+  sellTimestamp?: string;
+  pumpfunUrl: string;
+  dexscreenerUrl: string;
+  marketCapAtEntry?: number;
 }
 
 interface AuthenticTrade {
@@ -47,7 +54,7 @@ export default function UltraAuthenticDashboard() {
   // Fetch authentic wallet data
   const { data: walletData, isLoading: walletLoading } = useQuery<WalletData>({
     queryKey: ['/api/wallet/authentic-balance'],
-    refetchInterval: 10000,
+    refetchInterval: 5000,
   });
 
   // Fetch authentic positions
