@@ -1715,70 +1715,25 @@ export function registerRoutes(app: Express) {
       console.log(`🔥 Executing REAL trade: ${symbol || tokenMint.slice(0,8)}... for ${solAmount} SOL`);
       console.log(`💰 Market Cap: $${marketCap?.toLocaleString() || 'Unknown'}`);
       
-      // Verify token exists on blockchain
-      const connection = new Connection(
-        process.env.HELIUS_API_KEY 
-          ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
-          : 'https://api.mainnet-beta.solana.com'
-      );
+      // Import the real Jupiter trader
+      const { realJupiterTrader } = await import('./real-jupiter-trader');
       
-      let tokenExists = false;
-      try {
-        const tokenInfo = await connection.getAccountInfo(new PublicKey(tokenMint));
-        tokenExists = !!tokenInfo;
-        console.log(tokenExists ? '✅ Token verified on blockchain' : '❌ Token not found');
-      } catch (error) {
-        console.log('⚠️ Token verification skipped, proceeding...');
-        tokenExists = true; // Assume valid for test
-      }
+      // Execute real trade
+      const result = await realJupiterTrader.executeRealTrade(tokenMint, solAmount, symbol);
       
-      if (!tokenExists) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Token does not exist on blockchain' 
-        });
-      }
-      
-      // Execute Jupiter swap
-      console.log('🚀 Executing Jupiter swap...');
-      const swapResult = await executeRealJupiterSwap(tokenMint, solAmount);
-      
-      if (swapResult.success) {
-        const position = {
-          id: `real_${Date.now()}`,
-          tokenMint,
-          symbol: symbol || 'UNKNOWN',
-          entryPrice: swapResult.price,
-          entryAmount: solAmount,
-          tokensReceived: swapResult.tokensReceived,
-          entryTime: Date.now(),
-          currentPrice: swapResult.price,
-          marketCap: marketCap || 0,
-          status: 'ACTIVE',
-          entryTxHash: swapResult.txHash,
-          targetProfit: 25,
-          stopLoss: -15,
-          trailingStop: 8,
-          maxPriceReached: swapResult.price
-        };
-        
-        console.log(`✅ REAL TRADE EXECUTED!`);
-        console.log(`🔗 TX Hash: ${position.entryTxHash}`);
-        console.log(`💰 Entry: ${position.entryAmount} SOL`);
-        console.log(`🪙 Tokens: ${position.tokensReceived}`);
-        
+      if (result.success && result.position) {
         res.json({
           success: true,
           message: 'Real trade executed successfully',
-          txHash: position.entryTxHash,
-          entryAmount: position.entryAmount,
-          tokensReceived: position.tokensReceived,
-          entryPrice: position.entryPrice,
-          positionId: position.id,
-          position
+          txHash: result.position.entryTxHash,
+          entryAmount: result.position.entryAmount,
+          tokensReceived: result.position.tokensReceived,
+          entryPrice: result.position.entryPrice,
+          positionId: result.position.id,
+          position: result.position
         });
       } else {
-        throw new Error(swapResult.error || 'Jupiter swap failed');
+        throw new Error(result.error || 'Trade execution failed');
       }
       
     } catch (error) {
@@ -1790,46 +1745,32 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Helper function for real Jupiter swap
-  async function executeRealJupiterSwap(outputMint, solAmount) {
+  // Get real position status
+  app.get("/api/streamlined/position/:id", async (req, res) => {
     try {
-      // Get quote from Jupiter
-      const quoteResponse = await fetch(
-        `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${outputMint}&amount=${Math.floor(solAmount * 1000000000)}&slippageBps=300`
-      );
+      const { realJupiterTrader } = await import('./real-jupiter-trader');
+      const position = realJupiterTrader.getPosition(req.params.id);
       
-      if (!quoteResponse.ok) {
-        throw new Error(`Jupiter quote failed: ${quoteResponse.status}`);
+      if (position) {
+        res.json(position);
+      } else {
+        res.status(404).json({ success: false, error: 'Position not found' });
       }
-      
-      const quoteData = await quoteResponse.json();
-      
-      if (!quoteData.outAmount) {
-        throw new Error('No output amount in Jupiter quote');
-      }
-      
-      console.log(`📊 Jupiter quote: ${quoteData.outAmount} tokens for ${solAmount} SOL`);
-      
-      // Simulate successful transaction (real implementation would use wallet)
-      const mockTxHash = `real_${Math.random().toString(36).substr(2, 64)}`;
-      const estimatedPrice = (solAmount * 1000000000) / parseInt(quoteData.outAmount);
-      
-      return {
-        success: true,
-        txHash: mockTxHash,
-        tokensReceived: parseInt(quoteData.outAmount),
-        price: estimatedPrice,
-        swapData: quoteData
-      };
-      
     } catch (error) {
-      console.error('Jupiter swap error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      res.status(500).json({ success: false, error: error.message });
     }
-  }
+  });
+
+  // Get all active positions
+  app.get("/api/streamlined/positions", async (req, res) => {
+    try {
+      const { realJupiterTrader } = await import('./real-jupiter-trader');
+      const positions = realJupiterTrader.getActivePositions();
+      res.json({ success: true, positions });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
 
   return app;
 }
