@@ -14,6 +14,8 @@ import victoriaOptimizedEndpoints from './victoria-optimized-endpoints';
 import { completeWalletSystem } from './complete-wallet-value-system';
 import { authenticTradesResolver } from './authentic-trades-resolver';
 import { comprehensiveTradingAnalyzer } from './comprehensive-trading-analyzer';
+import { optimizedTradingCoordinator } from './optimized-trading-coordinator';
+import { networkResilienceManager } from './network-resilience-manager';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -724,12 +726,69 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Auto-initialize VICTORIA master controller on server startup
+  // System Recovery and Network Management Endpoints
+  app.get('/api/system/status', async (req, res) => {
+    try {
+      const status = await optimizedTradingCoordinator.getSystemStatus();
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get system status', message: error.message });
+    }
+  });
+
+  app.post('/api/system/restart', async (req, res) => {
+    try {
+      const result = await optimizedTradingCoordinator.forceSystemRestart();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to restart system', message: error.message });
+    }
+  });
+
+  app.post('/api/system/liquidate-emergency', async (req, res) => {
+    try {
+      const result = await optimizedTradingCoordinator.executeEmergencyLiquidation();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to execute emergency liquidation', message: error.message });
+    }
+  });
+
+  app.get('/api/network/status', async (req, res) => {
+    try {
+      const networkStatus = networkResilienceManager.getNetworkStatus();
+      res.json({
+        success: true,
+        networkStatus,
+        message: 'Network status retrieved successfully'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get network status', message: error.message });
+    }
+  });
+
+  app.post('/api/network/reset', async (req, res) => {
+    try {
+      networkResilienceManager.resetNetworkState();
+      res.json({
+        success: true,
+        message: 'Network state reset successfully'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to reset network state', message: error.message });
+    }
+  });
+
+  // Auto-initialize VICTORIA systems on server startup
   setTimeout(async () => {
     try {
+      console.log('🚀 Initializing VICTORIA Trading Coordinator...');
+      // The optimized trading coordinator will automatically initialize
+      // and handle system recovery, network resilience, and autonomous trading
+      
       const { victoriaMasterController } = await import('./victoria-master-controller');
       console.log('🤖 VICTORIA Master Controller initialized');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to initialize VICTORIA:', error.message);
     }
   }, 3000); // 3 second delay to allow server to fully initialize
