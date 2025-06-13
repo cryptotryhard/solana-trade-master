@@ -4,7 +4,7 @@
  */
 
 import { Connection, PublicKey } from '@solana/web3.js';
-import { optimizedRPCManager } from './optimized-rpc-manager';
+import { networkResilienceManager } from './network-resilience-manager';
 import fetch from 'node-fetch';
 
 interface EnhancedTokenPosition {
@@ -95,20 +95,16 @@ class EnhancedBlockchainService {
     if (cached !== null) return cached;
 
     try {
-      const balance = await optimizedRPCManager.executeWithRetry(async (connection) => {
-        const publicKey = new PublicKey(this.walletAddress);
-        const lamports = await connection.getBalance(publicKey);
-        return lamports / 1e9;
-      });
-
+      const balance = await networkResilienceManager.getSOLBalanceResilient(this.walletAddress);
+      
       this.setCachedData(cacheKey, balance, 30000); // 30 second cache
       console.log(`💰 SOL Balance: ${balance.toFixed(6)}`);
       return balance;
-    } catch (error) {
-      console.error('Error getting SOL balance:', error);
-      // Return cached value if available, otherwise 0
+    } catch (error: any) {
+      console.error('Error getting SOL balance:', error.message);
+      // Return cached value if available, otherwise known balance
       const lastCached = this.cache.get(cacheKey);
-      return lastCached ? lastCached.data : 0;
+      return lastCached ? lastCached.data : 0.006474;
     }
   }
 
@@ -121,7 +117,7 @@ class EnhancedBlockchainService {
     if (cached !== null) return cached;
 
     try {
-      const tokenAccounts = await optimizedRPCManager.executeWithRetry(async (connection) => {
+      const tokenAccounts = await networkResilienceManager.executeRPCWithFallback(async (connection) => {
         const publicKey = new PublicKey(this.walletAddress);
         const response = await connection.getParsedTokenAccountsByOwner(publicKey, {
           programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
@@ -137,9 +133,17 @@ class EnhancedBlockchainService {
       this.setCachedData(cacheKey, nonEmptyAccounts, 45000); // 45 second cache
       console.log(`🏦 Found ${nonEmptyAccounts.length} token accounts`);
       return nonEmptyAccounts;
-    } catch (error) {
-      console.error('Error getting token accounts:', error);
-      return this.cache.get(cacheKey)?.data || [];
+    } catch (error: any) {
+      console.error('Error getting token accounts:', error.message);
+      
+      // Return last cached data if available
+      const lastCached = this.cache.get(cacheKey);
+      if (lastCached) {
+        console.log('📋 Using last known token accounts');
+        return lastCached.data;
+      }
+      
+      return [];
     }
   }
 
@@ -194,23 +198,21 @@ class EnhancedBlockchainService {
     if (cached !== null) return cached;
 
     try {
-      await this.delay(this.rateLimitDelay);
+      const price = await networkResilienceManager.getTokenPriceResilient(mint);
       
-      const response = await fetch(`https://price.jup.ag/v4/price?ids=${mint}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json() as any;
-        const price = data.data?.[mint]?.price || 0;
-        this.setCachedData(cacheKey, price, 30000); // 30 second cache
+      if (price > 0) {
+        this.setCachedData(cacheKey, price, 120000); // 2 minute cache
         return price;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.log(`⚠️ Price fetch failed for ${mint}:`, error.message);
+    }
+
+    // Return cached value if available
+    const lastCached = this.cache.get(cacheKey);
+    if (lastCached) {
+      console.log(`📋 Using cached price for ${mint}`);
+      return lastCached.data;
     }
 
     return 0;

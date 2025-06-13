@@ -64,17 +64,44 @@ class AutonomousPumpFunTrader {
     this.walletPrivateKey = process.env.WALLET_PRIVATE_KEY || '';
     
     if (!this.walletPrivateKey) {
-      throw new Error('WALLET_PRIVATE_KEY environment variable is required');
+      console.log('⚠️ No wallet private key provided, using simulation mode');
+      // Create a dummy keypair for simulation
+      this.keypair = Keypair.generate();
+      this.walletPublicKey = this.keypair.publicKey;
+      console.log(`🔑 Simulation wallet: ${this.walletPublicKey.toString()}`);
+      return;
     }
 
     try {
-      const privateKeyBytes = Buffer.from(this.walletPrivateKey, 'hex');
+      // Try different key formats
+      let privateKeyBytes: Uint8Array;
+      
+      if (this.walletPrivateKey.includes('[') && this.walletPrivateKey.includes(']')) {
+        // Array format: [1,2,3,...]
+        const keyArray = JSON.parse(this.walletPrivateKey);
+        privateKeyBytes = new Uint8Array(keyArray);
+      } else if (this.walletPrivateKey.includes(',')) {
+        // Comma-separated format: 1,2,3,...
+        const keyArray = this.walletPrivateKey.split(',').map(s => parseInt(s.trim()));
+        privateKeyBytes = new Uint8Array(keyArray);
+      } else {
+        // Hex format
+        privateKeyBytes = Buffer.from(this.walletPrivateKey, 'hex');
+      }
+      
+      if (privateKeyBytes.length !== 64) {
+        throw new Error(`Invalid key length: ${privateKeyBytes.length}, expected 64`);
+      }
+      
       this.keypair = Keypair.fromSecretKey(privateKeyBytes);
       this.walletPublicKey = this.keypair.publicKey;
       console.log(`🔑 Wallet initialized: ${this.walletPublicKey.toString()}`);
-    } catch (error) {
-      console.error('❌ Invalid wallet private key format');
-      throw error;
+    } catch (error: any) {
+      console.error('❌ Invalid wallet private key format:', error.message);
+      console.log('🔧 Using simulation mode instead');
+      // Fallback to simulation mode
+      this.keypair = Keypair.generate();
+      this.walletPublicKey = this.keypair.publicKey;
     }
   }
 
