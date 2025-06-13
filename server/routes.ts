@@ -1910,6 +1910,89 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Enhanced BONK liquidation endpoint
+  app.post('/api/bonk/liquidate', async (req, res) => {
+    try {
+      console.log('⚡ ENHANCED BONK LIQUIDATION REQUEST');
+      
+      const { bonkLiquidationEngine } = await import('./bonk-liquidation-engine');
+      const result = await bonkLiquidationEngine.executeBonkLiquidation();
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'BONK liquidation completed successfully',
+          solReceived: result.solReceived,
+          signature: result.signature
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error
+        });
+      }
+    } catch (error) {
+      console.error('❌ Enhanced BONK liquidation error:', error.message);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // BONK liquidation status endpoint
+  app.get('/api/bonk/status', async (req, res) => {
+    try {
+      const { bonkLiquidationEngine } = await import('./bonk-liquidation-engine');
+      const status = await bonkLiquidationEngine.getStatus();
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      console.error('❌ BONK status error:', error.message);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
+  // Activate autonomous trading with capital
+  app.post('/api/autonomous/activate-with-capital', async (req, res) => {
+    try {
+      console.log('🚀 ACTIVATING AUTONOMOUS TRADING WITH CAPITAL');
+      const { capital, source, forceActivation } = req.body;
+      
+      console.log(`💰 Capital: ${capital} SOL`);
+      console.log(`📍 Source: ${source}`);
+      console.log(`🔧 Force activation: ${forceActivation}`);
+      
+      // Import and activate autonomous trading engine
+      const { autonomousTradingEngine } = await import('./autonomous-trading-engine');
+      
+      if (forceActivation) {
+        await autonomousTradingEngine.forceActivateWithCapital(capital, source);
+      } else {
+        await autonomousTradingEngine.activateWithCapital(capital, source);
+      }
+      
+      res.json({
+        success: true,
+        message: 'Autonomous trading activated with provided capital',
+        capital: capital,
+        source: source
+      });
+    } catch (error) {
+      console.error('❌ Capital activation error:', error.message);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';
