@@ -3,8 +3,8 @@
  * Direct command-line script to analyze authentic wallet trading data
  */
 
-const { Connection, PublicKey } = require('@solana/web3.js');
-const { TOKEN_PROGRAM_ID } = require('@solana/spl-token');
+import { Connection, PublicKey } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 const WALLET_ADDRESS = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
@@ -368,8 +368,6 @@ async function main() {
   await reporter.generateCompleteReport();
 }
 
-if (require.main === module) {
-  main().catch(console.error);
-}
+main().catch(console.error);
 
-module.exports = { TradingReportGenerator };
+export { TradingReportGenerator };
