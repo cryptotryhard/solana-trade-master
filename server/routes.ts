@@ -1496,7 +1496,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/real-trading/stats", async (req, res) => {
     try {
-      const stats = realPumpFunTrader.getStats();
+      const stats = testModeDemo.getStats();
       res.json(stats);
     } catch (error) {
       res.status(500).json({ success: false, error: "Failed to get trading stats" });
@@ -1505,7 +1505,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/real-trading/active-trades", async (req, res) => {
     try {
-      const trades = realPumpFunTrader.getActiveTrades();
+      const trades = testModeDemo.getActiveTrades();
       res.json(trades);
     } catch (error) {
       res.status(500).json({ success: false, error: "Failed to get active trades" });
@@ -1514,7 +1514,7 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/real-trading/trade-history", async (req, res) => {
     try {
-      const history = realPumpFunTrader.getTradeHistory();
+      const history = testModeDemo.getTradeHistory();
       res.json(history);
     } catch (error) {
       res.status(500).json({ success: false, error: "Failed to get trade history" });

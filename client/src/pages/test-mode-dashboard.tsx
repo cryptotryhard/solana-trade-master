@@ -1,19 +1,10 @@
-/**
- * TEST MODE DASHBOARD - Real Pump.fun Trading Education
- * Skutečný obchodní cyklus s malými objemy pro výuku
- */
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { TrendingUp, TrendingDown, Activity, Clock, Target, AlertTriangle, CheckCircle } from "lucide-react";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { AlertTriangle, TrendingUp, TrendingDown, ExternalLink, Play, Square, BarChart3 } from 'lucide-react';
-
-interface RealTrade {
+interface DemoTrade {
   id: string;
   tokenMint: string;
   symbol: string;
@@ -22,247 +13,153 @@ interface RealTrade {
   tokensReceived: number;
   entryTime: number;
   currentPrice?: number;
-  exitPrice?: number;
-  exitTime?: number;
-  profitLoss?: number;
-  profitPercentage?: number;
   status: 'ACTIVE' | 'SOLD_PROFIT' | 'SOLD_LOSS' | 'SOLD_STOP';
-  entryTxHash?: string;
-  exitTxHash?: string;
+  entryTxHash: string;
   targetProfit: number;
   stopLoss: number;
   trailingStop: number;
   maxPriceReached: number;
+  exitPrice?: number;
+  exitTime?: number;
+  profitLoss?: number;
+  profitPercentage?: number;
+  exitTxHash?: string;
 }
 
-interface PumpFunToken {
-  mint: string;
-  symbol: string;
-  marketCap: number;
-  volume24h: number;
-  priceUSD: number;
-  liquidity: number;
-  isValidForTrading: boolean;
-}
-
-interface TradingStats {
+interface TestModeStats {
   testMode: boolean;
   activeTrades: number;
   totalTrades: number;
   profitableTrades: number;
-  winRate: number;
-  totalProfitLoss: number;
-  maxTradeSize: number;
-  maxOpenPositions: number;
+  totalProfit: string;
+  winRate: string;
+  isRunning: boolean;
 }
 
 export default function TestModeDashboard() {
-  const [isTestModeEnabled, setIsTestModeEnabled] = useState(true);
-  const [isTradingActive, setIsTradingActive] = useState(false);
-  const queryClient = useQueryClient();
-
-  // Fetch trading stats
-  const { data: stats } = useQuery<TradingStats>({
-    queryKey: ['/api/real-trading/stats'],
-    refetchInterval: 5000
+  const { data: stats } = useQuery<TestModeStats>({
+    queryKey: ["/api/real-trading/stats"],
+    refetchInterval: 3000,
   });
 
-  // Fetch active trades
-  const { data: activeTrades = [] } = useQuery<RealTrade[]>({
-    queryKey: ['/api/real-trading/active-trades'],
-    refetchInterval: 3000
+  const { data: activeTrades } = useQuery<DemoTrade[]>({
+    queryKey: ["/api/real-trading/active-trades"],
+    refetchInterval: 2000,
   });
 
-  // Fetch trade history
-  const { data: tradeHistory = [] } = useQuery<RealTrade[]>({
-    queryKey: ['/api/real-trading/trade-history'],
-    refetchInterval: 10000
+  const { data: tradeHistory } = useQuery<DemoTrade[]>({
+    queryKey: ["/api/real-trading/trade-history"],
+    refetchInterval: 5000,
   });
-
-  // Fetch available pump.fun tokens
-  const { data: availableTokens = [] } = useQuery<PumpFunToken[]>({
-    queryKey: ['/api/real-trading/pump-fun-tokens'],
-    refetchInterval: 30000
-  });
-
-  // Toggle test mode mutation
-  const toggleTestModeMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      const response = await fetch('/api/real-trading/toggle-test-mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled })
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/real-trading/stats'] });
-    }
-  });
-
-  // Start/stop trading mutation
-  const tradingMutation = useMutation({
-    mutationFn: async (action: 'start' | 'stop') => {
-      if (action === 'start') {
-        const response = await fetch('/api/real-trading/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        return response.json();
-      }
-      // For stop, we don't have an endpoint yet, so just return success
-      return { success: true, message: 'Trading stopped' };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/real-trading/stats'] });
-    }
-  });
-
-  const handleTestModeToggle = (enabled: boolean) => {
-    setIsTestModeEnabled(enabled);
-    toggleTestModeMutation.mutate(enabled);
-  };
-
-  const handleTradingToggle = () => {
-    const action = isTradingActive ? 'stop' : 'start';
-    setIsTradingActive(!isTradingActive);
-    tradingMutation.mutate(action);
-  };
 
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 4
-    }).format(amount);
+  const formatDuration = (entryTime: number, exitTime?: number) => {
+    const duration = (exitTime || Date.now()) - entryTime;
+    const minutes = Math.floor(duration / (1000 * 60));
+    const seconds = Math.floor((duration % (1000 * 60)) / 1000);
+    return `${minutes}m ${seconds}s`;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-blue-500">AKTIVNÍ</Badge>;
-      case 'SOLD_PROFIT':
-        return <Badge className="bg-green-500">ZISK</Badge>;
-      case 'SOLD_LOSS':
-        return <Badge className="bg-red-500">ZTRÁTA</Badge>;
-      case 'SOLD_STOP':
-        return <Badge className="bg-orange-500">STOP</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+      case 'ACTIVE': return 'bg-blue-500';
+      case 'SOLD_PROFIT': return 'bg-green-500';
+      case 'SOLD_LOSS': return 'bg-red-500';
+      case 'SOLD_STOP': return 'bg-orange-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return <Activity className="h-4 w-4" />;
+      case 'SOLD_PROFIT': return <TrendingUp className="h-4 w-4" />;
+      case 'SOLD_LOSS': return <TrendingDown className="h-4 w-4" />;
+      case 'SOLD_STOP': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">TEST MODE Dashboard</h1>
-          <p className="text-muted-foreground">
-            Skutečný obchodní cyklus s malými objemy - max 0.03 SOL na obchod
-          </p>
+          <p className="text-muted-foreground">Live demonstration of complete trading cycle: scan → buy → hold → sell</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={isTestModeEnabled}
-              onCheckedChange={handleTestModeToggle}
-              disabled={toggleTestModeMutation.isPending}
-            />
-            <span className="text-sm font-medium">
-              {isTestModeEnabled ? 'TEST MODE ON' : 'PRODUCTION MODE'}
-            </span>
-          </div>
-          <Button
-            onClick={handleTradingToggle}
-            disabled={tradingMutation.isPending}
-            variant={isTradingActive ? "destructive" : "default"}
-          >
-            {isTradingActive ? (
-              <>
-                <Square className="w-4 h-4 mr-2" />
-                Stop Trading
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-2" />
-                Start Trading
-              </>
-            )}
-          </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant={stats?.testMode ? "default" : "secondary"}>
+            {stats?.testMode ? "TEST MODE ACTIVE" : "OFFLINE"}
+          </Badge>
+          {stats?.isRunning && (
+            <div className="flex items-center gap-2 text-green-500">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm">Live Demo Running</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Warning for Test Mode */}
-      {isTestModeEnabled && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-orange-600" />
-              <span className="font-medium text-orange-800">
-                TEST MODE: Maximálně 1 pozice, 0.03 SOL na obchod
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Trading Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Aktivní obchody</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Active Trades</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.activeTrades || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Max: {stats?.maxOpenPositions || 1}
-            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Celkem obchodů</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalTrades || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Úspěšnost: {stats?.winRate?.toFixed(1) || 0}%
-            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">P&L celkem</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Profitable</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.totalProfitLoss ? (
-                <span className={stats.totalProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  {stats.totalProfitLoss >= 0 ? '+' : ''}{stats.totalProfitLoss.toFixed(4)} SOL
-                </span>
-              ) : (
-                '0.0000 SOL'
-              )}
+            <div className="text-2xl font-bold text-green-500">{stats?.profitableTrades || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.winRate || '0.0'}%</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">+{stats?.totalProfit || '0.0000'} SOL</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Demo Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span className="text-sm font-medium">Working</span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Max objem</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.maxTradeSize || 0.03} SOL</div>
-            <p className="text-xs text-muted-foreground">
-              ~${((stats?.maxTradeSize || 0.03) * 145).toFixed(2)}
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -270,122 +167,88 @@ export default function TestModeDashboard() {
       {/* Active Trades */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <BarChart3 className="w-5 h-5 mr-2" />
-            Aktivní pozice
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Active Trades
           </CardTitle>
+          <CardDescription>Live positions being monitored for exit conditions</CardDescription>
         </CardHeader>
         <CardContent>
-          {activeTrades.length > 0 ? (
+          {activeTrades && activeTrades.length > 0 ? (
             <div className="space-y-4">
               {activeTrades.map((trade) => (
                 <div key={trade.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-bold text-lg">{trade.symbol}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Vstup: {formatTime(trade.entryTime)}
-                      </p>
-                    </div>
-                    {getStatusBadge(trade.status)}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Částka</p>
-                      <p className="font-medium">{trade.entryAmount.toFixed(4)} SOL</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Vstupní cena</p>
-                      <p className="font-medium">{formatCurrency(trade.entryPrice)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Aktuální cena</p>
-                      <p className="font-medium">
-                        {trade.currentPrice ? formatCurrency(trade.currentPrice) : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">P&L</p>
-                      <p className={`font-medium ${
-                        (trade.profitPercentage || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {trade.profitPercentage ? (
-                          <>
-                            {trade.profitPercentage >= 0 ? '+' : ''}
-                            {trade.profitPercentage.toFixed(2)}%
-                          </>
-                        ) : '0.00%'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Progress bars for profit target and stop loss */}
-                  <div className="mt-4 space-y-2">
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>Stop Loss: {trade.stopLoss}%</span>
-                        <span>Profit Target: +{trade.targetProfit}%</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Badge className={getStatusColor(trade.status)}>
+                        {getStatusIcon(trade.status)}
+                        {trade.status}
+                      </Badge>
+                      <div>
+                        <div className="font-bold text-lg">{trade.symbol}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Entry: {formatTime(trade.entryTime)} | Duration: {formatDuration(trade.entryTime)}
+                        </div>
                       </div>
-                      <Progress 
-                        value={Math.max(0, Math.min(100, ((trade.profitPercentage || 0) + Math.abs(trade.stopLoss)) / (trade.targetProfit + Math.abs(trade.stopLoss)) * 100))}
-                        className="h-2"
-                      />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold">
+                        ${trade.currentPrice?.toFixed(4) || trade.entryPrice.toFixed(4)}
+                      </div>
+                      <div className={`text-sm ${
+                        trade.currentPrice && trade.currentPrice > trade.entryPrice 
+                          ? 'text-green-500' 
+                          : 'text-red-500'
+                      }`}>
+                        {trade.currentPrice && (
+                          <>
+                            {((trade.currentPrice - trade.entryPrice) / trade.entryPrice * 100 > 0 ? '+' : '')}
+                            {((trade.currentPrice - trade.entryPrice) / trade.entryPrice * 100).toFixed(1)}%
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Transaction links */}
-                  {trade.entryTxHash && (
-                    <div className="mt-2">
-                      <a
-                        href={`https://solscan.io/tx/${trade.entryTxHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm flex items-center"
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        Zobrazit na Solscan
-                      </a>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <div className="text-muted-foreground">Entry Price</div>
+                      <div className="font-medium">${trade.entryPrice.toFixed(4)}</div>
                     </div>
-                  )}
+                    <div>
+                      <div className="text-muted-foreground">Amount</div>
+                      <div className="font-medium">{trade.entryAmount.toFixed(4)} SOL</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Tokens</div>
+                      <div className="font-medium">{trade.tokensReceived.toFixed(2)}</div>
+                    </div>
+                  </div>
+
+                  <Separator className="my-3" />
+
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-green-500" />
+                      <span>Target: +{trade.targetProfit}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <span>Stop: {trade.stopLoss}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                      <span>Trailing: {trade.trailingStop}%</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              Žádné aktivní pozice
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Available Tokens */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dostupné pump.fun tokeny (15k-50k MC)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {availableTokens.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {availableTokens.map((token) => (
-                <div key={token.mint} className="border rounded-lg p-4">
-                  <h3 className="font-bold">{token.symbol}</h3>
-                  <div className="text-sm space-y-1 mt-2">
-                    <p>MC: ${token.marketCap.toLocaleString()}</p>
-                    <p>Cena: {formatCurrency(token.priceUSD)}</p>
-                    <p>Likvidita: ${token.liquidity.toLocaleString()}</p>
-                    <p>Volume 24h: ${token.volume24h.toLocaleString()}</p>
-                  </div>
-                  <Badge className={token.isValidForTrading ? "bg-green-500" : "bg-gray-500"}>
-                    {token.isValidForTrading ? 'Vhodný' : 'Nevhodný'}
-                  </Badge>
-                </div>
-              ))}
+            <div className="text-center py-8 text-muted-foreground">
+              <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No active trades. Demo creating new trades every few minutes.</p>
             </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-8">
-              Žádné vhodné tokeny k dispozici
-            </p>
           )}
         </CardContent>
       </Card>
@@ -393,53 +256,124 @@ export default function TestModeDashboard() {
       {/* Trade History */}
       <Card>
         <CardHeader>
-          <CardTitle>Historie obchodů</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Trade History
+          </CardTitle>
+          <CardDescription>Completed trades showing full cycle: entry → monitoring → exit</CardDescription>
         </CardHeader>
         <CardContent>
-          {tradeHistory.length > 0 ? (
-            <div className="space-y-3">
-              {tradeHistory.slice(-10).reverse().map((trade) => (
-                <div key={trade.id} className="flex justify-between items-center p-3 border rounded">
-                  <div>
-                    <span className="font-medium">{trade.symbol}</span>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      {formatTime(trade.exitTime || trade.entryTime)}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className={`font-medium ${
-                      (trade.profitPercentage || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {trade.profitPercentage ? (
-                        <>
-                          {trade.profitPercentage >= 0 ? '+' : ''}
-                          {trade.profitPercentage.toFixed(2)}%
-                        </>
-                      ) : '0.00%'}
+          {tradeHistory && tradeHistory.length > 0 ? (
+            <div className="space-y-4">
+              {tradeHistory.map((trade) => (
+                <div key={trade.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Badge className={getStatusColor(trade.status)}>
+                        {getStatusIcon(trade.status)}
+                        {trade.status}
+                      </Badge>
+                      <div>
+                        <div className="font-bold text-lg">{trade.symbol}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatTime(trade.entryTime)} → {trade.exitTime && formatTime(trade.exitTime)}
+                          {trade.exitTime && ` (${formatDuration(trade.entryTime, trade.exitTime)})`}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {trade.profitLoss ? `${trade.profitLoss.toFixed(4)} SOL` : '0.0000 SOL'}
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${
+                        trade.profitLoss && trade.profitLoss > 0 ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {trade.profitLoss && (trade.profitLoss > 0 ? '+' : '')}
+                        {trade.profitLoss?.toFixed(4)} SOL
+                      </div>
+                      <div className={`text-sm ${
+                        trade.profitPercentage && trade.profitPercentage > 0 ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {trade.profitPercentage && (trade.profitPercentage > 0 ? '+' : '')}
+                        {trade.profitPercentage?.toFixed(1)}%
+                      </div>
                     </div>
                   </div>
-                  {getStatusBadge(trade.status)}
-                  {trade.exitTxHash && (
-                    <a
-                      href={`https://solscan.io/tx/${trade.exitTxHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  )}
+
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <div className="text-muted-foreground">Entry</div>
+                      <div className="font-medium">${trade.entryPrice.toFixed(4)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Exit</div>
+                      <div className="font-medium">${trade.exitPrice?.toFixed(4) || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Max Price</div>
+                      <div className="font-medium">${trade.maxPriceReached.toFixed(4)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Amount</div>
+                      <div className="font-medium">{trade.entryAmount.toFixed(4)} SOL</div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              Žádná historie obchodů
-            </p>
+            <div className="text-center py-8 text-muted-foreground">
+              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No completed trades yet. Demo trades will appear here after completion.</p>
+            </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Demo Explanation */}
+      <Card>
+        <CardHeader>
+          <CardTitle>How The Demo Works</CardTitle>
+          <CardDescription>Understanding the complete trading cycle demonstration</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-2">Trading Flow</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>1. Scan for pump.fun opportunities</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>2. Execute entry trade (small test amounts)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span>3. Monitor price movements in real-time</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span>4. Execute exit based on conditions</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Exit Conditions</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-green-500" />
+                  <span>Take Profit: +25% target</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <span>Stop Loss: -20% maximum loss</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  <span>Trailing Stop: -10% from peak</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
