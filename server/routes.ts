@@ -445,6 +445,27 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Pump.fun strategy status
+  app.get("/api/pumpfun/strategy-status", async (req, res) => {
+    try {
+      const { pumpFunStatusAPI } = await import('./pump-fun-status-api');
+      const status = pumpFunStatusAPI.getStrategyStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Failed to get strategy status' });
+    }
+  });
+
+  app.get("/api/pumpfun/positions", async (req, res) => {
+    try {
+      const { pumpFunStatusAPI } = await import('./pump-fun-status-api');
+      const positions = pumpFunStatusAPI.getCurrentPositions();
+      res.json(positions);
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Failed to get positions' });
+    }
+  });
+
   // Pump.fun trader endpoints
   app.post("/api/pumpfun/start", async (req, res) => {
     try {

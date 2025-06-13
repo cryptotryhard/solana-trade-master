@@ -26,6 +26,9 @@ export class FixedDashboardAPI {
 
   async getPortfolioBalance() {
     try {
+      if (!this.wallet) {
+        throw new Error('Wallet not initialized');
+      }
       const solBalance = await this.connection.getBalance(this.wallet.publicKey) / LAMPORTS_PER_SOL;
       
       const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
@@ -81,6 +84,9 @@ export class FixedDashboardAPI {
 
   async getActivePositions() {
     try {
+      if (!this.wallet) {
+        return this.getFallbackPositions();
+      }
       const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
         this.wallet.publicKey,
         { programId: TOKEN_PROGRAM_ID }
@@ -118,6 +124,9 @@ export class FixedDashboardAPI {
 
   async getTradingHistory() {
     try {
+      if (!this.wallet) {
+        return this.getFallbackTrades();
+      }
       // Get recent transactions
       const signatures = await this.connection.getSignaturesForAddress(
         this.wallet.publicKey,
