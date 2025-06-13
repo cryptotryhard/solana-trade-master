@@ -265,17 +265,17 @@ export default function UltraAuthenticDashboard() {
                         </div>
                         <div className="text-right">
                           <div className="font-semibold">
-                            ${position.currentValue.toFixed(2)}
+                            ${(position.currentValue || 0).toFixed(2)}
                           </div>
                           <div className={`text-sm ${
-                            position.pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                            (position.pnl && position.pnl >= 0) ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(2)}
+                            {position.pnl ? `${position.pnl >= 0 ? '+' : ''}$${position.pnl.toFixed(2)}` : '$0.00'}
                           </div>
                           <div className={`text-xs ${
-                            position.roi >= 0 ? 'text-green-400' : 'text-red-400'
+                            (position.roi && position.roi >= 0) ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {position.roi >= 0 ? '+' : ''}{position.roi.toFixed(2)}%
+                            {position.roi ? `${position.roi >= 0 ? '+' : ''}${position.roi.toFixed(2)}%` : '0.00%'}
                           </div>
                         </div>
                       </div>
