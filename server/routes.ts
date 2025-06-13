@@ -1772,5 +1772,46 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Autonomous trading control endpoints
+  app.post("/api/autonomous/start", async (req, res) => {
+    try {
+      const { autonomousTradingEngine } = await import('./autonomous-trading-engine');
+      await autonomousTradingEngine.startAutonomousMode();
+      res.json({ success: true, message: 'Autonomous trading mode started' });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/autonomous/stop", async (req, res) => {
+    try {
+      const { autonomousTradingEngine } = await import('./autonomous-trading-engine');
+      await autonomousTradingEngine.stopAutonomousMode();
+      res.json({ success: true, message: 'Autonomous trading mode stopped' });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get("/api/autonomous/status", async (req, res) => {
+    try {
+      const { autonomousTradingEngine } = await import('./autonomous-trading-engine');
+      const status = autonomousTradingEngine.getStatus();
+      res.json({ success: true, status });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put("/api/autonomous/config", async (req, res) => {
+    try {
+      const { autonomousTradingEngine } = await import('./autonomous-trading-engine');
+      autonomousTradingEngine.updateConfig(req.body);
+      res.json({ success: true, message: 'Configuration updated' });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   return app;
 }
