@@ -22,6 +22,7 @@ import { authenticPortfolioValidator } from './authentic-portfolio-validator';
 import { systemIntegrityTester } from './system-integrity-tester';
 import { authenticTradingEngine } from './authentic-trading-engine';
 import { bonkTradingMonitor } from './bonk-trading-monitor';
+import { intelligentPumpFunScanner } from './intelligent-pump-fun-scanner';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -744,6 +745,51 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Error getting active positions:', error);
       res.status(500).json({ error: 'Failed to get positions' });
+    }
+  });
+
+  // Intelligent Pump.Fun Scanner Endpoints
+  app.post('/api/intelligent-scanner/start', async (req, res) => {
+    try {
+      console.log('🧠 Starting Intelligent Pump.Fun Scanner...');
+      await intelligentPumpFunScanner.startIntelligentScanning();
+      res.json({ 
+        success: true, 
+        message: 'Intelligent scanner started - targeting 80-90% success rate tokens' 
+      });
+    } catch (error) {
+      console.error('❌ Error starting intelligent scanner:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to start intelligent scanner' 
+      });
+    }
+  });
+
+  app.post('/api/intelligent-scanner/stop', async (req, res) => {
+    try {
+      intelligentPumpFunScanner.stopScanning();
+      res.json({ 
+        success: true, 
+        message: 'Intelligent scanner stopped' 
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to stop scanner' 
+      });
+    }
+  });
+
+  app.get('/api/intelligent-scanner/status', async (req, res) => {
+    try {
+      const status = intelligentPumpFunScanner.getStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to get scanner status' 
+      });
     }
   });
 
