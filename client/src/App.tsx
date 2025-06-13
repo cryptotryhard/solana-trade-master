@@ -14,13 +14,13 @@ import BillionDollarDashboard from "@/pages/billion-dollar-dashboard";
 import AdvancedTradingDashboard from "@/pages/advanced-trading-dashboard";
 import SimpleTradingDashboard from "@/pages/simple-trading-dashboard";
 import AuthenticPortfolioDashboard from "@/pages/authentic-portfolio-dashboard";
-import AuthenticTradingDashboard from "@/pages/authentic-trading-dashboard";
+import UltraAuthenticDashboard from "@/pages/ultra-authentic-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={AuthenticTradingDashboard} />
+      <Route path="/" component={UltraAuthenticDashboard} />
       <Route path="/portfolio" component={AuthenticPortfolioDashboard} />
       <Route path="/billion" component={BillionDollarDashboard} />
       <Route path="/stark" component={StarkDashboard} />
@@ -29,7 +29,7 @@ function Router() {
       <Route path="/master" component={VictoriaMasterDashboard} />
       <Route path="/trading" component={VictoriaTradingDashboard} />
       <Route path="/real-trading" component={RealTradingPage} />
-      <Route path="/authentic" component={AuthenticTradingDashboard} />
+      <Route path="/authentic" component={UltraAuthenticDashboard} />
       <Route path="/advanced" component={AdvancedTradingDashboard} />
       <Route component={NotFound} />
     </Switch>
