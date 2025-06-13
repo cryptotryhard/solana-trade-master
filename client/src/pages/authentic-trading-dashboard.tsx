@@ -1,398 +1,421 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { 
-  Wallet, 
-  TrendingUp, 
-  Activity, 
-  ExternalLink,
-  AlertTriangle,
-  CheckCircle,
-  Zap,
-  DollarSign,
-  Target
-} from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { TrendingUp, TrendingDown, DollarSign, Activity, Target, Zap } from 'lucide-react';
 
-interface TradingOpportunity {
-  symbol: string;
-  mint: string;
-  confidence: number;
-  reason: string[];
-  recommendedAmount: number;
-  estimatedROI: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-}
-
-interface WalletData {
-  address: string;
-  balance: number;
-  balanceUSD: number;
-  tokens: Array<{
-    symbol: string;
-    amount: number;
-    mint: string;
-  }>;
-  lastUpdated: string;
-}
-
-interface RealTransaction {
+interface Trade {
   id: string;
-  symbol: string;
-  type: string;
-  amount: number;
-  txHash: string;
   timestamp: string;
-  status: string;
+  token: string;
+  type: 'buy' | 'sell';
+  amount: number;
+  entryPrice: number;
+  currentPrice: number;
+  roi: number;
+  pnl: number;
+  platform: string;
+  isPumpFun: boolean;
+  marketCapAtEntry?: number;
+  status: 'profitable' | 'loss' | 'breakeven';
+}
+
+interface Position {
+  mint: string;
+  symbol: string;
+  amount: number;
+  entryValue: number;
+  currentValue: number;
+  roi: number;
+  pnl: number;
+  isPumpFun: boolean;
+  platform: string;
+  holdingDays: number;
+}
+
+interface PerformanceSummary {
+  overview: {
+    totalTrades: number;
+    totalPositions: number;
+    totalPnL: number;
+    totalROI: number;
+    successRate: number;
+  };
+  bestPerformers: {
+    bestTrade: Trade | null;
+    worstTrade: Trade | null;
+    topPositions: Position[];
+  };
+  platformBreakdown: {
+    'pump.fun': number;
+    raydium: number;
+    jupiter: number;
+    direct: number;
+  };
+  pumpFunAnalysis: {
+    totalPumpFunTrades: number;
+    pumpFunPositions: number;
+    pumpFunPnL: number;
+  };
+  detailedBreakdown: {
+    trades: Trade[];
+    positions: Position[];
+  };
 }
 
 export default function AuthenticTradingDashboard() {
-  const [tradeAmount, setTradeAmount] = useState<number>(0.05);
-  const [selectedToken, setSelectedToken] = useState<string>('');
-  const { toast } = useToast();
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Real wallet data
-  const { data: walletData, isLoading: walletLoading } = useQuery<WalletData>({
-    queryKey: ['/api/wallet/balance/9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d'],
+  // Fetch comprehensive trading analysis
+  const { data: performanceData, isLoading: performanceLoading, error: performanceError } = useQuery<PerformanceSummary>({
+    queryKey: ['/api/trading/performance-summary', refreshKey],
     refetchInterval: 10000
   });
 
-  // Real blockchain transactions
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<RealTransaction[]>({
-    queryKey: ['/api/trades/live'],
-    refetchInterval: 5000
-  });
-
-  // Trading opportunities
-  const { data: opportunitiesData } = useQuery({
-    queryKey: ['/api/trading/opportunities'],
+  // Fetch detailed trades
+  const { data: tradesData, isLoading: tradesLoading } = useQuery({
+    queryKey: ['/api/trading/detailed-trades', refreshKey],
     refetchInterval: 15000
   });
 
-  // Autonomous trading stats
-  const { data: autonomousStats } = useQuery({
-    queryKey: ['/api/autonomous/stats'],
-    refetchInterval: 5000
-  });
-
-  // Active autonomous positions
-  const { data: autonomousPositions = [] } = useQuery({
-    queryKey: ['/api/autonomous/positions'],
+  // Fetch detailed positions
+  const { data: positionsData, isLoading: positionsLoading } = useQuery({
+    queryKey: ['/api/trading/detailed-positions', refreshKey],
     refetchInterval: 10000
   });
 
-  // Execute trade mutation
-  const executeTradeMutation = useMutation({
-    mutationFn: async ({ symbol, amount }: { symbol: string; amount: number }) => {
-      const response = await fetch('/api/trading/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol, amount })
-      });
-      return await response.json();
-    },
-    onSuccess: (data: any) => {
-      toast({
-        title: "Trade Prepared",
-        description: data.message || "Trade executed successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Trade Failed",
-        description: error.message || "Failed to execute trade",
-        variant: "destructive"
-      });
-    }
+  // Fetch wallet status
+  const { data: walletData } = useQuery({
+    queryKey: ['/api/wallet/status'],
+    refetchInterval: 5000
   });
 
-  const opportunities = opportunitiesData?.opportunities || [];
-
-  const handleExecuteTrade = (symbol: string) => {
-    if (!walletData || walletData.balance < tradeAmount) {
-      toast({
-        title: "Insufficient Balance",
-        description: `Need ${tradeAmount} SOL, have ${walletData?.balance.toFixed(4) || 0} SOL`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    executeTradeMutation.mutate({ symbol, amount: tradeAmount });
+  const refreshData = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
-  const formatTxHash = (hash: string) => `${hash.slice(0, 8)}...${hash.slice(-8)}`;
+  if (performanceLoading || tradesLoading || positionsLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-20">
+            <Activity className="h-12 w-12 animate-spin mx-auto mb-4 text-green-500" />
+            <h2 className="text-2xl font-bold mb-2">Loading Authentic Trading Data</h2>
+            <p className="text-gray-400">Analyzing blockchain transactions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (performanceError) {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-20">
+            <div className="text-red-500 mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold mb-2">Unable to Load Trading Data</h2>
+            <p className="text-gray-400 mb-4">Blockchain RPC rate limits exceeded</p>
+            <Button onClick={refreshData} variant="outline">
+              Retry Loading
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const overview = performanceData?.overview || {
+    totalTrades: 0,
+    totalPositions: 0,
+    totalPnL: 0,
+    totalROI: 0,
+    successRate: 0
+  };
+
+  const trades = performanceData?.detailedBreakdown?.trades || [];
+  const positions = performanceData?.detailedBreakdown?.positions || [];
+  const pumpFunAnalysis = performanceData?.pumpFunAnalysis || {
+    totalPumpFunTrades: 0,
+    pumpFunPositions: 0,
+    pumpFunPnL: 0
+  };
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-            AUTHENTIC TRADING DASHBOARD
-          </h1>
-          <p className="text-gray-400 mt-2">Real Phantom Wallet Integration • Jupiter DEX Swaps</p>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <Badge variant="default" className="bg-green-900 text-green-300 px-4 py-2">
-            <Wallet className="w-4 h-4 mr-2" />
-            CONNECTED
-          </Badge>
-        </div>
-      </div>
-
-      {/* Wallet Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">SOL Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-400">
-              {walletLoading ? '...' : `${walletData?.balance.toFixed(4) || 0} SOL`}
-            </div>
-            <p className="text-xs text-gray-400">
-              ${walletLoading ? '...' : walletData?.balanceUSD.toFixed(2) || '0.00'} USD
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Active Tokens</CardTitle>
-            <Activity className="h-4 w-4 text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">
-              {walletData?.tokens.length || 0}
-            </div>
-            <p className="text-xs text-gray-400">Tokens in wallet</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-300">Autonomous Stats</CardTitle>
-            <Target className="h-4 w-4 text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-400">
-              {autonomousStats?.isActive ? 'ACTIVE' : 'INACTIVE'}
-            </div>
-            <p className="text-xs text-gray-400">
-              {autonomousStats?.tradesExecuted || 0} trades executed
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Trading Opportunities */}
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-green-400">Live Trading Opportunities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {opportunities.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Scanning for opportunities...</p>
-                  <p className="text-sm">Real-time analysis in progress</p>
-                </div>
-              ) : (
-                opportunities.map((opp: TradingOpportunity, idx: number) => (
-                  <div key={idx} className="p-4 bg-gray-800 rounded border border-gray-700">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-white text-lg">{opp.symbol}</span>
-                        <Badge 
-                          variant={opp.confidence > 80 ? 'default' : 'secondary'}
-                          className={
-                            opp.confidence > 80 ? 'bg-green-900 text-green-300' : 
-                            'bg-yellow-900 text-yellow-300'
-                          }
-                        >
-                          {opp.confidence}% confidence
-                        </Badge>
-                        <Badge 
-                          variant={opp.riskLevel === 'LOW' ? 'default' : 'destructive'}
-                          className={
-                            opp.riskLevel === 'LOW' ? 'bg-green-900 text-green-300' :
-                            opp.riskLevel === 'MEDIUM' ? 'bg-yellow-900 text-yellow-300' :
-                            'bg-red-900 text-red-300'
-                          }
-                        >
-                          {opp.riskLevel} RISK
-                        </Badge>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-lg font-bold ${opp.estimatedROI >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {opp.estimatedROI >= 0 ? '+' : ''}{opp.estimatedROI.toFixed(1)}% ROI
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          {opp.recommendedAmount.toFixed(3)} SOL
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="text-sm text-gray-300 font-medium">Analysis:</div>
-                      <ul className="text-sm text-gray-400 space-y-1">
-                        {opp.reason.map((reason, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <CheckCircle className="w-3 h-3 text-green-400 mt-0.5 flex-shrink-0" />
-                            {reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <Button
-                      onClick={() => handleExecuteTrade(opp.symbol)}
-                      disabled={executeTradeMutation.isPending || !walletData || walletData.balance < opp.recommendedAmount}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                    >
-                      {executeTradeMutation.isPending ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Preparing Trade...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4" />
-                          Execute Jupiter Swap
-                        </div>
-                      )}
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Real Transactions */}
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-blue-400">Blockchain Transactions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {transactions.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No recent transactions</p>
-                  <p className="text-sm">Execute trades to see activity</p>
-                </div>
-              ) : (
-                transactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-3 bg-gray-800 rounded">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <div>
-                        <div className="font-semibold text-white">{tx.symbol}</div>
-                        <div className="text-sm text-gray-400">
-                          {tx.type} • {tx.amount} {tx.symbol}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-400 hover:text-blue-300"
-                        onClick={() => window.open(`https://solscan.io/tx/${tx.txHash}`, '_blank')}
-                      >
-                        {formatTxHash(tx.txHash)}
-                        <ExternalLink className="w-3 h-3 ml-1" />
-                      </Button>
-                      <div className="text-xs text-gray-500">
-                        {new Date(tx.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Manual Trading Panel */}
-      <Card className="bg-gray-900 border-gray-700 mt-8">
-        <CardHeader>
-          <CardTitle className="text-yellow-400">Manual Trading Controls</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <Label htmlFor="amount" className="text-gray-300">Trade Amount (SOL)</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.001"
-                min="0.001"
-                max={walletData?.balance || 0}
-                value={tradeAmount}
-                onChange={(e) => setTradeAmount(parseFloat(e.target.value) || 0)}
-                className="bg-gray-800 border-gray-600 text-white mt-2"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Available: {walletData?.balance.toFixed(4) || '0'} SOL
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="token" className="text-gray-300">Target Token</Label>
-              <Input
-                id="token"
-                placeholder="e.g., BONK, WIF, RAY"
-                value={selectedToken}
-                onChange={(e) => setSelectedToken(e.target.value.toUpperCase())}
-                className="bg-gray-800 border-gray-600 text-white mt-2"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                onClick={() => selectedToken && handleExecuteTrade(selectedToken)}
-                disabled={!selectedToken || tradeAmount <= 0 || executeTradeMutation.isPending}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-              >
-                <DollarSign className="w-4 h-4 mr-2" />
-                Execute Manual Trade
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Warning Banner */}
-      <div className="mt-8 p-4 bg-yellow-900/20 border border-yellow-600 rounded">
-        <div className="flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-400" />
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <div className="font-medium text-yellow-400">Real Money Trading</div>
-            <div className="text-sm text-yellow-300">
-              This system executes real trades with your Phantom wallet. All transactions are irreversible.
-              Connect your Phantom wallet to complete trades.
-            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+              VICTORIA Trading Dashboard
+            </h1>
+            <p className="text-gray-400 mt-2">Authentic blockchain trading analysis</p>
+          </div>
+          <div className="flex gap-3">
+            <Button onClick={refreshData} variant="outline" size="sm">
+              <Activity className="h-4 w-4 mr-2" />
+              Refresh Data
+            </Button>
+            <Badge variant={walletData?.isConnected ? "default" : "destructive"}>
+              {walletData?.isConnected ? "Connected" : "Disconnected"}
+            </Badge>
           </div>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="mt-8 text-center text-gray-500 text-sm">
-        <p>Connected to wallet: {walletData?.address.slice(0, 8)}...{walletData?.address.slice(-8)}</p>
-        <p className="mt-1">Real-time Jupiter DEX integration • Solana blockchain verified</p>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Total P&L
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                <span className={overview.totalPnL >= 0 ? "text-green-400" : "text-red-400"}>
+                  ${overview.totalPnL.toFixed(2)}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {overview.totalPnL >= 0 ? "+" : ""}{overview.totalROI.toFixed(2)}% ROI
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <Activity className="h-4 w-4 mr-2" />
+                Total Trades
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{overview.totalTrades}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {overview.successRate.toFixed(1)}% success rate
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <Target className="h-4 w-4 mr-2" />
+                Positions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{overview.totalPositions}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {pumpFunAnalysis.pumpFunPositions} pump.fun tokens
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-700">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <Zap className="h-4 w-4 mr-2" />
+                Pump.fun P&L
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                <span className={pumpFunAnalysis.pumpFunPnL >= 0 ? "text-green-400" : "text-red-400"}>
+                  ${pumpFunAnalysis.pumpFunPnL.toFixed(2)}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {pumpFunAnalysis.totalPumpFunTrades} pump.fun trades
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="trades" className="space-y-6">
+          <TabsList className="bg-gray-900 border-gray-700">
+            <TabsTrigger value="trades">Trade History</TabsTrigger>
+            <TabsTrigger value="positions">Current Positions</TabsTrigger>
+            <TabsTrigger value="analysis">Performance Analysis</TabsTrigger>
+          </TabsList>
+
+          {/* Trade History Tab */}
+          <TabsContent value="trades">
+            <Card className="bg-gray-900 border-gray-700">
+              <CardHeader>
+                <CardTitle>Complete Trading History</CardTitle>
+                <p className="text-sm text-gray-400">
+                  All authenticated blockchain transactions
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {trades.length > 0 ? (
+                    trades.slice(0, 20).map((trade, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-3 h-3 rounded-full ${
+                            trade.type === 'buy' ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                          <div>
+                            <div className="font-semibold flex items-center gap-2">
+                              {trade.token}
+                              {trade.isPumpFun && (
+                                <Badge variant="secondary" className="text-xs">
+                                  PUMP.FUN
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              {trade.type.toUpperCase()} • {trade.timestamp}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-semibold ${
+                            trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            {trade.roi >= 0 ? '+' : ''}{trade.roi.toFixed(2)}%
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <Activity className="h-8 w-8 mx-auto mb-2" />
+                      <p>Loading trade history from blockchain...</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Current Positions Tab */}
+          <TabsContent value="positions">
+            <Card className="bg-gray-900 border-gray-700">
+              <CardHeader>
+                <CardTitle>Current Token Holdings</CardTitle>
+                <p className="text-sm text-gray-400">
+                  All {positions.length} token positions from wallet
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {positions.length > 0 ? (
+                    positions.map((position, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold">
+                            {position.symbol.slice(0, 2)}
+                          </div>
+                          <div>
+                            <div className="font-semibold flex items-center gap-2">
+                              {position.symbol}
+                              {position.isPumpFun && (
+                                <Badge variant="secondary" className="text-xs">
+                                  PUMP.FUN
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              {position.amount.toLocaleString()} tokens • {position.holdingDays} days
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">
+                            ${position.currentValue.toFixed(2)}
+                          </div>
+                          <div className={`text-sm ${
+                            position.pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {position.pnl >= 0 ? '+' : ''}${position.pnl.toFixed(2)} ({position.roi >= 0 ? '+' : ''}{position.roi.toFixed(2)}%)
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <Target className="h-8 w-8 mx-auto mb-2" />
+                      <p>Loading positions from blockchain...</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Performance Analysis Tab */}
+          <TabsContent value="analysis">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-gray-900 border-gray-700">
+                <CardHeader>
+                  <CardTitle>Best & Worst Trades</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {performanceData?.bestPerformers?.bestTrade && (
+                    <div className="p-4 bg-green-900/20 border border-green-700 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <TrendingUp className="h-4 w-4 text-green-400 mr-2" />
+                        <span className="font-semibold text-green-400">Best Trade</span>
+                      </div>
+                      <p className="text-sm">
+                        {performanceData.bestPerformers.bestTrade.token} - 
+                        ${performanceData.bestPerformers.bestTrade.pnl.toFixed(2)} profit
+                      </p>
+                    </div>
+                  )}
+                  
+                  {performanceData?.bestPerformers?.worstTrade && (
+                    <div className="p-4 bg-red-900/20 border border-red-700 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <TrendingDown className="h-4 w-4 text-red-400 mr-2" />
+                        <span className="font-semibold text-red-400">Worst Trade</span>
+                      </div>
+                      <p className="text-sm">
+                        {performanceData.bestPerformers.worstTrade.token} - 
+                        ${performanceData.bestPerformers.worstTrade.pnl.toFixed(2)} loss
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-900 border-gray-700">
+                <CardHeader>
+                  <CardTitle>Platform Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {performanceData?.platformBreakdown && Object.entries(performanceData.platformBreakdown).map(([platform, count]) => (
+                      <div key={platform} className="flex justify-between items-center">
+                        <span className="capitalize">{platform}</span>
+                        <Badge variant="outline">{count} trades</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>Wallet: {walletData?.address?.slice(0, 8)}...{walletData?.address?.slice(-8)}</p>
+          <p>Last updated: {new Date().toLocaleTimeString()}</p>
+        </div>
       </div>
     </div>
   );

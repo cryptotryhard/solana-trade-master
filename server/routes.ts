@@ -13,6 +13,7 @@ import { pumpFunTrader } from './pump-fun-trader';
 import victoriaOptimizedEndpoints from './victoria-optimized-endpoints';
 import { completeWalletSystem } from './complete-wallet-value-system';
 import { authenticTradesResolver } from './authentic-trades-resolver';
+import { comprehensiveTradingAnalyzer } from './comprehensive-trading-analyzer';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -430,6 +431,133 @@ export function registerRoutes(app: Express) {
       res.json({ success: true, message: "All positions exited" });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Comprehensive Trading Analysis Endpoints
+  app.get("/api/trading/comprehensive-analysis", async (req, res) => {
+    try {
+      console.log('🔍 Generating comprehensive trading analysis...');
+      const analysis = await comprehensiveTradingAnalyzer.generateComprehensiveAnalysis();
+      res.json(analysis);
+    } catch (error) {
+      console.error('❌ Error generating comprehensive analysis:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate comprehensive analysis'
+      });
+    }
+  });
+
+  // Detailed Trades Analysis - All authentic trades
+  app.get("/api/trading/detailed-trades", async (req, res) => {
+    try {
+      console.log('🔍 Analyzing all authentic trades...');
+      const trades = await comprehensiveTradingAnalyzer.analyzeAllTrades();
+      res.json({
+        trades,
+        totalTrades: trades.length,
+        profitableTrades: trades.filter(t => t.status === 'profitable').length,
+        lossTrades: trades.filter(t => t.status === 'loss').length,
+        totalPnL: trades.reduce((sum, t) => sum + t.pnl, 0),
+        totalROI: trades.length > 0 ? trades.reduce((sum, t) => sum + t.roi, 0) / trades.length : 0,
+        pumpFunTrades: trades.filter(t => t.platform === 'pump.fun').length
+      });
+    } catch (error) {
+      console.error('❌ Error analyzing detailed trades:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to analyze detailed trades'
+      });
+    }
+  });
+
+  // Detailed Positions Analysis - All current holdings
+  app.get("/api/trading/detailed-positions", async (req, res) => {
+    try {
+      console.log('🔍 Analyzing all current positions...');
+      const positions = await comprehensiveTradingAnalyzer.getCurrentPositions();
+      res.json({
+        positions,
+        totalPositions: positions.length,
+        totalValue: positions.reduce((sum, p) => sum + p.currentValue, 0),
+        totalPnL: positions.reduce((sum, p) => sum + p.pnl, 0),
+        pumpFunPositions: positions.filter(p => p.isPumpFun).length,
+        profitablePositions: positions.filter(p => p.pnl > 0).length,
+        lossPositions: positions.filter(p => p.pnl < 0).length
+      });
+    } catch (error) {
+      console.error('❌ Error analyzing detailed positions:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to analyze detailed positions'
+      });
+    }
+  });
+
+  // Trading Performance Summary
+  app.get("/api/trading/performance-summary", async (req, res) => {
+    try {
+      console.log('🔍 Generating trading performance summary...');
+      const { trades, positions, analysis } = await comprehensiveTradingAnalyzer.generateComprehensiveAnalysis();
+      
+      const summary = {
+        overview: {
+          totalTrades: analysis.totalTrades,
+          totalPositions: positions.length,
+          totalPnL: analysis.totalPnL,
+          totalROI: analysis.totalROI,
+          successRate: analysis.totalTrades > 0 ? (analysis.profitableTrades / analysis.totalTrades * 100) : 0
+        },
+        bestPerformers: {
+          bestTrade: analysis.bestTrade,
+          worstTrade: analysis.worstTrade,
+          topPositions: positions.slice(0, 5).sort((a, b) => b.pnl - a.pnl)
+        },
+        platformBreakdown: analysis.platformBreakdown,
+        pumpFunAnalysis: {
+          totalPumpFunTrades: trades.filter(t => t.platform === 'pump.fun').length,
+          pumpFunPositions: positions.filter(p => p.isPumpFun).length,
+          pumpFunPnL: trades.filter(t => t.platform === 'pump.fun').reduce((sum, t) => sum + t.pnl, 0)
+        },
+        detailedBreakdown: {
+          trades: trades.map(trade => ({
+            id: trade.id,
+            timestamp: trade.timestamp,
+            token: trade.token.symbol,
+            type: trade.type,
+            amount: trade.amount,
+            entryPrice: trade.entryPrice,
+            currentPrice: trade.currentPrice,
+            roi: trade.roi,
+            pnl: trade.pnl,
+            platform: trade.platform,
+            isPumpFun: trade.platform === 'pump.fun',
+            marketCapAtEntry: trade.marketCapAtEntry,
+            status: trade.status
+          })),
+          positions: positions.map(pos => ({
+            mint: pos.mint,
+            symbol: pos.symbol,
+            amount: pos.amount,
+            entryValue: pos.entryValue,
+            currentValue: pos.currentValue,
+            roi: pos.roi,
+            pnl: pos.pnl,
+            isPumpFun: pos.isPumpFun,
+            platform: pos.platform,
+            holdingDays: pos.holdingDays
+          }))
+        }
+      };
+      
+      res.json(summary);
+    } catch (error) {
+      console.error('❌ Error generating performance summary:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate performance summary'
+      });
     }
   });
 
