@@ -1004,7 +1004,7 @@ export function registerRoutes(app: Express) {
   // Trade specific token endpoint
   app.post('/api/trade-specific-token', async (req, res) => {
     try {
-      const { tokenMint, amount = 0.005 } = req.body;
+      const { tokenMint, amount = 0.005, liquidateBonk = false } = req.body;
       
       console.log(`🎯 EXECUTING SPECIFIC TOKEN TRADE: ${tokenMint}`);
       
@@ -1018,12 +1018,94 @@ export function registerRoutes(app: Express) {
       const solBalance = await connection.getBalance(wallet.publicKey) / 1e9;
       console.log(`💰 Current SOL: ${solBalance}`);
       
+      // If liquidateBonk flag is set, liquidate BONK first
+      if (liquidateBonk) {
+        console.log(`🔄 LIQUIDATING BONK FOR TRADING CAPITAL`);
+        
+        const bonkMint = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
+        
+        try {
+          // Get BONK token accounts
+          const tokenAccounts = await connection.getTokenAccountsByOwner(
+            wallet.publicKey,
+            { mint: new PublicKey(bonkMint) }
+          );
+          
+          if (tokenAccounts.value.length > 0) {
+            const accountInfo = await connection.getTokenAccountBalance(tokenAccounts.value[0].pubkey);
+            const bonkAmount = accountInfo.value.amount;
+            
+            if (parseInt(bonkAmount) > 0) {
+              // Liquidate 15% of BONK for SOL
+              const liquidationAmount = Math.floor(parseInt(bonkAmount) * 0.15);
+              
+              console.log(`💰 Liquidating ${liquidationAmount} BONK tokens`);
+              
+              // Get quote for BONK → SOL
+              const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${bonkMint}&outputMint=So11111111111111111111111111111111111111112&amount=${liquidationAmount}&slippageBps=1000`;
+              
+              const quoteResponse = await fetch(quoteUrl);
+              const quoteData = await quoteResponse.json();
+              
+              if (quoteResponse.ok && !quoteData.error) {
+                // Get swap transaction
+                const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    quoteResponse: quoteData,
+                    userPublicKey: wallet.publicKey.toString(),
+                    wrapAndUnwrapSol: true,
+                    dynamicComputeUnitLimit: true,
+                    prioritizationFeeLamports: 2000
+                  })
+                });
+                
+                const swapData = await swapResponse.json();
+                
+                if (swapResponse.ok) {
+                  // Execute BONK liquidation
+                  const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
+                  const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+                  transaction.sign([wallet]);
+                  
+                  const signature = await connection.sendTransaction(transaction, {
+                    skipPreflight: false,
+                    maxRetries: 5,
+                    preflightCommitment: 'processed'
+                  });
+                  
+                  await connection.confirmTransaction(signature, 'confirmed');
+                  
+                  const newSolBalance = await connection.getBalance(wallet.publicKey) / 1e9;
+                  console.log(`✅ BONK liquidation successful! New SOL balance: ${newSolBalance}`);
+                  
+                  return res.json({
+                    success: true,
+                    action: "bonk_liquidation",
+                    signature,
+                    solscanUrl: `https://solscan.io/tx/${signature}`,
+                    bonkLiquidated: liquidationAmount,
+                    solReceived: quoteData.outAmount / 1e9,
+                    newSolBalance,
+                    message: "BONK liquidation successful - ready for trading"
+                  });
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('BONK liquidation error:', error);
+        }
+      }
+      
       if (solBalance < 0.001) {
         return res.json({
           success: false,
           error: `Insufficient SOL for trade. Current: ${solBalance} SOL, minimum required: 0.001 SOL`,
           needsLiquidation: true,
-          bonkBalance: "~$450 BONK available for liquidation"
+          bonkBalance: "~$450 BONK available for liquidation",
+          suggestion: "Add liquidateBonk: true to request body to liquidate BONK for SOL"
         });
       }
       
@@ -1108,6 +1190,134 @@ export function registerRoutes(app: Express) {
       
     } catch (error: any) {
       console.error('Specific token trade error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message 
+      });
+    }
+  });
+
+  // BONK liquidation endpoint
+  app.post('/api/liquidate-bonk', async (req, res) => {
+    try {
+      const { percentage = 10 } = req.body; // Default to liquidating 10% of BONK
+      
+      console.log(`🔄 LIQUIDATING ${percentage}% OF BONK FOR SOL`);
+      
+      const wallet = Keypair.fromSecretKey(bs58.decode(process.env.WALLET_PRIVATE_KEY!));
+      const connection = new Connection(
+        'https://mainnet.helius-rpc.com/?api-key=' + process.env.HELIUS_API_KEY,
+        'confirmed'
+      );
+      
+      const bonkMint = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
+      
+      // Get BONK token accounts
+      const tokenAccounts = await connection.getTokenAccountsByOwner(
+        wallet.publicKey,
+        { mint: new PublicKey(bonkMint) }
+      );
+      
+      if (tokenAccounts.value.length === 0) {
+        return res.json({
+          success: false,
+          error: "No BONK tokens found in wallet"
+        });
+      }
+      
+      const accountInfo = await connection.getTokenAccountBalance(tokenAccounts.value[0].pubkey);
+      const bonkAmount = accountInfo.value.amount;
+      
+      if (parseInt(bonkAmount) === 0) {
+        return res.json({
+          success: false,
+          error: "BONK balance is 0"
+        });
+      }
+      
+      // Calculate liquidation amount
+      const liquidationAmount = Math.floor(parseInt(bonkAmount) * (percentage / 100));
+      
+      console.log(`💰 Liquidating ${liquidationAmount} BONK tokens (${percentage}% of ${bonkAmount})`);
+      
+      // Get quote for BONK → SOL
+      const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${bonkMint}&outputMint=So11111111111111111111111111111111111111112&amount=${liquidationAmount}&slippageBps=1000`;
+      
+      const quoteResponse = await fetch(quoteUrl);
+      const quoteData = await quoteResponse.json();
+      
+      if (!quoteResponse.ok || quoteData.error) {
+        return res.json({
+          success: false,
+          error: `BONK quote failed: ${quoteData.error || 'No liquidity available'}`
+        });
+      }
+      
+      // Get swap transaction
+      const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteResponse: quoteData,
+          userPublicKey: wallet.publicKey.toString(),
+          wrapAndUnwrapSol: true,
+          dynamicComputeUnitLimit: true,
+          prioritizationFeeLamports: 2000
+        })
+      });
+      
+      const swapData = await swapResponse.json();
+      
+      if (!swapResponse.ok) {
+        return res.json({
+          success: false,
+          error: `BONK swap preparation failed: ${swapData.error}`
+        });
+      }
+      
+      // Execute transaction
+      const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
+      const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+      transaction.sign([wallet]);
+      
+      console.log(`📤 Sending BONK liquidation transaction...`);
+      const signature = await connection.sendTransaction(transaction, {
+        skipPreflight: false,
+        maxRetries: 5,
+        preflightCommitment: 'processed'
+      });
+      
+      console.log(`🔗 BONK liquidation sent: ${signature}`);
+      
+      // Confirm transaction
+      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+      
+      if (confirmation.value.err) {
+        return res.json({
+          success: false,
+          error: `BONK liquidation failed: ${JSON.stringify(confirmation.value.err)}`,
+          signature
+        });
+      }
+      
+      // Get new SOL balance
+      const newSolBalance = await connection.getBalance(wallet.publicKey) / 1e9;
+      const solReceived = quoteData.outAmount / 1e9;
+      
+      console.log(`✅ BONK liquidation successful! Received ${solReceived} SOL`);
+      
+      res.json({
+        success: true,
+        signature,
+        solscanUrl: `https://solscan.io/tx/${signature}`,
+        bonkLiquidated: liquidationAmount,
+        solReceived,
+        newSolBalance,
+        timestamp: Date.now()
+      });
+      
+    } catch (error: any) {
+      console.error('BONK liquidation error:', error);
       res.status(500).json({ 
         success: false, 
         error: error.message 
