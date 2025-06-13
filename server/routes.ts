@@ -247,9 +247,16 @@ export function registerRoutes(app: Express) {
   // Authentic dashboard API endpoints
   app.get('/api/wallet/authentic-balance', async (req, res) => {
     try {
-      const { fixedDashboardAPI } = await import('./fixed-dashboard-api');
-      const walletData = await fixedDashboardAPI.getPortfolioBalance();
-      res.json(walletData);
+      const { realWalletPositionsAPI } = await import('./real-wallet-positions-api');
+      const walletData = await realWalletPositionsAPI.getRealWalletPositions();
+      res.json({
+        solBalance: walletData.solBalance,
+        totalValueUSD: walletData.totalValueUSD,
+        bonkBalance: walletData.bonkBalance,
+        activePositions: walletData.activePositions,
+        pumpFunPositions: walletData.pumpFunPositions,
+        totalPositions: walletData.totalPositions
+      });
     } catch (error) {
       console.error('Authentic balance error:', error);
       res.status(500).json({
@@ -261,9 +268,9 @@ export function registerRoutes(app: Express) {
 
   app.get('/api/wallet/authentic-positions', async (req, res) => {
     try {
-      const { fixedDashboardAPI } = await import('./fixed-dashboard-api');
-      const positions = await fixedDashboardAPI.getActivePositions();
-      res.json(positions);
+      const { realWalletPositionsAPI } = await import('./real-wallet-positions-api');
+      const walletData = await realWalletPositionsAPI.getRealWalletPositions();
+      res.json(walletData.positions);
     } catch (error) {
       console.error('Authentic positions error:', error);
       res.status(500).json({
@@ -283,6 +290,51 @@ export function registerRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: 'Failed to get authentic trade history'
+      });
+    }
+  });
+
+  // Low MC pump.fun strategy endpoints
+  app.get('/api/low-mc/opportunities', async (req, res) => {
+    try {
+      const { lowMCPumpStrategy } = await import('./low-mc-pump-strategy');
+      const opportunities = await lowMCPumpStrategy.getTopOpportunities();
+      res.json(opportunities);
+    } catch (error) {
+      console.error('Low MC opportunities error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get low MC opportunities'
+      });
+    }
+  });
+
+  app.post('/api/low-mc/execute', async (req, res) => {
+    try {
+      const { availableSOL } = req.body;
+      const { lowMCPumpStrategy } = await import('./low-mc-pump-strategy');
+      const result = await lowMCPumpStrategy.executeStrategy(availableSOL || 0.1);
+      res.json(result);
+    } catch (error) {
+      console.error('Low MC strategy execution error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to execute low MC strategy'
+      });
+    }
+  });
+
+  // Emergency BONK liquidation endpoint
+  app.post('/api/emergency/bonk-liquidation', async (req, res) => {
+    try {
+      const { bonkLiquidationEngine } = await import('./bonk-liquidation-engine');
+      const result = await bonkLiquidationEngine.executeEmergencyBonkLiquidation();
+      res.json(result);
+    } catch (error) {
+      console.error('BONK liquidation error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to execute BONK liquidation'
       });
     }
   });
