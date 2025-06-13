@@ -10,6 +10,7 @@ import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 import { walletTokenScanner } from './wallet-token-scanner';
 import { pumpFunTrader } from './pump-fun-trader';
+import victoriaOptimizedEndpoints from './victoria-optimized-endpoints';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -370,4 +371,7 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
+
+  // Integrate optimized endpoints
+  app.use(victoriaOptimizedEndpoints);
 }
