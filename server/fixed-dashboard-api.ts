@@ -9,7 +9,7 @@ import base58 from 'bs58';
 
 export class FixedDashboardAPI {
   private connection: Connection;
-  private wallet: Keypair;
+  private wallet?: Keypair;
 
   constructor() {
     this.connection = new Connection(
@@ -135,7 +135,7 @@ export class FixedDashboardAPI {
           symbol: this.generateTradeSymbol(),
           amount: (Math.random() * 2).toFixed(4),
           price: (Math.random() * 100).toFixed(4),
-          timestamp: sig.blockTime * 1000,
+          timestamp: (sig.blockTime || Date.now() / 1000) * 1000,
           profit: i % 2 === 1 ? (Math.random() * 50 - 10).toFixed(2) : null
         });
       }

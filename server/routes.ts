@@ -244,8 +244,8 @@ export function registerRoutes(app: Express) {
   // Authentic dashboard API endpoints
   app.get('/api/wallet/authentic-balance', async (req, res) => {
     try {
-      const { authenticDashboardAPI } = await import('./authentic-dashboard-api');
-      const walletData = await authenticDashboardAPI.getAuthenticWalletBalance();
+      const { fixedDashboardAPI } = await import('./fixed-dashboard-api');
+      const walletData = await fixedDashboardAPI.getPortfolioBalance();
       res.json(walletData);
     } catch (error) {
       console.error('Authentic balance error:', error);
@@ -258,8 +258,8 @@ export function registerRoutes(app: Express) {
 
   app.get('/api/wallet/authentic-positions', async (req, res) => {
     try {
-      const { authenticDashboardAPI } = await import('./authentic-dashboard-api');
-      const positions = await authenticDashboardAPI.getAuthenticPositions();
+      const { fixedDashboardAPI } = await import('./fixed-dashboard-api');
+      const positions = await fixedDashboardAPI.getActivePositions();
       res.json(positions);
     } catch (error) {
       console.error('Authentic positions error:', error);
@@ -272,8 +272,8 @@ export function registerRoutes(app: Express) {
 
   app.get('/api/trades/authentic-history', async (req, res) => {
     try {
-      const { authenticDashboardAPI } = await import('./authentic-dashboard-api');
-      const trades = await authenticDashboardAPI.getAuthenticTradeHistory();
+      const { fixedDashboardAPI } = await import('./fixed-dashboard-api');
+      const trades = await fixedDashboardAPI.getTradingHistory();
       res.json(trades);
     } catch (error) {
       console.error('Authentic trade history error:', error);
