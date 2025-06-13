@@ -12,6 +12,7 @@ import { walletTokenScanner } from './wallet-token-scanner';
 import { pumpFunTrader } from './pump-fun-trader';
 import victoriaOptimizedEndpoints from './victoria-optimized-endpoints';
 import { completeWalletSystem } from './complete-wallet-value-system';
+import { authenticTradesResolver } from './authentic-trades-resolver';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -150,32 +151,64 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Complete Phantom wallet value endpoint
+  // Authentic Phantom wallet portfolio endpoint
   app.get("/api/billion-trader/stats", async (req, res) => {
     try {
-      const walletData = await completeWalletSystem.getCompleteWalletValue();
+      const portfolio = await authenticTradesResolver.getAuthenticPortfolio();
       
       res.json({
         isActive: true,
-        currentCapital: walletData.totalUSDValue, // Complete Phantom wallet value
-        totalTrades: 30, // From authentic trade history
-        activePositions: walletData.tokenCount,
-        totalROI: walletData.realROI,
-        progressToBillion: (walletData.totalUSDValue / 1000000000) * 100,
-        solBalance: walletData.solBalance,
-        pumpFunTokens: walletData.tokens.filter(t => t.isPumpFun).length
+        currentCapital: portfolio.totalValue,
+        totalTrades: portfolio.trades.length,
+        activePositions: portfolio.positions.length,
+        totalROI: portfolio.totalROI,
+        progressToBillion: (portfolio.totalValue / 1000000000) * 100,
+        solBalance: portfolio.solBalance,
+        pumpFunTokens: portfolio.pumpFunCount
       });
     } catch (error) {
+      console.error('Portfolio error:', error);
+      const fallback = await authenticTradesResolver.getAuthenticPortfolio();
       res.json({
         isActive: true,
-        currentCapital: 1.29, // Fallback to screenshot value
-        totalTrades: 30,
-        activePositions: 21,
-        totalROI: -99.92,
-        progressToBillion: 0.000000129,
-        solBalance: 0.006474,
-        pumpFunTokens: 0
+        currentCapital: fallback.totalValue,
+        totalTrades: fallback.trades.length,
+        activePositions: fallback.positions.length,
+        totalROI: fallback.totalROI,
+        progressToBillion: (fallback.totalValue / 1000000000) * 100,
+        solBalance: fallback.solBalance,
+        pumpFunTokens: fallback.pumpFunCount
       });
+    }
+  });
+
+  // Authentic trades history endpoint
+  app.get("/api/trades/authentic", async (req, res) => {
+    try {
+      const portfolio = await authenticTradesResolver.getAuthenticPortfolio();
+      res.json({
+        trades: portfolio.trades,
+        totalTrades: portfolio.trades.length,
+        profitableTrades: portfolio.trades.filter(t => t.status === 'profitable').length,
+        lossTrades: portfolio.trades.filter(t => t.status === 'loss').length
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get authentic trades' });
+    }
+  });
+
+  // Current positions endpoint
+  app.get("/api/positions/current", async (req, res) => {
+    try {
+      const portfolio = await authenticTradesResolver.getAuthenticPortfolio();
+      res.json({
+        positions: portfolio.positions,
+        totalPositions: portfolio.positions.length,
+        pumpFunPositions: portfolio.positions.filter(p => p.isPumpFun).length,
+        totalValue: portfolio.positions.reduce((sum, p) => sum + p.currentValue, 0)
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get positions' });
     }
   });
 
