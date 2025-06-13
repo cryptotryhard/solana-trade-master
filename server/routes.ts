@@ -25,6 +25,7 @@ import { bonkTradingMonitor } from './bonk-trading-monitor';
 import { intelligentPumpFunScanner } from './intelligent-pump-fun-scanner';
 import { realPumpFunTrader } from './real-pump-fun-trader';
 import { testModeDemo } from './test-mode-demo';
+import { realBlockchainTrader } from './real-blockchain-trader';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -1491,6 +1492,52 @@ export function registerRoutes(app: Express) {
       res.json(result);
     } catch (error) {
       res.status(500).json({ success: false, error: "Failed to start real trading" });
+    }
+  });
+
+  // Real Blockchain Trading API Routes
+  app.post("/api/blockchain-trading/start", async (req, res) => {
+    try {
+      const result = await realBlockchainTrader.startRealTrading();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to start blockchain trading" });
+    }
+  });
+
+  app.get("/api/blockchain-trading/stats", async (req, res) => {
+    try {
+      const stats = realBlockchainTrader.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get blockchain trading stats" });
+    }
+  });
+
+  app.get("/api/blockchain-trading/active-trades", async (req, res) => {
+    try {
+      const trades = realBlockchainTrader.getActiveTrades();
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get active blockchain trades" });
+    }
+  });
+
+  app.get("/api/blockchain-trading/trade-history", async (req, res) => {
+    try {
+      const history = realBlockchainTrader.getTradeHistory();
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get blockchain trade history" });
+    }
+  });
+
+  app.post("/api/blockchain-trading/stop", async (req, res) => {
+    try {
+      realBlockchainTrader.stopTrading();
+      res.json({ success: true, message: "Blockchain trading stopped" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to stop blockchain trading" });
     }
   });
 

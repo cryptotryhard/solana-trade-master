@@ -18,6 +18,7 @@ import UltraAuthenticDashboard from "@/pages/ultra-authentic-dashboard";
 import IntelligentScannerDashboard from "@/pages/intelligent-scanner-dashboard";
 import VictoriaAutonomousDashboard from "@/pages/victoria-autonomous-dashboard";
 import TestModeDashboard from "@/pages/test-mode-dashboard";
+import ProductionTradingDashboard from "@/pages/production-trading-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/scanner" component={IntelligentScannerDashboard} />
       <Route path="/autonomous" component={VictoriaAutonomousDashboard} />
       <Route path="/test-mode" component={TestModeDashboard} />
+      <Route path="/production" component={ProductionTradingDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
