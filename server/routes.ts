@@ -19,6 +19,7 @@ import { networkResilienceManager } from './network-resilience-manager';
 import { authenticPortfolioValidator } from './authentic-portfolio-validator';
 import { systemIntegrityTester } from './system-integrity-tester';
 import { authenticTradingEngine } from './authentic-trading-engine';
+import { bonkTradingMonitor } from './bonk-trading-monitor';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -891,6 +892,72 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // BONK Trading Monitor Endpoints
+  app.get("/api/bonk/active-positions", async (req, res) => {
+    try {
+      const positions = bonkTradingMonitor.getActivePositions();
+      res.json({
+        success: true,
+        positions,
+        totalPositions: positions.length
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get active BONK positions',
+        message: error.message
+      });
+    }
+  });
+
+  app.get("/api/bonk/trading-stats", async (req, res) => {
+    try {
+      const stats = bonkTradingMonitor.getTradingStats();
+      res.json({
+        success: true,
+        ...stats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get BONK trading stats',
+        message: error.message
+      });
+    }
+  });
+
+  app.post("/api/bonk/start-monitoring", async (req, res) => {
+    try {
+      await bonkTradingMonitor.startMonitoring();
+      res.json({
+        success: true,
+        message: 'BONK trading monitoring started'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to start BONK monitoring',
+        message: error.message
+      });
+    }
+  });
+
+  app.post("/api/bonk/stop-monitoring", async (req, res) => {
+    try {
+      bonkTradingMonitor.stop();
+      res.json({
+        success: true,
+        message: 'BONK trading monitoring stopped'
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to stop BONK monitoring',
+        message: error.message
+      });
+    }
+  });
+
   // Auto-initialize VICTORIA systems on server startup
   setTimeout(async () => {
     try {
@@ -900,6 +967,12 @@ export function registerRoutes(app: Express) {
       
       const { victoriaMasterController } = await import('./victoria-master-controller');
       console.log('🤖 VICTORIA Master Controller initialized');
+      
+      // Start BONK trading monitoring
+      console.log('🔄 Starting BONK trading monitor...');
+      await bonkTradingMonitor.startMonitoring();
+      console.log('✅ BONK trading monitor active');
+      
     } catch (error: any) {
       console.error('❌ Failed to initialize VICTORIA:', error.message);
     }
