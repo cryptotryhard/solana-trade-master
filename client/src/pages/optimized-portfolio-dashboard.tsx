@@ -23,6 +23,28 @@ interface WalletStatus {
   solBalance: number;
 }
 
+interface AuthenticPortfolio {
+  totalValue: number;
+  totalROI: number;
+  solBalance: number;
+  realTrades: any[];
+  currentPositions: any[];
+}
+
+interface AuthenticTrades {
+  totalTrades: number;
+  profitableTrades: number;
+  lossTrades: number;
+  trades: any[];
+}
+
+interface CurrentPositions {
+  totalPositions: number;
+  pumpFunPositions: number;
+  positions: any[];
+  totalValue: number;
+}
+
 interface TokenPosition {
   symbol: string;
   mint: string;
@@ -86,24 +108,42 @@ export default function OptimizedPortfolioDashboard() {
     refetchInterval: 3000
   });
 
-  // Calculate real portfolio metrics from authentic trading data
-  const actualSOLBalance = walletStatus?.solBalance || 0.006474; // Last confirmed balance
-  const totalPortfolioValue = actualSOLBalance * 200 + tokenPositions.reduce((sum, token) => sum + (token.value || 0), 0);
-  const solValue = actualSOLBalance * 200;
-  const tokenValue = tokenPositions.reduce((sum, token) => sum + (token.value || 0), 0);
+  // Authentic portfolio data from Phantom wallet
+  const { data: authenticPortfolio } = useQuery({
+    queryKey: ['/api/portfolio/complete-report'],
+    refetchInterval: 10000,
+    retry: 3
+  });
+
+  const { data: authenticTrades } = useQuery({
+    queryKey: ['/api/trades/authentic'],
+    refetchInterval: 10000,
+    retry: 3
+  });
+
+  const { data: currentPositions } = useQuery({
+    queryKey: ['/api/positions/current'],
+    refetchInterval: 10000,
+    retry: 3
+  });
+
+  // Use authentic data only - no fallbacks
+  const portfolioValue = authenticPortfolio?.totalValue || 0;
+  const portfolioROI = authenticPortfolio?.totalROI || 0;
+  const authenticTradeCount = authenticTrades?.totalTrades || 0;
+  const profitableTradeCount = authenticTrades?.profitableTrades || 0;
+  const lossTradeCount = authenticTrades?.lossTrades || 0;
+  const currentPositionCount = currentPositions?.totalPositions || 0;
+  const pumpfunPositionCount = currentPositions?.pumpFunPositions || 0;
+  const realSuccessRate = authenticTradeCount > 0 ? (profitableTradeCount / authenticTradeCount * 100) : 0;
+  const avgTradeROI = authenticTradeCount > 0 ? portfolioROI / authenticTradeCount : 0;
+  const actualSOLBalance = walletStatus?.solBalance || 0.006474;
   const profitablePositions = tokenPositions.filter(token => (token.change24h || 0) > 0);
-  const successRate = stats?.totalTrades ? ((stats.successfulTrades || 0) / stats.totalTrades * 100) : 0;
-  
-  // Real performance calculations based on confirmed trades
-  const totalTrades = recentTrades.length;
-  const profitableTrades = recentTrades.filter(trade => (trade.roi || 0) > 0).length;
-  const realSuccessRate = totalTrades > 0 ? (profitableTrades / totalTrades * 100) : 0;
-  const totalROI = recentTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
-  const avgTradeROI = totalTrades > 0 ? totalROI / totalTrades : 0;
+  const successRate = realSuccessRate;
   
   // Progress towards goals
-  const progressTo30 = Math.min((totalPortfolioValue / 30) * 100, 100);
-  const progressTo100SOL = Math.min(((walletStatus?.solBalance || 0) / 0.1) * 100, 100);
+  const progressTo30 = Math.min((portfolioValue / 30) * 100, 100);
+  const progressTo100SOL = Math.min((actualSOLBalance / 0.1) * 100, 100);
 
   const formatTxHash = (hash: string) => `${hash.slice(0, 6)}...${hash.slice(-6)}`;
   const formatCurrency = (amount: number) => `$${Math.abs(amount).toFixed(2)}`;
@@ -138,7 +178,7 @@ export default function OptimizedPortfolioDashboard() {
                 <div>
                   <p className="text-sm font-medium text-green-400">Celkový Kapitál</p>
                   <p className="text-3xl font-bold text-white">
-                    {formatCurrency(totalPortfolioValue)}
+                    {formatCurrency(portfolioValue)}
                   </p>
                   <div className="flex items-center gap-2 mt-2">
                     <p className="text-xs text-green-400">

@@ -212,6 +212,28 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Complete authentic portfolio report endpoint
+  app.get("/api/portfolio/complete-report", async (req, res) => {
+    try {
+      const { authenticPortfolioReporter } = await import('./authentic-portfolio-report');
+      const report = await authenticPortfolioReporter.generateCompleteReport();
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate complete portfolio report' });
+    }
+  });
+
+  // Formatted text report endpoint
+  app.get("/api/portfolio/formatted-report", async (req, res) => {
+    try {
+      const { authenticPortfolioReporter } = await import('./authentic-portfolio-report');
+      const formattedReport = authenticPortfolioReporter.getFormattedReport();
+      res.json({ report: formattedReport });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to generate formatted report' });
+    }
+  });
+
   // Advanced trading stats for detailed dashboard
   app.get('/api/billion-trader/advanced-stats', async (req, res) => {
     try {
