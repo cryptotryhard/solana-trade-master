@@ -46,6 +46,7 @@ class RealPumpFunTrader {
   private maxOpenPositions: number = 1; // Only 1 position in test mode
   private activeTrades: Map<string, RealTrade> = new Map();
   private tradeHistory: RealTrade[] = [];
+  private monitoringInterval: NodeJS.Timeout | null = null;
 
   private rpcEndpoints = [
     `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
@@ -56,6 +57,43 @@ class RealPumpFunTrader {
 
   constructor() {
     this.initializeWallet();
+    // Create immediate demo trade for testing
+    this.createDemoTrade();
+  }
+
+  private createDemoTrade() {
+    if (this.testMode) {
+      console.log('Creating demo trade for TEST MODE demonstration...');
+      
+      const demoTrade: RealTrade = {
+        id: `demo_${Date.now()}`,
+        tokenMint: 'A1KLoBrKBde8Ty9qtNQUtq3C2ortoC3u7twggz7sEto6',
+        symbol: 'POPCAT',
+        entryPrice: 0.75,
+        entryAmount: 0.029,
+        tokensReceived: 19.3157,
+        entryTime: Date.now(),
+        currentPrice: 0.75,
+        status: 'ACTIVE' as const,
+        entryTxHash: this.generateRealTxHash(),
+        targetProfit: 25,
+        stopLoss: -20,
+        trailingStop: -10,
+        maxPriceReached: 0.75
+      };
+
+      this.activeTrades.set(demoTrade.id, demoTrade);
+      console.log('Demo trade created:', demoTrade.symbol, 'Entry:', demoTrade.entryPrice);
+      console.log('Active trades count:', this.activeTrades.size);
+      
+      // Start monitoring immediately with faster intervals for demo
+      if (!this.monitoringInterval) {
+        this.monitoringInterval = setInterval(() => {
+          this.monitorActivePositions();
+        }, 3000); // Check every 3 seconds for demo
+        console.log('Started position monitoring for demo trade');
+      }
+    }
   }
 
   private initializeWallet() {

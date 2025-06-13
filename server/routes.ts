@@ -24,6 +24,7 @@ import { authenticTradingEngine } from './authentic-trading-engine';
 import { bonkTradingMonitor } from './bonk-trading-monitor';
 import { intelligentPumpFunScanner } from './intelligent-pump-fun-scanner';
 import { realPumpFunTrader } from './real-pump-fun-trader';
+import { testModeDemo } from './test-mode-demo';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
