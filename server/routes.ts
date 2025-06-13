@@ -16,6 +16,8 @@ import { authenticTradesResolver } from './authentic-trades-resolver';
 import { comprehensiveTradingAnalyzer } from './comprehensive-trading-analyzer';
 import { optimizedTradingCoordinator } from './optimized-trading-coordinator';
 import { networkResilienceManager } from './network-resilience-manager';
+import { authenticPortfolioValidator } from './authentic-portfolio-validator';
+import { systemIntegrityTester } from './system-integrity-tester';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -776,6 +778,73 @@ export function registerRoutes(app: Express) {
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to reset network state', message: error.message });
+    }
+  });
+
+  // Portfolio Validation and Correction Endpoints
+  app.get('/api/portfolio/validate', async (req, res) => {
+    try {
+      const report = await authenticPortfolioValidator.validatePortfolio();
+      res.json({
+        success: true,
+        report,
+        message: 'Portfolio validation completed'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to validate portfolio', message: error.message });
+    }
+  });
+
+  app.get('/api/portfolio/corrected-data', async (req, res) => {
+    try {
+      const validatedData = await authenticPortfolioValidator.getValidatedPortfolioData();
+      res.json({
+        success: true,
+        data: validatedData,
+        message: 'Corrected portfolio data retrieved'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get corrected data', message: error.message });
+    }
+  });
+
+  app.post('/api/portfolio/fix-discrepancies', async (req, res) => {
+    try {
+      const report = await authenticPortfolioValidator.validatePortfolio();
+      const fixed = await authenticPortfolioValidator.fixDiscrepancies(report);
+      res.json({
+        success: true,
+        fixed,
+        message: fixed ? 'Discrepancies fixed successfully' : 'No discrepancies found to fix'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fix discrepancies', message: error.message });
+    }
+  });
+
+  // System Integrity Testing Endpoints
+  app.get('/api/system/integrity-test', async (req, res) => {
+    try {
+      const report = await systemIntegrityTester.runComprehensiveTest();
+      res.json({
+        success: true,
+        report,
+        message: 'System integrity test completed'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to run integrity test', message: error.message });
+    }
+  });
+
+  app.post('/api/system/repair', async (req, res) => {
+    try {
+      const result = await systemIntegrityTester.executeSystemRepair();
+      res.json({
+        success: result,
+        message: result ? 'System repair completed successfully' : 'System repair failed'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to execute system repair', message: error.message });
     }
   });
 
