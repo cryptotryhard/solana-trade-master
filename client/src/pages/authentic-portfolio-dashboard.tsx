@@ -212,7 +212,7 @@ export default function AuthenticPortfolioDashboard() {
               <h3 className="text-xl font-bold text-white mb-4">Authentic Trading History</h3>
               {tradesLoading ? (
                 <div className="text-gray-400">Loading authentic trade data...</div>
-              ) : trades.trades && trades.trades.length > 0 ? (
+              ) : trades?.trades && trades.trades.length > 0 ? (
                 <div className="space-y-3">
                   {trades.trades.slice(0, 5).map((trade: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
@@ -243,7 +243,7 @@ export default function AuthenticPortfolioDashboard() {
               <h3 className="text-xl font-bold text-white mb-4">Current Positions</h3>
               {positionsLoading ? (
                 <div className="text-gray-400">Loading position data...</div>
-              ) : positions.positions && positions.positions.length > 0 ? (
+              ) : positions?.positions && positions.positions.length > 0 ? (
                 <div className="space-y-3">
                   {positions.positions.slice(0, 5).map((position: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg">
