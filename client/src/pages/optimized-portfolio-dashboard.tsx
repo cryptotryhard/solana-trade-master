@@ -78,6 +78,11 @@ export default function OptimizedPortfolioDashboard() {
     refetchInterval: 2000
   });
 
+  const { data: recentTransactions = [] } = useQuery({
+    queryKey: ['/api/recent-transactions'],
+    refetchInterval: 3000
+  });
+
   // Calculate portfolio metrics
   const totalPortfolioValue = (walletStatus?.solBalance || 0) * 200 + tokenPositions.reduce((sum, token) => sum + token.value, 0);
   const solValue = (walletStatus?.solBalance || 0) * 200;
