@@ -27,18 +27,15 @@ interface AuthenticPosition {
 }
 
 interface AuthenticTrade {
-  id: string;
+  signature: string;
   symbol: string;
-  mint: string;
-  type: 'buy' | 'sell';
-  amount: number;
-  price: number;
-  timestamp: string;
-  txHash: string;
-  pnl: number;
-  roi: number;
-  isPumpFun: boolean;
-  platform: string;
+  type: 'BUY' | 'SELL';
+  amount: string;
+  price: string;
+  timestamp: number;
+  profit: string | null;
+  isPumpFun?: boolean;
+  platform?: string;
   marketCapAtEntry?: number;
 }
 
@@ -317,31 +314,29 @@ export default function UltraAuthenticDashboard() {
                       <div key={index} className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-600">
                         <div className="flex items-center space-x-4">
                           <div className={`w-3 h-3 rounded-full ${
-                            trade.type === 'buy' ? 'bg-green-500' : 'bg-red-500'
+                            trade.type === 'BUY' ? 'bg-green-500' : 'bg-red-500'
                           }`} />
                           <div className="flex flex-col">
                             <div className="font-semibold flex items-center gap-2">
                               {trade.symbol}
-                              {trade.isPumpFun && (
-                                <Badge variant="secondary" className="text-xs bg-orange-600 text-white">
-                                  PUMP.FUN
-                                </Badge>
-                              )}
+                              <Badge variant="secondary" className="text-xs bg-orange-600 text-white">
+                                PUMP.FUN
+                              </Badge>
                             </div>
                             <div className="text-sm text-gray-400">
-                              {trade.type.toUpperCase()} • {formatTime(trade.timestamp)}
+                              {trade.type} • {formatTime(trade.timestamp.toString())}
                             </div>
                             <div className="text-xs text-gray-500 space-y-1">
                               <div>
                                 <span className="font-medium">
-                                  {trade.type === 'buy' ? 'Nákup za:' : 'Prodej za:'} 
-                                </span> ${trade.price.toFixed(8)}
+                                  {trade.type === 'BUY' ? 'Nákup za:' : 'Prodej za:'} 
+                                </span> ${parseFloat(trade.price || '0').toFixed(8)}
                               </div>
                               <div>
-                                <span className="font-medium">Množství:</span> {trade.amount.toLocaleString()} tokenů
+                                <span className="font-medium">Množství:</span> {parseFloat(trade.amount || '0').toLocaleString()} tokenů
                               </div>
                               <div>
-                                <span className="font-medium">Hodnota:</span> ${(trade.amount * trade.price).toFixed(2)}
+                                <span className="font-medium">Hodnota:</span> ${(parseFloat(trade.amount || '0') * parseFloat(trade.price || '0')).toFixed(2)}
                               </div>
                             </div>
                             <div className="flex gap-2 mt-1">
