@@ -27,6 +27,7 @@ import { realPumpFunTrader } from './real-pump-fun-trader';
 import { testModeDemo } from './test-mode-demo';
 import { realBlockchainTrader } from './real-blockchain-trader';
 import { streamlinedTradingEngine } from './streamlined-trading-engine';
+import { streamlinedEngine } from './streamlined-api';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -1608,21 +1609,24 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Streamlined Trading Engine API - Rate Limited & Optimized
+  // Streamlined Trading Engine API - Real Jupiter Trading
   app.post("/api/streamlined/start", async (req, res) => {
     try {
-      const result = await streamlinedTradingEngine.startOptimizedTrading();
-      res.json(result);
+      console.log('🚀 Starting new streamlined trading engine with Jupiter API');
+      streamlinedEngine.startStreamlinedTrading();
+      res.json({ success: true, message: 'Streamlined trading engine started' });
     } catch (error) {
+      console.error('❌ Error starting streamlined trading:', error);
       res.status(500).json({ success: false, error: "Failed to start streamlined trading" });
     }
   });
 
   app.get("/api/streamlined/stats", async (req, res) => {
     try {
-      const stats = streamlinedTradingEngine.getStats();
+      const stats = await streamlinedEngine.getStreamlinedStats();
       res.json(stats);
     } catch (error) {
+      console.error('❌ Error getting streamlined stats:', error);
       res.status(500).json({ success: false, error: "Failed to get streamlined stats" });
     }
   });
