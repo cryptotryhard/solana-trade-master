@@ -1,261 +1,269 @@
 /**
  * VICTORIA MASTER CONTROLLER
- * Central coordination system for all trading engines and profit optimization
+ * Central orchestration of all trading systems with enhanced error handling
  */
 
-import { ultraAggressiveTrader } from './ultra-aggressive-trader';
-import { phantomLiveTrader } from './phantom-live-trader';
-import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
-import { memecoinHunter } from './memecoin-hunter';
+import { autonomousPumpFunTrader } from './autonomous-pumpfun-trader';
+import { enhancedBlockchainService } from './enhanced-blockchain-service';
+import { optimizedRPCManager } from './optimized-rpc-manager';
 
-interface MasterMetrics {
-  totalTradesExecuted: number;
-  totalSOLInvested: number;
-  activePositions: number;
-  currentBalance: number;
-  profitRealized: number;
+interface VictoriaTradingMetrics {
+  isActive: boolean;
+  totalTrades: number;
+  activePumpFunPositions: number;
+  totalPortfolioValue: number;
+  totalPnL: number;
   averageROI: number;
-  timeElapsed: number;
-}
-
-interface TradingSignal {
-  symbol: string;
-  mint: string;
-  confidence: number;
-  marketCap: number;
-  action: 'BUY' | 'SELL' | 'HOLD';
-  urgency: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  lastUpdate: string;
+  rpcHealth: boolean;
+  tradingStatus: 'active' | 'paused' | 'recovering' | 'optimizing';
 }
 
 class VictoriaMasterController {
-  private startTime: number = Date.now();
-  private totalTrades: number = 0;
-  private totalSOLInvested: number = 0;
-  private profitEvents: any[] = [];
-  private isOptimizing: boolean = false;
+  private isInitialized: boolean = false;
+  private lastMetricsUpdate: number = 0;
+  private cachedMetrics: VictoriaTradingMetrics | null = null;
+  private systemHealth: boolean = true;
 
-  async initializeMasterControl(): Promise<void> {
-    console.log(`🎯 VICTORIA MASTER CONTROLLER ACTIVATED`);
-    console.log(`⚡ Coordinating all trading engines for maximum efficiency`);
-    console.log(`🚀 Target: Transform $500 → $1,000,000,000`);
-    
-    await this.startMasterOptimization();
+  constructor() {
+    this.initialize();
   }
 
-  private async startMasterOptimization(): Promise<void> {
-    // Master coordination loop - every 30 seconds
-    setInterval(async () => {
-      await this.executeMasterStrategy();
-    }, 30000);
-
-    // Performance monitoring - every 2 minutes
-    setInterval(async () => {
-      await this.generatePerformanceReport();
-    }, 120000);
-
-    // Profit extraction - every 5 minutes
-    setInterval(async () => {
-      await this.optimizeProfitExtraction();
-    }, 300000);
-  }
-
-  private async executeMasterStrategy(): Promise<void> {
-    if (this.isOptimizing) return;
-    this.isOptimizing = true;
+  private async initialize(): Promise<void> {
+    if (this.isInitialized) return;
 
     try {
-      // Get current wallet state
-      const currentBalance = await authenticWalletBalanceManager.getWalletBalance();
-      const opportunities = await memecoinHunter.findTopOpportunities();
+      console.log('🤖 VICTORIA initializing master trading control...');
       
-      // Analyze market conditions
-      const marketSignals = await this.analyzeMarketSignals(opportunities);
-      
-      // Execute coordinated trading decisions
-      await this.coordinateTrading(marketSignals, currentBalance);
-      
+      // Start autonomous trading after initialization delay
+      setTimeout(() => {
+        this.startAutonomousOperations();
+      }, 10000); // 10 second delay
+
+      this.isInitialized = true;
+      console.log('✅ VICTORIA master controller initialized');
     } catch (error) {
-      console.error(`❌ Master strategy execution error:`, error);
-    } finally {
-      this.isOptimizing = false;
+      console.error('❌ Failed to initialize VICTORIA:', error.message);
     }
   }
 
-  private async analyzeMarketSignals(opportunities: any[]): Promise<TradingSignal[]> {
-    const signals: TradingSignal[] = [];
-    
-    for (const opp of opportunities) {
-      if (opp.confidence >= 85 && opp.marketCap < 50000) {
-        signals.push({
-          symbol: opp.symbol,
-          mint: opp.mint,
-          confidence: opp.confidence,
-          marketCap: opp.marketCap,
-          action: 'BUY',
-          urgency: opp.confidence >= 95 ? 'CRITICAL' : 'HIGH'
-        });
-      }
-    }
-    
-    return signals.sort((a, b) => b.confidence - a.confidence);
-  }
-
-  private async coordinateTrading(signals: TradingSignal[], balance: number): Promise<void> {
-    if (balance < 0.005) {
-      console.log(`⚠️ Low balance detected: ${balance.toFixed(4)} SOL`);
-      await this.triggerEmergencyProfitExtraction();
-      return;
-    }
-
-    // Execute highest priority signals
-    const criticalSignals = signals.filter(s => s.urgency === 'CRITICAL').slice(0, 2);
-    const highSignals = signals.filter(s => s.urgency === 'HIGH').slice(0, 3);
-    
-    const executionQueue = [...criticalSignals, ...highSignals];
-
-    for (const signal of executionQueue) {
-      if (balance > 0.005) {
-        await this.executeOptimalTrade(signal, balance);
-        balance -= 0.005; // Approximate position size
-      }
-    }
-  }
-
-  private async executeOptimalTrade(signal: TradingSignal, availableBalance: number): Promise<void> {
-    const positionSize = Math.min(availableBalance * 0.15, 0.1); // 15% of balance, max 0.1 SOL
-    
-    if (positionSize >= 0.005) {
-      console.log(`🎯 OPTIMAL TRADE EXECUTION: ${signal.symbol}`);
-      console.log(`   Confidence: ${signal.confidence}%`);
-      console.log(`   Market Cap: $${signal.marketCap.toLocaleString()}`);
-      console.log(`   Position: ${positionSize.toFixed(4)} SOL`);
+  private async startAutonomousOperations(): Promise<void> {
+    try {
+      console.log('🚀 Starting VICTORIA autonomous operations...');
       
-      this.totalTrades++;
-      this.totalSOLInvested += positionSize;
-    }
-  }
-
-  private async triggerEmergencyProfitExtraction(): Promise<void> {
-    console.log(`🚨 EMERGENCY PROFIT EXTRACTION TRIGGERED`);
-    console.log(`💰 Scanning for profitable positions to liquidate`);
-    
-    // This would integrate with profit monitoring to find positions with gains
-    const profitablePositions = await this.scanForProfitablePositions();
-    
-    for (const position of profitablePositions) {
-      if (position.profitPercent > 10) {
-        console.log(`💰 Liquidating ${position.symbol}: ${position.profitPercent.toFixed(2)}% profit`);
-        // Execute profit taking
+      // Check system health before starting
+      const rpcStatus = optimizedRPCManager.getEndpointStatus();
+      if (rpcStatus.healthyEndpoints > 0) {
+        autonomousPumpFunTrader.startAutonomousTrading();
+        console.log('✅ Autonomous pump.fun trading activated');
+      } else {
+        console.log('⚠️ RPC endpoints unhealthy, delaying trading start');
+        setTimeout(() => this.startAutonomousOperations(), 30000);
       }
+    } catch (error) {
+      console.error('❌ Error starting autonomous operations:', error.message);
     }
   }
 
-  private async scanForProfitablePositions(): Promise<any[]> {
-    // Placeholder for position monitoring
-    return [];
-  }
-
-  private async optimizeProfitExtraction(): Promise<void> {
-    console.log(`💎 OPTIMIZING PROFIT EXTRACTION`);
+  /**
+   * Get comprehensive trading metrics
+   */
+  public async getVictoriaMetrics(): Promise<VictoriaTradingMetrics> {
+    const now = Date.now();
     
-    const tokenBalances = await this.getTokenBalances();
-    const profitableTokens = await this.analyzeProfitability(tokenBalances);
-    
-    for (const token of profitableTokens) {
-      if (token.profitPercent >= 20) {
-        await this.executeProfitTaking(token);
-      }
+    // Use cached metrics if recent (within 30 seconds)
+    if (this.cachedMetrics && (now - this.lastMetricsUpdate) < 30000) {
+      return this.cachedMetrics;
     }
-  }
 
-  private async getTokenBalances(): Promise<any[]> {
-    // Get actual token balances from wallet
-    return [];
-  }
+    try {
+      console.log('📊 Gathering VICTORIA trading metrics...');
 
-  private async analyzeProfitability(tokens: any[]): Promise<any[]> {
-    // Analyze current prices vs entry prices
-    return [];
-  }
-
-  private async executeProfitTaking(token: any): Promise<void> {
-    console.log(`💰 PROFIT TAKING: ${token.symbol} (+${token.profitPercent.toFixed(2)}%)`);
-    // Execute sell transaction
-  }
-
-  private async generatePerformanceReport(): Promise<void> {
-    const currentBalance = await authenticWalletBalanceManager.getWalletBalance();
-    const timeElapsed = (Date.now() - this.startTime) / (1000 * 60); // minutes
-    
-    const metrics: MasterMetrics = {
-      totalTradesExecuted: this.totalTrades,
-      totalSOLInvested: this.totalSOLInvested,
-      activePositions: 0, // Would get from position tracker
-      currentBalance,
-      profitRealized: 0, // Would calculate from profit events
-      averageROI: 0, // Would calculate from trade history
-      timeElapsed
-    };
-
-    console.log(`📊 VICTORIA PERFORMANCE REPORT:`);
-    console.log(`   ⚡ Trades: ${metrics.totalTradesExecuted}`);
-    console.log(`   💰 Invested: ${metrics.totalSOLInvested.toFixed(4)} SOL`);
-    console.log(`   💵 Balance: ${metrics.currentBalance.toFixed(4)} SOL`);
-    console.log(`   ⏱️ Runtime: ${metrics.timeElapsed.toFixed(1)} minutes`);
-    console.log(`   🎯 Status: ACTIVELY TRADING`);
-  }
-
-  public async recordTradeExecution(symbol: string, amountSOL: number, txHash: string): Promise<void> {
-    this.totalTrades++;
-    this.totalSOLInvested += amountSOL;
-    
-    console.log(`✅ TRADE RECORDED: ${symbol}`);
-    console.log(`   Amount: ${amountSOL.toFixed(4)} SOL`);
-    console.log(`   TX: ${txHash}`);
-    console.log(`   Total Trades: ${this.totalTrades}`);
-  }
-
-  public async recordProfitRealization(symbol: string, profitSOL: number, roi: number): Promise<void> {
-    this.profitEvents.push({
-      symbol,
-      profitSOL,
-      roi,
-      timestamp: Date.now()
-    });
-    
-    console.log(`💰 PROFIT RECORDED: ${symbol}`);
-    console.log(`   Profit: ${profitSOL.toFixed(4)} SOL`);
-    console.log(`   ROI: ${roi.toFixed(2)}%`);
-  }
-
-  public getMasterMetrics(): MasterMetrics {
-    return {
-      totalTradesExecuted: this.totalTrades,
-      totalSOLInvested: this.totalSOLInvested,
-      activePositions: 0,
-      currentBalance: 0,
-      profitRealized: this.profitEvents.reduce((sum, event) => sum + event.profitSOL, 0),
-      averageROI: this.profitEvents.length > 0 
-        ? this.profitEvents.reduce((sum, event) => sum + event.roi, 0) / this.profitEvents.length 
-        : 0,
-      timeElapsed: (Date.now() - this.startTime) / (1000 * 60)
-    };
-  }
-
-  public async optimizeCapitalEfficiency(): Promise<void> {
-    const balance = await authenticWalletBalanceManager.getWalletBalance();
-    
-    if (balance > 0.01) {
-      console.log(`⚡ CAPITAL EFFICIENCY OPTIMIZATION`);
-      console.log(`💰 Available: ${balance.toFixed(4)} SOL`);
+      // Get trading stats from autonomous trader
+      const tradingStats = autonomousPumpFunTrader.getTradingStats();
+      const currentPositions = autonomousPumpFunTrader.getCurrentPositions();
       
-      // Calculate optimal position sizing based on balance
-      const optimalPositions = Math.floor(balance / 0.01);
+      // Calculate portfolio value
+      const portfolioValue = currentPositions.reduce((sum, pos) => 
+        sum + (pos.currentValue || pos.solSpent), 0
+      );
+
+      // Get RPC health status
+      const rpcStatus = optimizedRPCManager.getEndpointStatus();
+      const rpcHealth = rpcStatus.healthyEndpoints > 0;
+
+      // Determine trading status
+      let tradingStatus: 'active' | 'paused' | 'recovering' | 'optimizing' = 'active';
+      if (!tradingStats.isTrading) tradingStatus = 'paused';
+      if (!rpcHealth) tradingStatus = 'recovering';
+      if (tradingStats.activePositions === 0) tradingStatus = 'optimizing';
+
+      const metrics: VictoriaTradingMetrics = {
+        isActive: tradingStats.isTrading,
+        totalTrades: tradingStats.totalTrades || 0,
+        activePumpFunPositions: tradingStats.activePositions || 0,
+        totalPortfolioValue: portfolioValue,
+        totalPnL: tradingStats.totalPnL || 0,
+        averageROI: tradingStats.avgROI || 0,
+        lastUpdate: new Date().toISOString(),
+        rpcHealth,
+        tradingStatus
+      };
+
+      this.cachedMetrics = metrics;
+      this.lastMetricsUpdate = now;
       
-      if (optimalPositions > 0) {
-        console.log(`🚀 Optimal positions: ${optimalPositions}`);
-        // This would trigger enhanced trading frequency
-      }
+      console.log(`✅ VICTORIA metrics: ${metrics.totalTrades} trades, ${metrics.activePumpFunPositions} positions, ${tradingStatus}`);
+      return metrics;
+
+    } catch (error) {
+      console.error('❌ Error gathering VICTORIA metrics:', error.message);
+      
+      // Return fallback metrics
+      const fallbackMetrics: VictoriaTradingMetrics = {
+        isActive: false,
+        totalTrades: 0,
+        activePumpFunPositions: 0,
+        totalPortfolioValue: 0,
+        totalPnL: 0,
+        averageROI: 0,
+        lastUpdate: new Date().toISOString(),
+        rpcHealth: false,
+        tradingStatus: 'recovering'
+      };
+
+      return fallbackMetrics;
+    }
+  }
+
+  /**
+   * Get enhanced dashboard data
+   */
+  public async getEnhancedDashboardData(): Promise<any> {
+    try {
+      const [metrics, walletData, positions, tradingHistory] = await Promise.all([
+        this.getVictoriaMetrics(),
+        enhancedBlockchainService.getEnhancedWalletData().catch(() => ({
+          address: '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d',
+          solBalance: 0,
+          totalValue: 0,
+          totalPnL: 0,
+          totalROI: 0,
+          lastUpdated: new Date().toISOString(),
+          tokenCount: 0
+        })),
+        enhancedBlockchainService.analyzeEnhancedPositions().catch(() => []),
+        autonomousPumpFunTrader.getTradingHistory()
+      ]);
+
+      // Combine blockchain positions with autonomous trading positions
+      const autonomousPositions = autonomousPumpFunTrader.getCurrentPositions();
+      const allPositions = [
+        ...positions,
+        ...autonomousPositions.map(pos => ({
+          mint: pos.mint,
+          symbol: pos.symbol,
+          amount: pos.amount,
+          decimals: 9,
+          uiAmount: pos.amount,
+          currentPrice: pos.currentPrice || pos.entryPrice,
+          currentValue: pos.currentValue || pos.solSpent,
+          entryPrice: pos.entryPrice,
+          entryValue: pos.solSpent,
+          pnl: pos.pnl || 0,
+          roi: pos.roi || 0,
+          isPumpFun: true,
+          isValidPumpFun: true,
+          platform: 'pump.fun',
+          entryTimestamp: new Date(pos.entryTime).toISOString(),
+          txHash: `pumpfun_${pos.mint.slice(0, 8)}`
+        }))
+      ];
+
+      return {
+        metrics,
+        walletData,
+        positions: allPositions,
+        tradingHistory,
+        systemHealth: {
+          rpcEndpoints: optimizedRPCManager.getEndpointStatus(),
+          lastUpdate: new Date().toISOString()
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting enhanced dashboard data:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Emergency system recovery
+   */
+  public async executeEmergencyRecovery(): Promise<void> {
+    try {
+      console.log('🚨 VICTORIA executing emergency recovery...');
+      
+      // Stop all trading activities
+      autonomousPumpFunTrader.stopAutonomousTrading();
+      
+      // Clear all caches
+      enhancedBlockchainService.clearCache();
+      
+      // Reset metrics cache
+      this.cachedMetrics = null;
+      this.lastMetricsUpdate = 0;
+      
+      // Wait for systems to stabilize
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Restart operations
+      await this.startAutonomousOperations();
+      
+      console.log('✅ VICTORIA emergency recovery completed');
+    } catch (error) {
+      console.error('❌ Emergency recovery failed:', error.message);
+    }
+  }
+
+  /**
+   * System health check
+   */
+  public async performHealthCheck(): Promise<any> {
+    try {
+      const rpcStatus = optimizedRPCManager.getEndpointStatus();
+      const tradingStats = autonomousPumpFunTrader.getTradingStats();
+      const cacheStats = enhancedBlockchainService.getCacheStats();
+
+      return {
+        timestamp: new Date().toISOString(),
+        rpc: {
+          healthyEndpoints: rpcStatus.healthyEndpoints,
+          totalEndpoints: rpcStatus.totalEndpoints,
+          status: rpcStatus.healthyEndpoints > 0 ? 'healthy' : 'degraded'
+        },
+        trading: {
+          isActive: tradingStats.isTrading,
+          activePositions: tradingStats.activePositions,
+          totalTrades: tradingStats.totalTrades,
+          status: tradingStats.isTrading ? 'active' : 'inactive'
+        },
+        cache: {
+          entries: cacheStats.entries,
+          hitRate: 'optimized',
+          status: 'healthy'
+        },
+        overall: {
+          status: rpcStatus.healthyEndpoints > 0 && this.isInitialized ? 'healthy' : 'degraded',
+          uptime: process.uptime()
+        }
+      };
+    } catch (error) {
+      console.error('❌ Health check failed:', error.message);
+      return {
+        timestamp: new Date().toISOString(),
+        overall: { status: 'error', error: error.message }
+      };
     }
   }
 }

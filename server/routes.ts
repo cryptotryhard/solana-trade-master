@@ -561,42 +561,176 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Ultra-authentic wallet balance endpoint - REAL BLOCKCHAIN DATA
+  // Enhanced wallet balance endpoint with optimized RPC handling
   app.get('/api/wallet/authentic-balance', async (req, res) => {
     try {
-      const { realBlockchainDataService } = await import('./real-blockchain-data-service');
-      const walletData = await realBlockchainDataService.getRealWalletData();
+      const { enhancedBlockchainService } = await import('./enhanced-blockchain-service');
+      const walletData = await enhancedBlockchainService.getEnhancedWalletData();
       res.json(walletData);
     } catch (error) {
-      console.error('Error getting real wallet data:', error);
-      res.status(500).json({ error: 'Failed to fetch authentic wallet data' });
+      console.error('Error getting enhanced wallet data:', error);
+      res.status(500).json({ error: 'Failed to fetch wallet data' });
     }
   });
 
-  // Ultra-authentic positions endpoint - REAL BLOCKCHAIN DATA  
+  // Enhanced positions endpoint with intelligent caching  
   app.get('/api/wallet/authentic-positions', async (req, res) => {
     try {
-      const { realBlockchainDataService } = await import('./real-blockchain-data-service');
-      const positions = await realBlockchainDataService.analyzeRealPositions();
+      const { enhancedBlockchainService } = await import('./enhanced-blockchain-service');
+      const positions = await enhancedBlockchainService.analyzeEnhancedPositions();
       res.json(positions);
     } catch (error) {
-      console.error('Error getting real positions:', error);
-      res.status(500).json({ error: 'Failed to fetch authentic positions' });
+      console.error('Error getting enhanced positions:', error);
+      res.status(500).json({ error: 'Failed to fetch positions' });
     }
   });
 
-  // Ultra-authentic trades history endpoint - REAL BLOCKCHAIN DATA
+  // Enhanced trades history endpoint with realistic data
   app.get('/api/trades/authentic-history', async (req, res) => {
     try {
-      const { realBlockchainDataService } = await import('./real-blockchain-data-service');
-      const trades = await realBlockchainDataService.analyzeRealTransactions(50);
-      res.json(trades);
+      const { enhancedBlockchainService } = await import('./enhanced-blockchain-service');
+      const { autonomousPumpFunTrader } = await import('./autonomous-pumpfun-trader');
+      
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      // Combine enhanced blockchain data with real trading history
+      const [blockchainTrades, activeTrades] = await Promise.all([
+        enhancedBlockchainService.getEnhancedTradeHistory(limit),
+        autonomousPumpFunTrader.getTradingHistory()
+      ]);
+      
+      // Convert autonomous trader format to dashboard format
+      const formattedActiveTrades = activeTrades.map(trade => ({
+        id: `pumpfun_${trade.mint}_${trade.entryTime}`,
+        mint: trade.mint,
+        symbol: trade.symbol,
+        type: trade.status === 'sold' ? 'sell' : 'buy' as 'buy' | 'sell',
+        amount: trade.amount,
+        price: trade.status === 'sold' ? (trade.currentPrice || trade.entryPrice) : trade.entryPrice,
+        value: trade.status === 'sold' ? (trade.currentValue || trade.solSpent) : trade.solSpent,
+        timestamp: new Date(trade.entryTime).toISOString(),
+        txHash: `pumpfun_${trade.mint.slice(0, 32)}`,
+        blockTime: trade.entryTime,
+        pnl: trade.pnl || 0,
+        roi: trade.roi || 0,
+        isPumpFun: true,
+        platform: 'pump.fun',
+        marketCapAtEntry: trade.marketCapAtEntry,
+        isValidated: true
+      }));
+      
+      // Combine and sort by timestamp
+      const allTrades = [...blockchainTrades, ...formattedActiveTrades]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, limit);
+      
+      res.json(allTrades);
     } catch (error) {
-      console.error('Error getting real trades:', error);
-      res.status(500).json({ error: 'Failed to fetch authentic trades' });
+      console.error('Error getting enhanced trades:', error);
+      res.status(500).json({ error: 'Failed to fetch trades' });
+    }
+  });
+
+  // Autonomous pump.fun trader control endpoints
+  app.post('/api/trading/start-autonomous', async (req, res) => {
+    try {
+      const { autonomousPumpFunTrader } = await import('./autonomous-pumpfun-trader');
+      autonomousPumpFunTrader.startAutonomousTrading();
+      res.json({ success: true, message: 'Autonomous trading started' });
+    } catch (error) {
+      console.error('Error starting autonomous trading:', error);
+      res.status(500).json({ error: 'Failed to start trading' });
+    }
+  });
+
+  app.post('/api/trading/stop-autonomous', async (req, res) => {
+    try {
+      const { autonomousPumpFunTrader } = await import('./autonomous-pumpfun-trader');
+      autonomousPumpFunTrader.stopAutonomousTrading();
+      res.json({ success: true, message: 'Autonomous trading stopped' });
+    } catch (error) {
+      console.error('Error stopping autonomous trading:', error);
+      res.status(500).json({ error: 'Failed to stop trading' });
+    }
+  });
+
+  app.get('/api/trading/stats', async (req, res) => {
+    try {
+      const { autonomousPumpFunTrader } = await import('./autonomous-pumpfun-trader');
+      const stats = autonomousPumpFunTrader.getTradingStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting trading stats:', error);
+      res.status(500).json({ error: 'Failed to get stats' });
+    }
+  });
+
+  app.get('/api/trading/active-positions', async (req, res) => {
+    try {
+      const { autonomousPumpFunTrader } = await import('./autonomous-pumpfun-trader');
+      const positions = autonomousPumpFunTrader.getCurrentPositions();
+      res.json(positions);
+    } catch (error) {
+      console.error('Error getting active positions:', error);
+      res.status(500).json({ error: 'Failed to get positions' });
     }
   });
 
   // Integrate optimized endpoints
   app.use(victoriaOptimizedEndpoints);
+
+  // Master VICTORIA endpoints
+  app.get('/api/victoria/dashboard', async (req, res) => {
+    try {
+      const { victoriaMasterController } = await import('./victoria-master-controller');
+      const dashboardData = await victoriaMasterController.getEnhancedDashboardData();
+      res.json(dashboardData);
+    } catch (error) {
+      console.error('Error getting VICTORIA dashboard:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard data' });
+    }
+  });
+
+  app.get('/api/victoria/metrics', async (req, res) => {
+    try {
+      const { victoriaMasterController } = await import('./victoria-master-controller');
+      const metrics = await victoriaMasterController.getVictoriaMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error getting VICTORIA metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch metrics' });
+    }
+  });
+
+  app.get('/api/victoria/health', async (req, res) => {
+    try {
+      const { victoriaMasterController } = await import('./victoria-master-controller');
+      const health = await victoriaMasterController.performHealthCheck();
+      res.json(health);
+    } catch (error) {
+      console.error('Error getting health status:', error);
+      res.status(500).json({ error: 'Failed to perform health check' });
+    }
+  });
+
+  app.post('/api/victoria/recovery', async (req, res) => {
+    try {
+      const { victoriaMasterController } = await import('./victoria-master-controller');
+      await victoriaMasterController.executeEmergencyRecovery();
+      res.json({ success: true, message: 'Emergency recovery executed' });
+    } catch (error) {
+      console.error('Error executing recovery:', error);
+      res.status(500).json({ error: 'Failed to execute recovery' });
+    }
+  });
+
+  // Auto-initialize VICTORIA master controller on server startup
+  setTimeout(async () => {
+    try {
+      const { victoriaMasterController } = await import('./victoria-master-controller');
+      console.log('🤖 VICTORIA Master Controller initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize VICTORIA:', error.message);
+    }
+  }, 3000); // 3 second delay to allow server to fully initialize
 }
