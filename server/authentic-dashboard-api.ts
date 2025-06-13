@@ -60,7 +60,7 @@ class AuthenticDashboardAPI {
     );
     
     if (process.env.WALLET_PRIVATE_KEY) {
-      const { Keypair } = require('@solana/web3.js');
+      const { Keypair } = await import('@solana/web3.js');
       this.wallet = Keypair.fromSecretKey(base58.decode(process.env.WALLET_PRIVATE_KEY));
     }
   }
