@@ -62,12 +62,29 @@ export default function UltraAuthenticDashboard() {
     refetchInterval: 20000,
   });
 
-  const generatePumpFunLink = (mint: string) => {
-    return `https://pump.fun/coin/${mint}`;
+  const generatePumpFunLink = (mint: string, isValidPumpFun: boolean = true) => {
+    return isValidPumpFun ? `https://pump.fun/coin/${mint}` : null;
   };
 
   const generateDexScreenerLink = (mint: string) => {
     return `https://dexscreener.com/solana/${mint}`;
+  };
+
+  const validateAndOpenPumpFunLink = async (mint: string) => {
+    try {
+      // Nejdříve zkusíme otevřít link
+      const pumpFunUrl = `https://pump.fun/coin/${mint}`;
+      window.open(pumpFunUrl, '_blank');
+      
+      // Pokud link nefunguje, zobrazíme dexscreener jako fallback
+      setTimeout(() => {
+        console.log(`Pump.fun link pro ${mint} může být neplatný, zkuste dexscreener`);
+      }, 2000);
+    } catch (error) {
+      console.error('Error opening pump.fun link:', error);
+      // Fallback na dexscreener
+      window.open(generateDexScreenerLink(mint), '_blank');
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -212,15 +229,27 @@ export default function UltraAuthenticDashboard() {
                               {position.amount.toLocaleString()} tokenů
                             </div>
                             <div className="flex gap-2 mt-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-6"
-                                onClick={() => window.open(generatePumpFunLink(position.mint), '_blank')}
-                              >
-                                <ExternalLink className="h-3 w-3 mr-1" />
-                                Pump.fun
-                              </Button>
+                              {position.isPumpFun ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-6 border-orange-500 text-orange-400 hover:bg-orange-500/10"
+                                  onClick={() => validateAndOpenPumpFunLink(position.mint)}
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Pump.fun
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-6 opacity-50 cursor-not-allowed"
+                                  disabled
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Není pump.fun
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -295,8 +324,18 @@ export default function UltraAuthenticDashboard() {
                             <div className="text-sm text-gray-400">
                               {trade.type.toUpperCase()} • {formatTime(trade.timestamp)}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Cena: ${trade.price.toFixed(8)} • {trade.amount.toLocaleString()} tokenů
+                            <div className="text-xs text-gray-500 space-y-1">
+                              <div>
+                                <span className="font-medium">
+                                  {trade.type === 'buy' ? 'Nákup za:' : 'Prodej za:'} 
+                                </span> ${trade.price.toFixed(8)}
+                              </div>
+                              <div>
+                                <span className="font-medium">Množství:</span> {trade.amount.toLocaleString()} tokenů
+                              </div>
+                              <div>
+                                <span className="font-medium">Hodnota:</span> ${(trade.amount * trade.price).toFixed(2)}
+                              </div>
                             </div>
                             <div className="flex gap-2 mt-1">
                               <Button
@@ -308,14 +347,25 @@ export default function UltraAuthenticDashboard() {
                                 <ExternalLink className="h-2 w-2 mr-1" />
                                 TX
                               </Button>
+                              {trade.isPumpFun && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-5"
+                                  onClick={() => validateAndOpenPumpFunLink(trade.mint)}
+                                >
+                                  <ExternalLink className="h-2 w-2 mr-1" />
+                                  Pump.fun
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="text-xs h-5"
-                                onClick={() => window.open(generatePumpFunLink(trade.mint), '_blank')}
+                                onClick={() => window.open(generateDexScreenerLink(trade.mint), '_blank')}
                               >
                                 <ExternalLink className="h-2 w-2 mr-1" />
-                                Token
+                                DexScreener
                               </Button>
                             </div>
                           </div>
