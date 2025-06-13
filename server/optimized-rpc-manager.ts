@@ -1,188 +1,108 @@
 /**
- * OPTIMIZED RPC MANAGER
- * Manages multiple RPC endpoints with intelligent fallback and rate limiting
+ * OPTIMIZED RPC MANAGER - Prevent 429 errors and API blocks
  */
 
-import { Connection, PublicKey } from '@solana/web3.js';
-
-interface RPCEndpoint {
-  url: string;
-  name: string;
-  isHealthy: boolean;
-  lastUsed: number;
-  errorCount: number;
-  maxRequestsPerSecond: number;
-  currentRequests: number;
-  resetTime: number;
-}
+import { Connection } from '@solana/web3.js';
 
 class OptimizedRPCManager {
-  private endpoints: RPCEndpoint[];
-  private currentEndpointIndex: number = 0;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private connections: Connection[] = [];
+  private currentIndex = 0;
+  private requestCounts: number[] = [];
+  private lastResetTimes: number[] = [];
+  private readonly maxRequestsPerMinute = 5;
+  private readonly resetInterval = 60000;
 
   constructor() {
-    this.endpoints = [
-      {
-        url: 'https://api.mainnet-beta.solana.com',
-        name: 'Official Mainnet',
-        isHealthy: true,
-        lastUsed: 0,
-        errorCount: 0,
-        maxRequestsPerSecond: 10,
-        currentRequests: 0,
-        resetTime: Date.now()
-      },
-      {
-        url: 'https://solana-api.projectserum.com',
-        name: 'Serum RPC',
-        isHealthy: true,
-        lastUsed: 0,
-        errorCount: 0,
-        maxRequestsPerSecond: 15,
-        currentRequests: 0,
-        resetTime: Date.now()
-      },
-      {
-        url: `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
-        name: 'Helius RPC',
-        isHealthy: true,
-        lastUsed: 0,
-        errorCount: 0,
-        maxRequestsPerSecond: 50,
-        currentRequests: 0,
-        resetTime: Date.now()
-      }
+    this.initializeConnections();
+  }
+
+  private initializeConnections() {
+    // Public RPC endpoints that don't require API keys
+    const publicEndpoints = [
+      'https://api.mainnet-beta.solana.com',
+      'https://solana-api.projectserum.com',
+      'https://rpc.ankr.com/solana',
+      'https://solana.public-rpc.com'
     ];
 
-    this.startHealthChecking();
-  }
-
-  private startHealthChecking(): void {
-    this.healthCheckInterval = setInterval(() => {
-      this.checkEndpointHealth();
-    }, 30000); // Check every 30 seconds
-  }
-
-  private async checkEndpointHealth(): Promise<void> {
-    for (const endpoint of this.endpoints) {
-      try {
-        const connection = new Connection(endpoint.url, 'confirmed');
-        await connection.getSlot();
-        endpoint.isHealthy = true;
-        endpoint.errorCount = 0;
-      } catch (error) {
-        endpoint.errorCount++;
-        if (endpoint.errorCount > 3) {
-          endpoint.isHealthy = false;
-        }
-      }
+    // Only add Helius if API key is available and valid
+    if (process.env.HELIUS_API_KEY && process.env.HELIUS_API_KEY.length > 10) {
+      publicEndpoints.unshift(`https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`);
     }
+
+    this.connections = publicEndpoints.map(url => new Connection(url, 'confirmed'));
+    this.requestCounts = new Array(this.connections.length).fill(0);
+    this.lastResetTimes = new Array(this.connections.length).fill(Date.now());
   }
 
-  private getOptimalEndpoint(): RPCEndpoint {
+  getOptimizedConnection(): Connection {
     const now = Date.now();
     
-    // Reset request counters every second
-    for (const endpoint of this.endpoints) {
-      if (now - endpoint.resetTime > 1000) {
-        endpoint.currentRequests = 0;
-        endpoint.resetTime = now;
+    // Find connection with available quota
+    for (let i = 0; i < this.connections.length; i++) {
+      const index = (this.currentIndex + i) % this.connections.length;
+      
+      // Reset counter if interval passed
+      if (now - this.lastResetTimes[index] >= this.resetInterval) {
+        this.requestCounts[index] = 0;
+        this.lastResetTimes[index] = now;
+      }
+      
+      if (this.requestCounts[index] < this.maxRequestsPerMinute) {
+        this.requestCounts[index]++;
+        this.currentIndex = index;
+        return this.connections[index];
       }
     }
-
-    // Find healthy endpoint with capacity
-    const availableEndpoints = this.endpoints.filter(
-      endpoint => endpoint.isHealthy && endpoint.currentRequests < endpoint.maxRequestsPerSecond
-    );
-
-    if (availableEndpoints.length === 0) {
-      // If no endpoint available, wait and use least loaded
-      const leastLoaded = this.endpoints.reduce((prev, current) => 
-        prev.currentRequests < current.currentRequests ? prev : current
-      );
-      return leastLoaded;
-    }
-
-    // Use round-robin among available endpoints
-    const endpoint = availableEndpoints[this.currentEndpointIndex % availableEndpoints.length];
-    this.currentEndpointIndex++;
     
-    return endpoint;
+    // If all connections are rate limited, use the one with least recent usage
+    const oldestIndex = this.lastResetTimes
+      .map((time, index) => ({ time, index }))
+      .sort((a, b) => a.time - b.time)[0].index;
+    
+    this.currentIndex = oldestIndex;
+    return this.connections[oldestIndex];
   }
 
-  public getConnection(): Connection {
-    const endpoint = this.getOptimalEndpoint();
-    endpoint.currentRequests++;
-    endpoint.lastUsed = Date.now();
-    
-    console.log(`🔗 Using RPC: ${endpoint.name} (${endpoint.currentRequests}/${endpoint.maxRequestsPerSecond} requests)`);
-    
-    return new Connection(endpoint.url, {
-      commitment: 'confirmed',
-      confirmTransactionInitialTimeout: 60000,
-      disableRetryOnRateLimit: false,
-      httpHeaders: {
-        'User-Agent': 'Victoria-Trading-Bot/1.0'
-      }
-    });
-  }
-
-  public async executeWithRetry<T>(
-    operation: (connection: Connection) => Promise<T>,
-    maxRetries: number = 3,
-    delayMs: number = 1000
-  ): Promise<T> {
+  async executeWithRetry<T>(operation: (connection: Connection) => Promise<T>, maxRetries = 3): Promise<T> {
     let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        const connection = this.getConnection();
-        const result = await operation(connection);
-        return result;
+        const connection = this.getOptimizedConnection();
+        return await operation(connection);
       } catch (error: any) {
         lastError = error;
         
-        if (error.message?.includes('429') || error.message?.includes('rate limit')) {
-          console.log(`⚠️ Rate limit hit, retrying in ${delayMs}ms (attempt ${attempt}/${maxRetries})`);
-          await this.delay(delayMs);
-          delayMs *= 2; // Exponential backoff
+        if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+          console.log(`⏳ Rate limited, switching RPC endpoint (attempt ${attempt + 1}/${maxRetries})`);
+          await this.delay(Math.pow(2, attempt) * 1000); // Exponential backoff
           continue;
         }
         
-        // For non-rate-limit errors, mark endpoint as problematic
-        const endpoint = this.getOptimalEndpoint();
-        endpoint.errorCount++;
-        
-        if (attempt === maxRetries) {
-          throw error;
+        if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          console.log(`🔒 API access denied, switching to public RPC`);
+          continue;
         }
         
-        await this.delay(delayMs);
+        throw error;
       }
     }
-
-    throw lastError || new Error('Maximum retries exceeded');
+    
+    throw lastError || new Error('Max retries exceeded');
   }
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  public getEndpointStatus(): any {
-    return this.endpoints.map(endpoint => ({
-      name: endpoint.name,
-      isHealthy: endpoint.isHealthy,
-      errorCount: endpoint.errorCount,
-      currentRequests: endpoint.currentRequests,
-      maxRequests: endpoint.maxRequestsPerSecond
-    }));
-  }
-
-  public stop(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-    }
+  getStatus() {
+    return {
+      totalConnections: this.connections.length,
+      currentIndex: this.currentIndex,
+      requestCounts: this.requestCounts,
+      availableConnections: this.requestCounts.filter(count => count < this.maxRequestsPerMinute).length
+    };
   }
 }
 

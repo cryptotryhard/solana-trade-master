@@ -5,6 +5,7 @@
 
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { rateLimiter } from './rate-limiter';
 
 interface RealBlockchainTrade {
   id: string;
@@ -69,9 +70,21 @@ class RealBlockchainTrader {
   }
 
   private initializeWallet() {
-    const secretKey = bs58.decode(this.WALLET_PRIVATE_KEY);
-    this.wallet = Keypair.fromSecretKey(secretKey);
-    console.log('Wallet Address:', this.wallet.publicKey.toString());
+    try {
+      if (!this.WALLET_PRIVATE_KEY) {
+        console.log('⚠️ No wallet private key provided, using simulation mode');
+        // Create a dummy keypair for simulation
+        this.wallet = Keypair.generate();
+        return;
+      }
+      
+      const secretKey = bs58.decode(this.WALLET_PRIVATE_KEY);
+      this.wallet = Keypair.fromSecretKey(secretKey);
+      console.log('Wallet Address:', this.wallet.publicKey.toString());
+    } catch (error) {
+      console.log('⚠️ Invalid wallet private key, using simulation mode');
+      this.wallet = Keypair.generate();
+    }
   }
 
   private getConnection(): Connection {

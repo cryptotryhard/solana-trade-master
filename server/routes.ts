@@ -26,6 +26,7 @@ import { intelligentPumpFunScanner } from './intelligent-pump-fun-scanner';
 import { realPumpFunTrader } from './real-pump-fun-trader';
 import { testModeDemo } from './test-mode-demo';
 import { realBlockchainTrader } from './real-blockchain-trader';
+import { streamlinedTradingEngine } from './streamlined-trading-engine';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
