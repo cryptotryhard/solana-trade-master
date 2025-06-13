@@ -40,11 +40,12 @@ interface AuthenticTrade {
 }
 
 interface WalletData {
-  solBalance: number;
-  totalValue: number;
-  totalPnL: number;
-  totalROI: number;
-  address: string;
+  solBalance: string;
+  totalValueUSD: string;
+  bonkBalance: string;
+  activePositions: number;
+  pumpFunPositions: number;
+  totalPositions: number;
 }
 
 export default function UltraAuthenticDashboard() {
@@ -127,8 +128,8 @@ export default function UltraAuthenticDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {walletLoading ? '...' : `${walletData?.solBalance?.toFixed(6) || '0'} SOL`}
+              <div className="text-2xl font-bold text-blue-400">
+                {walletLoading ? '...' : `${parseFloat(walletData?.solBalance || '0').toFixed(6)} SOL`}
               </div>
               <p className="text-xs text-gray-400 mt-1">
                 Wallet: {walletData?.address ? `${walletData.address.slice(0, 8)}...` : 'Loading...'}
@@ -145,7 +146,7 @@ export default function UltraAuthenticDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-400">
-                ${walletLoading ? '...' : walletData?.totalValue?.toFixed(2) || '0.00'}
+                ${walletLoading ? '...' : parseFloat(walletData?.totalValueUSD || '0').toFixed(2)}
               </div>
               <p className="text-xs text-gray-400 mt-1">
                 {positions.length} pozic
@@ -161,15 +162,11 @@ export default function UltraAuthenticDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${
-                (walletData?.totalPnL || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {walletLoading ? '...' : 
-                  `${(walletData?.totalPnL || 0) >= 0 ? '+' : ''}$${walletData?.totalPnL?.toFixed(2) || '0.00'}`
-                }
+              <div className="text-2xl font-bold text-green-400">
+                {walletLoading ? '...' : `${walletData?.activePositions || 0}`}
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                ROI: {walletData?.totalROI?.toFixed(2) || '0'}%
+                Aktivní pozice
               </p>
             </CardContent>
           </Card>
@@ -182,10 +179,10 @@ export default function UltraAuthenticDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-orange-400">
-                {pumpFunPositions.length}
+                {walletData?.pumpFunPositions || 0}
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                Hodnota: ${totalPumpFunValue.toFixed(2)}
+                Pump.fun pozice
               </p>
             </CardContent>
           </Card>
@@ -230,7 +227,7 @@ export default function UltraAuthenticDashboard() {
                               </Badge>
                             </div>
                             <div className="text-sm text-gray-400">
-                              {position.amount.toLocaleString()} tokenů
+                              {position.amount?.toLocaleString() || '0'} tokenů
                             </div>
                             <div className="flex gap-2 mt-2">
                               {position.isPumpFun ? (
@@ -333,7 +330,7 @@ export default function UltraAuthenticDashboard() {
                                 </span> ${parseFloat(trade.price || '0').toFixed(8)}
                               </div>
                               <div>
-                                <span className="font-medium">Množství:</span> {parseFloat(trade.amount || '0').toLocaleString()} tokenů
+                                <span className="font-medium">Množství:</span> {(parseFloat(trade.amount || '0') || 0).toLocaleString()} tokenů
                               </div>
                               <div>
                                 <span className="font-medium">Hodnota:</span> ${(parseFloat(trade.amount || '0') * parseFloat(trade.price || '0')).toFixed(2)}
@@ -374,14 +371,12 @@ export default function UltraAuthenticDashboard() {
                         </div>
                         <div className="text-right">
                           <div className={`font-semibold ${
-                            trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                            (trade.profit && parseFloat(trade.profit) >= 0) ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(2)}
+                            {trade.profit ? `${parseFloat(trade.profit) >= 0 ? '+' : ''}$${parseFloat(trade.profit).toFixed(2)}` : '$0.00'}
                           </div>
-                          <div className={`text-sm ${
-                            trade.roi >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {trade.roi >= 0 ? '+' : ''}{trade.roi.toFixed(2)}%
+                          <div className="text-sm text-gray-400">
+                            {trade.profit ? `${parseFloat(trade.profit) >= 0 ? '+' : ''}${((parseFloat(trade.profit) / (parseFloat(trade.amount || '1') * parseFloat(trade.price || '1'))) * 100).toFixed(2)}%` : '0.00%'}
                           </div>
                           {trade.marketCapAtEntry && (
                             <div className="text-xs text-gray-400">
