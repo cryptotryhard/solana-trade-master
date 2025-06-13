@@ -18,6 +18,7 @@ import { optimizedTradingCoordinator } from './optimized-trading-coordinator';
 import { networkResilienceManager } from './network-resilience-manager';
 import { authenticPortfolioValidator } from './authentic-portfolio-validator';
 import { systemIntegrityTester } from './system-integrity-tester';
+import { authenticTradingEngine } from './authentic-trading-engine';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
