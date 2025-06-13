@@ -19,6 +19,7 @@ import IntelligentScannerDashboard from "@/pages/intelligent-scanner-dashboard";
 import VictoriaAutonomousDashboard from "@/pages/victoria-autonomous-dashboard";
 import TestModeDashboard from "@/pages/test-mode-dashboard";
 import ProductionTradingDashboard from "@/pages/production-trading-dashboard";
+import StreamlinedTradingDashboard from "@/pages/streamlined-trading-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/autonomous" component={VictoriaAutonomousDashboard} />
       <Route path="/test-mode" component={TestModeDashboard} />
       <Route path="/production" component={ProductionTradingDashboard} />
+      <Route path="/streamlined" component={StreamlinedTradingDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

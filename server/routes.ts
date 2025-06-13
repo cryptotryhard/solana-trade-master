@@ -1608,5 +1608,42 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Streamlined Trading Engine API - Rate Limited & Optimized
+  app.post("/api/streamlined/start", async (req, res) => {
+    try {
+      const result = await streamlinedTradingEngine.startOptimizedTrading();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to start streamlined trading" });
+    }
+  });
+
+  app.get("/api/streamlined/stats", async (req, res) => {
+    try {
+      const stats = streamlinedTradingEngine.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get streamlined stats" });
+    }
+  });
+
+  app.get("/api/streamlined/trades", async (req, res) => {
+    try {
+      const trades = streamlinedTradingEngine.getActiveTrades();
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get streamlined trades" });
+    }
+  });
+
+  app.post("/api/streamlined/stop", async (req, res) => {
+    try {
+      streamlinedTradingEngine.stopTrading();
+      res.json({ success: true, message: "Streamlined trading stopped" });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to stop streamlined trading" });
+    }
+  });
+
   return app;
 }
