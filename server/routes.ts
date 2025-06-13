@@ -1031,11 +1031,12 @@ export function registerRoutes(app: Express) {
 }
 
 async function executeSpecificTokenTrade(tokenMint: string, solAmount: number) {
-  const { Connection, Keypair, PublicKey, VersionedTransaction } = require('@solana/web3.js');
-  const bs58 = require('bs58');
-  
   try {
-    const wallet = Keypair.fromSecretKey(bs58.decode(process.env.WALLET_PRIVATE_KEY));
+    const secretKey = process.env.WALLET_PRIVATE_KEY;
+    if (!secretKey) {
+      throw new Error('WALLET_PRIVATE_KEY not found');
+    }
+    const wallet = Keypair.fromSecretKey(bs58.decode(secretKey));
     const rpcEndpoints = [
       'https://mainnet.helius-rpc.com/?api-key=' + process.env.HELIUS_API_KEY,
       'https://api.mainnet-beta.solana.com',
