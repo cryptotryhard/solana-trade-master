@@ -15,6 +15,7 @@ import AdvancedTradingDashboard from "@/pages/advanced-trading-dashboard";
 import SimpleTradingDashboard from "@/pages/simple-trading-dashboard";
 import AuthenticPortfolioDashboard from "@/pages/authentic-portfolio-dashboard";
 import UltraAuthenticDashboard from "@/pages/ultra-authentic-dashboard";
+import IntelligentScannerDashboard from "@/pages/intelligent-scanner-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/real-trading" component={RealTradingPage} />
       <Route path="/authentic" component={UltraAuthenticDashboard} />
       <Route path="/advanced" component={AdvancedTradingDashboard} />
+      <Route path="/scanner" component={IntelligentScannerDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
