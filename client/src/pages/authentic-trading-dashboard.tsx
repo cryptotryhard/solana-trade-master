@@ -274,7 +274,7 @@ export default function AuthenticTradingDashboard() {
                               )}
                             </div>
                             <div className="text-sm text-gray-400">
-                              {trade.type.toUpperCase()} • {trade.timestamp}
+                              {trade.type.toUpperCase()} • {new Date(trade.timestamp).toLocaleString()}
                             </div>
                           </div>
                         </div>
