@@ -11,6 +11,7 @@ import { authenticWalletBalanceManager } from './authentic-wallet-balance-manage
 import { walletTokenScanner } from './wallet-token-scanner';
 import { pumpFunTrader } from './pump-fun-trader';
 import victoriaOptimizedEndpoints from './victoria-optimized-endpoints';
+import { completeWalletSystem } from './complete-wallet-value-system';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
