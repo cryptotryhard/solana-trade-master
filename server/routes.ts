@@ -23,6 +23,7 @@ import { systemIntegrityTester } from './system-integrity-tester';
 import { authenticTradingEngine } from './authentic-trading-engine';
 import { bonkTradingMonitor } from './bonk-trading-monitor';
 import { intelligentPumpFunScanner } from './intelligent-pump-fun-scanner';
+import { realPumpFunTrader } from './real-pump-fun-trader';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -1469,6 +1470,62 @@ export function registerRoutes(app: Express) {
         success: false, 
         error: error.message 
       });
+    }
+  });
+
+  // Real Pump.fun Trader TEST MODE endpoints
+  app.post("/api/real-trading/toggle-test-mode", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      const result = await realPumpFunTrader.toggleTestMode(enabled);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to toggle test mode" });
+    }
+  });
+
+  app.post("/api/real-trading/start", async (req, res) => {
+    try {
+      const result = await realPumpFunTrader.startRealTrading();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to start real trading" });
+    }
+  });
+
+  app.get("/api/real-trading/stats", async (req, res) => {
+    try {
+      const stats = realPumpFunTrader.getStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get trading stats" });
+    }
+  });
+
+  app.get("/api/real-trading/active-trades", async (req, res) => {
+    try {
+      const trades = realPumpFunTrader.getActiveTrades();
+      res.json(trades);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get active trades" });
+    }
+  });
+
+  app.get("/api/real-trading/trade-history", async (req, res) => {
+    try {
+      const history = realPumpFunTrader.getTradeHistory();
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to get trade history" });
+    }
+  });
+
+  app.get("/api/real-trading/pump-fun-tokens", async (req, res) => {
+    try {
+      const tokens = await realPumpFunTrader.scanRealPumpFunTokens();
+      res.json(tokens);
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to scan tokens" });
     }
   });
 
