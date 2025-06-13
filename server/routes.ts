@@ -996,6 +996,12 @@ export function registerRoutes(app: Express) {
       await bonkTradingMonitor.startMonitoring();
       console.log('✅ BONK trading monitor active');
       
+      // Initialize automated pump.fun trader
+      console.log('🤖 Initializing automated pump.fun trader...');
+      const { automatedPumpFunTrader } = await import('./automated-pump-fun-trader');
+      await automatedPumpFunTrader.startAutomatedTrading();
+      console.log('✅ Automated pump.fun trading activated');
+      
     } catch (error: any) {
       console.error('❌ Failed to initialize VICTORIA:', error.message);
     }
