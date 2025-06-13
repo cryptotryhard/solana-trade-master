@@ -1529,5 +1529,35 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/real-trading/create-demo", async (req, res) => {
+    try {
+      // Create demo trade directly
+      const demoTrade = {
+        id: `demo_${Date.now()}`,
+        tokenMint: 'A1KLoBrKBde8Ty9qtNQUtq3C2ortoC3u7twggz7sEto6',
+        symbol: 'POPCAT',
+        entryPrice: 0.31,
+        entryAmount: 0.029,
+        tokensReceived: 19.3157,
+        entryTime: Date.now(),
+        currentPrice: 0.31,
+        status: 'ACTIVE',
+        entryTxHash: 'demo_' + Math.random().toString(36).substr(2, 88),
+        targetProfit: 25,
+        stopLoss: -20,
+        trailingStop: -10,
+        maxPriceReached: 0.31
+      };
+
+      // Add to active trades (accessing private member via bracket notation)
+      realPumpFunTrader['activeTrades'].set(demoTrade.id, demoTrade);
+      console.log(`✅ Demo trade created via API: ${demoTrade.symbol}`);
+
+      res.json({ success: true, trade: demoTrade });
+    } catch (error) {
+      res.status(500).json({ success: false, error: "Failed to create demo trade" });
+    }
+  });
+
   return app;
 }

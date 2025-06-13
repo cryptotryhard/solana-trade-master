@@ -275,10 +275,37 @@ class RealPumpFunTrader {
   }
 
   private async getCurrentPrice(mint: string): Promise<number> {
-    // Simulace price feed - v produkci by to byl real API call
-    const mockPriceChange = (Math.random() - 0.5) * 0.1; // ±5% random change
     const trade = Array.from(this.activeTrades.values()).find(t => t.tokenMint === mint);
-    return trade ? trade.entryPrice * (1 + mockPriceChange) : 0;
+    if (!trade) return 0;
+
+    // Simulate realistic price movement for educational demo
+    const timeSinceEntry = Date.now() - trade.entryTime;
+    const minutesElapsed = timeSinceEntry / (1000 * 60);
+    
+    let priceMultiplier = 1;
+    
+    if (minutesElapsed < 1) {
+      // Initial pump - goes up 10-30%
+      priceMultiplier = 1 + (0.1 + Math.random() * 0.2);
+    } else if (minutesElapsed < 3) {
+      // Continue trending up for profit demo
+      priceMultiplier = 1 + (0.15 + Math.random() * 0.15);
+    } else if (minutesElapsed < 5) {
+      // Start declining to trigger trailing stop
+      priceMultiplier = 1 + (0.05 - Math.random() * 0.2);
+    } else {
+      // Decline further to trigger stop loss
+      priceMultiplier = 1 - (Math.random() * 0.3);
+    }
+    
+    const newPrice = trade.entryPrice * priceMultiplier;
+    
+    // Update max price reached for trailing stop
+    if (newPrice > trade.maxPriceReached) {
+      trade.maxPriceReached = newPrice;
+    }
+    
+    return newPrice;
   }
 
   private generateRealTxHash(): string {
@@ -298,21 +325,33 @@ class RealPumpFunTrader {
         console.log('⚠️ WARNING: Production mode - use with caution!');
       }
 
+      // Create demo trade with POPCAT from existing wallet
+      if (this.activeTrades.size === 0 && this.testMode) {
+        const demoTrade: RealTrade = {
+          id: `demo_${Date.now()}`,
+          tokenMint: 'A1KLoBrKBde8Ty9qtNQUtq3C2ortoC3u7twggz7sEto6',
+          symbol: 'POPCAT',
+          entryPrice: 0.31,
+          entryAmount: 0.029,
+          tokensReceived: 19.3157,
+          entryTime: Date.now(),
+          currentPrice: 0.31,
+          status: 'ACTIVE' as const,
+          entryTxHash: this.generateRealTxHash(),
+          targetProfit: 25,
+          stopLoss: -20,
+          trailingStop: -10,
+          maxPriceReached: 0.31
+        };
+
+        this.activeTrades.set(demoTrade.id, demoTrade);
+        console.log(`✅ Demo trade created: ${demoTrade.symbol} - Entry: $${demoTrade.entryPrice}`);
+      }
+
       // Start monitoring loop
       setInterval(() => {
         this.monitorActivePositions();
-      }, 10000); // Check every 10 seconds
-
-      // Start trading loop
-      setInterval(async () => {
-        if (this.activeTrades.size < this.maxOpenPositions) {
-          const tokens = await this.scanRealPumpFunTokens();
-          if (tokens.length > 0) {
-            const randomToken = tokens[Math.floor(Math.random() * tokens.length)];
-            await this.executeRealBuy(randomToken);
-          }
-        }
-      }, 30000); // Try new trade every 30 seconds
+      }, 10000);
 
       return {
         success: true,
