@@ -121,8 +121,8 @@ export default function VictoriaAutonomousDashboard() {
   });
 
   const totalPortfolioValue = Array.isArray(walletPositions) ? 
-    walletPositions.reduce((sum: number, token: WalletToken) => sum + token.value, 0) : 0;
-  const solBalance = parseFloat(walletBalance?.solBalance || '0');
+    walletPositions.reduce((sum: number, token: WalletToken) => sum + (token.value || 0), 0) : 0;
+  const solBalance = parseFloat(String(walletBalance?.solBalance || '0'));
   const totalValue = totalPortfolioValue + (solBalance * 144.82); // SOL price
 
   return (
@@ -207,11 +207,11 @@ export default function VictoriaAutonomousDashboard() {
                   {balanceLoading ? (
                     <div className="animate-pulse bg-slate-700 h-8 w-24 rounded"></div>
                   ) : (
-                    `${solBalance.toFixed(6)} SOL`
+                    `${Number(solBalance || 0).toFixed(6)} SOL`
                   )}
                 </div>
                 <div className="text-sm text-slate-400">
-                  ≈ ${(solBalance * 144.82).toFixed(2)}
+                  ≈ ${(Number(solBalance || 0) * 144.82).toFixed(2)}
                 </div>
               </div>
 
@@ -220,7 +220,7 @@ export default function VictoriaAutonomousDashboard() {
               <div className="space-y-2">
                 <div className="text-sm text-slate-400">Total Portfolio</div>
                 <div className="text-2xl font-bold">
-                  ${totalValue.toFixed(2)}
+                  ${Number(totalValue || 0).toFixed(2)}
                 </div>
               </div>
 
@@ -313,12 +313,12 @@ export default function VictoriaAutonomousDashboard() {
                           <div>
                             <div className="font-semibold">{token.symbol}</div>
                             <div className="text-sm text-slate-400">
-                              {token.balance.toFixed(4)} tokens
+                              {Number(token.balance || 0).toFixed(4)} tokens
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold">${token.value.toFixed(2)}</div>
+                          <div className="font-semibold">${Number(token.value || 0).toFixed(2)}</div>
                           <div className="text-sm text-slate-400">
                             {token.mint.slice(0, 8)}...
                           </div>
@@ -358,12 +358,12 @@ export default function VictoriaAutonomousDashboard() {
                           <div>
                             <div className="font-semibold text-lg">{position.symbol}</div>
                             <div className="text-sm text-slate-400">
-                              Entry: ${position.entryPrice.toFixed(6)}
+                              Entry: ${Number(position.entryPrice || 0).toFixed(6)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <Badge variant={position.profitPercentage >= 0 ? "default" : "destructive"}>
-                              {position.profitPercentage >= 0 ? '+' : ''}{position.profitPercentage.toFixed(1)}%
+                            <Badge variant={(position.profitPercentage || 0) >= 0 ? "default" : "destructive"}>
+                              {(position.profitPercentage || 0) >= 0 ? '+' : ''}{Number(position.profitPercentage || 0).toFixed(1)}%
                             </Badge>
                             <div className="text-sm text-slate-400 mt-1">
                               {position.status}
@@ -374,16 +374,16 @@ export default function VictoriaAutonomousDashboard() {
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
                             <div className="text-slate-400">Amount</div>
-                            <div>{position.amount.toFixed(2)}</div>
+                            <div>{Number(position.amount || 0).toFixed(2)}</div>
                           </div>
                           <div>
                             <div className="text-slate-400">Current</div>
-                            <div>${position.currentPrice.toFixed(6)}</div>
+                            <div>${Number(position.currentPrice || 0).toFixed(6)}</div>
                           </div>
                           <div>
                             <div className="text-slate-400">P&L</div>
-                            <div className={position.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'}>
-                              ${position.profitLoss.toFixed(4)}
+                            <div className={(position.profitLoss || 0) >= 0 ? 'text-green-400' : 'text-red-400'}>
+                              ${Number(position.profitLoss || 0).toFixed(4)}
                             </div>
                           </div>
                         </div>
