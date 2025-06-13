@@ -376,7 +376,7 @@ export default function TestModeDashboard() {
                     <p>Likvidita: ${token.liquidity.toLocaleString()}</p>
                     <p>Volume 24h: ${token.volume24h.toLocaleString()}</p>
                   </div>
-                  <Badge className={token.isValidForTrading ? "bg-green-500" : "bg-gray-500"} size="sm">
+                  <Badge className={token.isValidForTrading ? "bg-green-500" : "bg-gray-500"}>
                     {token.isValidForTrading ? 'Vhodný' : 'Nevhodný'}
                   </Badge>
                 </div>
