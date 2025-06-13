@@ -434,6 +434,45 @@ class StreamlinedTradingEngine {
     this.isRunning = false;
     console.log('🛑 Streamlined trading stopped');
   }
+
+  async executeTestTrade(opportunity: PumpFunOpportunity, solAmount: number): Promise<StreamlinedTradePosition> {
+    console.log(`🧪 Executing test trade: ${opportunity.symbol} with ${solAmount} SOL`);
+
+    // Execute Jupiter swap for test
+    const swapResult = await this.executeJupiterSwap(
+      'So11111111111111111111111111111111111111112', // SOL mint
+      opportunity.mint,
+      solAmount
+    );
+
+    if (swapResult.success) {
+      const position: StreamlinedTradePosition = {
+        id: `test_${Date.now()}`,
+        tokenMint: opportunity.mint,
+        symbol: opportunity.symbol,
+        entryPrice: opportunity.price,
+        entryAmount: solAmount,
+        tokensReceived: swapResult.tokensReceived,
+        entryTime: Date.now(),
+        currentPrice: opportunity.price,
+        marketCap: opportunity.marketCap,
+        status: 'ACTIVE',
+        entryTxHash: swapResult.txHash,
+        targetProfit: this.TARGET_PROFIT,
+        stopLoss: this.STOP_LOSS,
+        trailingStop: this.TRAILING_STOP,
+        maxPriceReached: opportunity.price
+      };
+
+      this.activePositions.set(position.id, position);
+      console.log(`✅ Test position created: ${position.symbol} - ${position.tokensReceived} tokens`);
+      console.log(`🔗 TX Hash: ${position.entryTxHash}`);
+      
+      return position;
+    } else {
+      throw new Error('Test trade execution failed');
+    }
+  }
 }
 
 export const streamlinedEngine = new StreamlinedTradingEngine();

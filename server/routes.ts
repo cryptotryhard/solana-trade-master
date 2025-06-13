@@ -1649,5 +1649,39 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Manual test trade endpoint
+  app.post("/api/streamlined/test-trade", async (req, res) => {
+    try {
+      console.log('🧪 Executing manual test trade for 0.03 SOL');
+      
+      // Create test opportunity with real pump.fun token
+      const testOpportunity = {
+        mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
+        symbol: 'TESTCOIN',
+        marketCap: 35000,
+        price: 0.000015,
+        volume24h: 45000,
+        priceChange24h: 12.5,
+        liquidity: 30000,
+        holders: 750,
+        score: 88,
+        isNew: true,
+        riskLevel: 'MEDIUM' as const
+      };
+
+      // Execute test trade via streamlined engine
+      const result = await streamlinedEngine.executeTestTrade(testOpportunity, 0.03);
+      
+      res.json({ 
+        success: true, 
+        message: 'Test trade executed successfully',
+        trade: result
+      });
+    } catch (error) {
+      console.error('❌ Error executing test trade:', error);
+      res.status(500).json({ success: false, error: error.message || "Failed to execute test trade" });
+    }
+  });
+
   return app;
 }
