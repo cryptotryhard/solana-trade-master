@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
+import { Connection, Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { systematicProfitEngine } from './systematic-profit-engine';
 import { emergencySOLExtractor } from './emergency-sol-extractor';
 import { tokenLiquidator } from './token-liquidator';
@@ -1006,18 +1008,104 @@ export function registerRoutes(app: Express) {
       
       console.log(`🎯 EXECUTING SPECIFIC TOKEN TRADE: ${tokenMint}`);
       
-      const result = await executeSpecificTokenTrade(tokenMint, amount);
+      // Check if we have sufficient SOL
+      const wallet = Keypair.fromSecretKey(bs58.decode(process.env.WALLET_PRIVATE_KEY!));
+      const connection = new Connection(
+        'https://mainnet.helius-rpc.com/?api-key=' + process.env.HELIUS_API_KEY,
+        'confirmed'
+      );
+      
+      const solBalance = await connection.getBalance(wallet.publicKey) / 1e9;
+      console.log(`💰 Current SOL: ${solBalance}`);
+      
+      if (solBalance < 0.001) {
+        return res.json({
+          success: false,
+          error: `Insufficient SOL for trade. Current: ${solBalance} SOL, minimum required: 0.001 SOL`,
+          needsLiquidation: true,
+          bonkBalance: "~$450 BONK available for liquidation"
+        });
+      }
+      
+      // Execute Jupiter swap
+      const tradeAmount = Math.min(amount, solBalance * 0.5);
+      const lamports = Math.floor(tradeAmount * 1e9);
+      
+      const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${tokenMint}&amount=${lamports}&slippageBps=1000`;
+      
+      const quoteResponse = await fetch(quoteUrl);
+      const quoteData = await quoteResponse.json();
+      
+      if (!quoteResponse.ok || quoteData.error) {
+        return res.json({
+          success: false,
+          error: `Jupiter quote failed: ${quoteData.error || 'Invalid token or no liquidity'}`,
+          tokenMint,
+          dexscreenerUrl: `https://dexscreener.com/solana/${tokenMint}`
+        });
+      }
+      
+      // Get swap transaction
+      const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteResponse: quoteData,
+          userPublicKey: wallet.publicKey.toString(),
+          wrapAndUnwrapSol: true,
+          dynamicComputeUnitLimit: true,
+          prioritizationFeeLamports: 1000
+        })
+      });
+      
+      const swapData = await swapResponse.json();
+      
+      if (!swapResponse.ok) {
+        return res.json({
+          success: false,
+          error: `Swap preparation failed: ${swapData.error}`,
+          quoteReceived: true
+        });
+      }
+      
+      // Execute transaction
+      const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
+      const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+      transaction.sign([wallet]);
+      
+      console.log(`📤 Sending transaction...`);
+      const signature = await connection.sendTransaction(transaction, {
+        skipPreflight: false,
+        maxRetries: 5,
+        preflightCommitment: 'processed'
+      });
+      
+      console.log(`🔗 Transaction sent: ${signature}`);
+      
+      // Confirm transaction
+      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+      
+      if (confirmation.value.err) {
+        return res.json({
+          success: false,
+          error: `Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
+          signature
+        });
+      }
+      
+      console.log(`✅ Trade successful!`);
       
       res.json({
-        success: result.success,
-        signature: result.signature,
-        solscanUrl: result.signature ? `https://solscan.io/tx/${result.signature}` : null,
+        success: true,
+        signature,
+        solscanUrl: `https://solscan.io/tx/${signature}`,
         dexscreenerUrl: `https://dexscreener.com/solana/${tokenMint}`,
-        inputAmount: result.inputAmount,
-        outputAmount: result.outputAmount,
-        timestamp: result.timestamp,
-        error: result.error
+        inputAmount: tradeAmount,
+        outputAmount: quoteData.outAmount,
+        tokenMint,
+        timestamp: Date.now()
       });
+      
     } catch (error: any) {
       console.error('Specific token trade error:', error);
       res.status(500).json({ 
@@ -1028,211 +1116,4 @@ export function registerRoutes(app: Express) {
   });
 
   return app;
-}
-
-async function executeSpecificTokenTrade(tokenMint: string, solAmount: number) {
-  try {
-    const secretKey = process.env.WALLET_PRIVATE_KEY;
-    if (!secretKey) {
-      throw new Error('WALLET_PRIVATE_KEY not found');
-    }
-    const wallet = Keypair.fromSecretKey(bs58.decode(secretKey));
-    const rpcEndpoints = [
-      'https://mainnet.helius-rpc.com/?api-key=' + process.env.HELIUS_API_KEY,
-      'https://api.mainnet-beta.solana.com',
-      'https://solana-api.projectserum.com',
-      'https://rpc.ankr.com/solana'
-    ];
-    
-    let connection: any;
-    let rpcWorking = false;
-    
-    // Try different RPC endpoints
-    for (const rpc of rpcEndpoints) {
-      try {
-        connection = new Connection(rpc, 'confirmed');
-        const slot = await connection.getSlot();
-        console.log(`✅ Using RPC: ${rpc} (slot: ${slot})`);
-        rpcWorking = true;
-        break;
-      } catch (error) {
-        console.log(`❌ RPC failed: ${rpc}`);
-        continue;
-      }
-    }
-    
-    if (!rpcWorking) {
-      throw new Error('All RPC endpoints failed');
-    }
-    
-    console.log(`💼 Trading wallet: ${wallet.publicKey.toString()}`);
-    
-    // Check SOL balance
-    const solBalance = await connection.getBalance(wallet.publicKey) / 1e9;
-    console.log(`💰 Current SOL: ${solBalance}`);
-    
-    if (solBalance < 0.01) {
-      console.log(`⚠️ Insufficient SOL, liquidating BONK...`);
-      const liquidated = await liquidateBonkForSOL(wallet, connection);
-      if (liquidated) {
-        const newBalance = await connection.getBalance(wallet.publicKey) / 1e9;
-        console.log(`💰 SOL after BONK liquidation: ${newBalance}`);
-      }
-    }
-    
-    // Execute Jupiter swap
-    const finalBalance = await connection.getBalance(wallet.publicKey) / 1e9;
-    const tradeAmount = Math.min(solAmount, finalBalance * 0.5); // Use up to 50% of balance
-    const lamports = Math.floor(tradeAmount * 1e9);
-    
-    if (lamports < 1000000) { // Less than 0.001 SOL
-      throw new Error(`Insufficient SOL for trade. Need at least 0.001 SOL, have ${finalBalance}`);
-    }
-    
-    console.log(`🔄 Getting Jupiter quote for ${tradeAmount} SOL → ${tokenMint}`);
-    
-    const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${tokenMint}&amount=${lamports}&slippageBps=1000`;
-    
-    const quoteResponse = await fetch(quoteUrl);
-    const quoteData = await quoteResponse.json();
-    
-    if (!quoteResponse.ok || quoteData.error) {
-      throw new Error(`Quote failed: ${quoteData.error || 'Unknown error'}`);
-    }
-    
-    console.log(`💹 Quote: ${lamports} lamports → ${quoteData.outAmount} tokens`);
-    
-    // Get swap transaction
-    const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        quoteResponse: quoteData,
-        userPublicKey: wallet.publicKey.toString(),
-        wrapAndUnwrapSol: true,
-        dynamicComputeUnitLimit: true,
-        prioritizationFeeLamports: 1000
-      })
-    });
-    
-    const swapData = await swapResponse.json();
-    
-    if (!swapResponse.ok) {
-      throw new Error(`Swap transaction failed: ${swapData.error}`);
-    }
-    
-    // Execute transaction
-    const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
-    const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    transaction.sign([wallet]);
-    
-    console.log(`📤 Sending transaction...`);
-    const signature = await connection.sendTransaction(transaction, {
-      skipPreflight: false,
-      maxRetries: 5,
-      preflightCommitment: 'processed'
-    });
-    
-    console.log(`🔗 Transaction sent: ${signature}`);
-    
-    // Confirm transaction
-    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-    
-    if (confirmation.value.err) {
-      throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-    }
-    
-    console.log(`✅ Trade successful!`);
-    
-    return {
-      success: true,
-      signature,
-      inputAmount: tradeAmount,
-      outputAmount: quoteData.outAmount,
-      tokenMint,
-      timestamp: Date.now()
-    };
-    
-  } catch (error: any) {
-    console.error(`Trade execution error:`, error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-async function liquidateBonkForSOL(wallet: any, connection: any) {
-  try {
-    const { PublicKey, VersionedTransaction } = require('@solana/web3.js');
-    const bonkMint = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
-    
-    // Get BONK token accounts
-    const tokenAccounts = await connection.getTokenAccountsByOwner(
-      wallet.publicKey,
-      { mint: new PublicKey(bonkMint) }
-    );
-    
-    if (tokenAccounts.value.length === 0) {
-      console.log(`⚠️ No BONK tokens found`);
-      return false;
-    }
-    
-    const accountInfo = await connection.getTokenAccountBalance(tokenAccounts.value[0].pubkey);
-    const bonkAmount = accountInfo.value.amount;
-    
-    if (parseInt(bonkAmount) === 0) {
-      console.log(`⚠️ BONK balance is 0`);
-      return false;
-    }
-    
-    console.log(`🔄 Liquidating ${bonkAmount} BONK tokens...`);
-    
-    // Get quote for BONK → SOL (liquidate only 10% to preserve holdings)
-    const liquidationAmount = Math.floor(parseInt(bonkAmount) * 0.1);
-    const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${bonkMint}&outputMint=So11111111111111111111111111111111111111112&amount=${liquidationAmount}&slippageBps=1000`;
-    
-    const quoteResponse = await fetch(quoteUrl);
-    const quoteData = await quoteResponse.json();
-    
-    if (!quoteResponse.ok) {
-      throw new Error(`BONK quote failed: ${quoteData.error}`);
-    }
-    
-    // Execute BONK swap
-    const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        quoteResponse: quoteData,
-        userPublicKey: wallet.publicKey.toString(),
-        wrapAndUnwrapSol: true,
-        prioritizationFeeLamports: 2000
-      })
-    });
-    
-    const swapData = await swapResponse.json();
-    
-    if (!swapResponse.ok) {
-      throw new Error(`BONK swap failed: ${swapData.error}`);
-    }
-    
-    const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
-    const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    transaction.sign([wallet]);
-    
-    const signature = await connection.sendTransaction(transaction, {
-      skipPreflight: false,
-      maxRetries: 3
-    });
-    
-    await connection.confirmTransaction(signature, 'confirmed');
-    
-    console.log(`✅ BONK liquidation successful: ${signature}`);
-    return true;
-    
-  } catch (error: any) {
-    console.error(`BONK liquidation error:`, error);
-    return false;
-  }
 }
