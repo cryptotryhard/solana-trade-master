@@ -204,7 +204,7 @@ export default function OptimizedPortfolioDashboard() {
                     {formatPercent(stats?.totalROI || 0)}
                   </p>
                   <p className="text-xs text-gray-400 mt-2">
-                    P&L: {formatCurrency((totalPortfolioValue || 0) - 500)}
+                    P&L: {formatCurrency((portfolioValue || 0) - 500)}
                   </p>
                 </div>
                 {(stats?.totalROI || 0) >= 0 ? 
