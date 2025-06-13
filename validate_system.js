@@ -3,8 +3,8 @@
  * Direct execution to validate VICTORIA's trading authenticity
  */
 
-const { Connection, PublicKey } = require('@solana/web3.js');
-const fetch = require('node-fetch');
+import { Connection, PublicKey } from '@solana/web3.js';
+import fetch from 'node-fetch';
 
 class SystemValidator {
   constructor() {
