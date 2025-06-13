@@ -15,7 +15,10 @@ class WalletTokenScanner {
   private walletAddress: string;
 
   constructor() {
-    this.connection = new Connection(process.env.HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com');
+    const heliusUrl = process.env.HELIUS_API_KEY 
+      ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+      : 'https://api.mainnet-beta.solana.com';
+    this.connection = new Connection(heliusUrl, 'confirmed');
     this.walletAddress = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
   }
 

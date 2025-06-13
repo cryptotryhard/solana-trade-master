@@ -36,7 +36,10 @@ class PumpFunTrader {
   private isActive: boolean = false;
 
   constructor() {
-    this.connection = new Connection('https://api.mainnet-beta.solana.com');
+    const heliusUrl = process.env.HELIUS_API_KEY 
+      ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+      : 'https://api.mainnet-beta.solana.com';
+    this.connection = new Connection(heliusUrl, 'confirmed');
     this.wallet = Keypair.fromSecretKey(bs58.decode(process.env.WALLET_PRIVATE_KEY!));
     
     // Strategy: Buy at 20K MC, sell at 20M MC (1000x potential)
