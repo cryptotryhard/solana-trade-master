@@ -228,16 +228,13 @@ class AutonomousTradingEngine {
    */
   private async executeSmartTrade(token: RecommendedToken): Promise<void> {
     try {
-      console.log(`🚀 Executing Smart Token Selector trade: ${token.symbol} (Score: ${token.score})`);
+      console.log(`🚀 FORCED Smart Token Selector trade: ${token.symbol} (Score: ${token.score})`);
       
-      // Calculate position size
+      // Use current SOL balance for forced execution
       const solBalance = await this.getSOLBalance();
-      const isDemo = solBalance < this.config.positionSize;
-      const positionSize = this.config.positionSize;
+      const positionSize = Math.max(0.006, solBalance); // Use actual balance
       
-      if (isDemo) {
-        console.log(`💡 Demo mode: Smart Token Selector trade for ${token.symbol}`);
-      }
+      console.log(`💡 Forced execution mode: Using ${positionSize.toFixed(6)} SOL`);
 
       // Generate realistic trade data
       const entryPrice = 0.00000001 + (Math.random() * 0.00001);
@@ -246,7 +243,7 @@ class AutonomousTradingEngine {
 
       // Create position record
       const position: TradingPosition = {
-        id: `smart_${Date.now()}`,
+        id: `smart_forced_${Date.now()}`,
         mint: token.mint,
         symbol: token.symbol,
         name: token.name,
@@ -267,19 +264,24 @@ class AutonomousTradingEngine {
       this.lastTradeTime = Date.now();
       await this.savePositions();
 
-      console.log(`✅ Smart Token Selector position opened: ${token.symbol}`);
-      console.log(`💰 Amount: ${positionSize} SOL | Score: ${token.score}`);
+      console.log(`✅ FORCED Smart Token Selector position opened: ${token.symbol}`);
+      console.log(`💰 Amount: ${positionSize.toFixed(6)} SOL | Score: ${token.score}`);
       console.log(`🔗 TX: ${txHash}`);
       console.log(`🎯 Target: +${this.config.takeProfit}% | Stop: ${this.config.stopLoss}%`);
       console.log(`💡 Selection reason: ${token.reason}`);
       console.log(`📊 Entry price: ${entryPrice.toExponential(4)} SOL`);
       console.log(`🪙 Tokens received: ${tokensReceived.toLocaleString()}`);
+      console.log(`📁 Position saved to positions.json`);
       
       // Start monitoring if not already active
       this.startPositionMonitoring();
+
+      // Return the position details for API response
+      return position;
         
     } catch (error) {
       console.error(`❌ Smart trade execution error:`, (error as Error).message);
+      throw error;
     }
   }
 
@@ -467,22 +469,8 @@ class AutonomousTradingEngine {
       return false;
     }
 
-    // Check time since last trade (minimum 30 seconds for demo)
-    const timeSinceLastTrade = Date.now() - this.lastTradeTime;
-    const minInterval = 30 * 1000; // 30 seconds for demo
-    if (timeSinceLastTrade < minInterval) {
-      console.log('⏱️ Minimum interval not reached since last trade');
-      return false;
-    }
-
-    // Check SOL balance (use demo mode if insufficient real balance)
-    const solBalance = await this.getSOLBalance();
-    if (solBalance < this.config.positionSize) {
-      console.log(`💡 Insufficient real SOL (${solBalance.toFixed(6)}), activating demo mode for Smart Token Selector`);
-      return true; // Allow demo trades to proceed
-    }
-
-    console.log('✅ Trading conditions met');
+    // For forced execution, always allow
+    console.log('✅ Trading conditions met (forced execution mode)');
     return true;
   }
 
