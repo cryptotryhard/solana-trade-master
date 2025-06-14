@@ -2742,6 +2742,58 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Autonomous Reality Engine endpoints
+  app.post("/api/autonomous-reality/start", async (req, res) => {
+    try {
+      const { autonomousRealityEngine } = await import('./autonomous-reality-engine');
+      await autonomousRealityEngine.startAutonomousTrading();
+      
+      res.json({
+        success: true,
+        message: "24/7 autonomous trading activated"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/autonomous-reality/stop", async (req, res) => {
+    try {
+      const { autonomousRealityEngine } = await import('./autonomous-reality-engine');
+      autonomousRealityEngine.stopAutonomousTrading();
+      
+      res.json({
+        success: true,
+        message: "Autonomous trading stopped"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/autonomous-reality/status", async (req, res) => {
+    try {
+      const { autonomousRealityEngine } = await import('./autonomous-reality-engine');
+      const status = autonomousRealityEngine.getTradingStatus();
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';
