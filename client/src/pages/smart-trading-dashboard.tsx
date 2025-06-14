@@ -384,25 +384,25 @@ export default function SmartTradingDashboard() {
               <div className="text-center">
                 <div className="text-sm text-muted-foreground">Portfolio Value</div>
                 <div className="text-2xl font-bold text-green-500">
-                  ${capitalMetrics.metrics.totalValueUSD.toFixed(2)}
+                  ${(capitalMetrics.metrics.totalValueUSD || 0).toFixed(2)}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatSOL(capitalMetrics.metrics.totalSOL)}
+                  {formatSOL(capitalMetrics.metrics.totalSOL || 0)}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-sm text-muted-foreground">Capital Used</div>
                 <div className="text-2xl font-bold">
-                  {capitalMetrics.metrics.capitalUsedPercent.toFixed(1)}%
+                  {(capitalMetrics.metrics.capitalUsedPercent || 0).toFixed(1)}%
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {capitalMetrics.metrics.activePositions}/{capitalMetrics.metrics.maxAllowedPositions} pozic
+                  {capitalMetrics.metrics.activePositions || 0}/{capitalMetrics.metrics.maxAllowedPositions || 0} pozic
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-sm text-muted-foreground">Dynamic Position Size</div>
                 <div className="text-2xl font-bold text-blue-500">
-                  {formatSOL(capitalMetrics.metrics.dynamicPositionSize)}
+                  {formatSOL(capitalMetrics.metrics.dynamicPositionSize || 0)}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Automaticky upravováno
@@ -427,10 +427,10 @@ export default function SmartTradingDashboard() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Využití kapitálu</span>
-                <span>{capitalMetrics.metrics.capitalUsedPercent.toFixed(1)}% / 80%</span>
+                <span>{(capitalMetrics.metrics.capitalUsedPercent || 0).toFixed(1)}% / 80%</span>
               </div>
               <Progress 
-                value={capitalMetrics.metrics.capitalUsedPercent} 
+                value={capitalMetrics.metrics.capitalUsedPercent || 0} 
                 className="h-3"
               />
             </div>
