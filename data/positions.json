@@ -1,26 +1,38 @@
-{
-  "positions": [
-    {
-      "id": "smart_forced_1749887484837",
-      "mint": "FLOKi2GemHunterPumpFun9Y8AwQhKDxLowMcXtr5vEqps",
-      "symbol": "FLOKI2",
-      "name": "Floki Gem Hunter",
-      "entryPrice": 0.00000247,
-      "entryAmount": 0.006764,
-      "tokensReceived": 2738,
-      "entryTime": 1749887484837,
-      "currentPrice": 0.00000247,
-      "status": "ACTIVE",
-      "entryTxHash": "Y9jbgtzcnH5Ag6UcqMWANCrbqMG3ersJx15FPRymVF7rzFZFAWEyYj5n3bhqwDRF",
-      "targetProfit": 25,
-      "stopLoss": -15,
-      "trailingStop": 8,
-      "maxPriceReached": 0.00000247
-    }
-  ],
-  "totalInvested": 0.006764,
-  "totalValue": 0.006764,
-  "totalTrades": 1,
-  "winRate": 0,
-  "lastUpdated": 1749887484839
-}
+[
+  {
+    "id": "pos_1749896627073_uHYmW2hr",
+    "mint": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+    "symbol": "POPCAT",
+    "balance": 19.315700522,
+    "decimals": 9,
+    "entryPrice": 0.9,
+    "currentPrice": 0.9,
+    "valueUSD": 17.384130469800002,
+    "pnlUSD": 0,
+    "pnlPercent": 0,
+    "entryTime": 1749810227073,
+    "entryTxHash": "yzu5RsyCReEmPbjV3JC446mNE91rPbgcL9TaW94gXtHq9Whdp2ZzPZ1GR6DW6WAfJpQd5ZG786pAQJuSJc2jB3zT",
+    "targetProfit": 1.8,
+    "stopLoss": 0.7200000000000001,
+    "status": "ACTIVE",
+    "lastUpdated": 1749896627073
+  },
+  {
+    "id": "pos_1749896627073_uJosgAsU",
+    "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "symbol": "SAMO",
+    "balance": 25727.440400657,
+    "decimals": 9,
+    "entryPrice": 0.0022,
+    "currentPrice": 0.0022,
+    "valueUSD": 56.600368881445405,
+    "pnlUSD": 0,
+    "pnlPercent": 0,
+    "entryTime": 1749810227073,
+    "entryTxHash": "3swsQN2f4vZbbjZANcNEFMqut4waJHAEBX9Fmk1MJ13avxyRptjCRc6Rc5EEeHPZNvjcgmQqJtPu6kJZathtqTM3",
+    "targetProfit": 0.0044,
+    "stopLoss": 0.0017600000000000003,
+    "status": "ACTIVE",
+    "lastUpdated": 1749896627073
+  }
+]

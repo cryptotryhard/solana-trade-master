@@ -664,10 +664,10 @@ export default function SmartTradingDashboard() {
                           try {
                             const response = await fetch('/api/autonomous-reality/start', { method: 'POST' });
                             const result = await response.json();
-                            toast({ title: result.success ? "✅ Autonomous trading started" : "❌ Failed to start" });
+                            console.log(result.success ? "✅ Autonomous trading started" : "❌ Failed to start");
                             refetchReality();
                           } catch (error) {
-                            toast({ title: "❌ Error starting trading", variant: "destructive" });
+                            console.error("❌ Error starting trading");
                           }
                         }}
                         className="bg-green-600 hover:bg-green-700"
