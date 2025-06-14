@@ -2476,6 +2476,94 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Continuous Trading Engine API endpoints
+  app.get("/api/continuous-trading/status", async (req, res) => {
+    try {
+      const { continuousTradingEngine } = await import('./continuous-trading-engine');
+      const status = continuousTradingEngine.getStatus();
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/continuous-trading/start", async (req, res) => {
+    try {
+      const { continuousTradingEngine } = await import('./continuous-trading-engine');
+      await continuousTradingEngine.startContinuousTrading();
+      
+      res.json({
+        success: true,
+        message: "Continuous trading started"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/continuous-trading/stop", async (req, res) => {
+    try {
+      const { continuousTradingEngine } = await import('./continuous-trading-engine');
+      continuousTradingEngine.stopContinuousTrading();
+      
+      res.json({
+        success: true,
+        message: "Continuous trading stopped"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/continuous-trading/config", async (req, res) => {
+    try {
+      const { continuousTradingEngine } = await import('./continuous-trading-engine');
+      const { config } = req.body;
+      
+      continuousTradingEngine.updateConfig(config);
+      
+      res.json({
+        success: true,
+        message: "Configuration updated"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/trading/recent-trades", async (req, res) => {
+    try {
+      const { continuousTradingEngine } = await import('./continuous-trading-engine');
+      const status = continuousTradingEngine.getStatus();
+      
+      res.json({
+        success: true,
+        trades: status.recentTrades
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';

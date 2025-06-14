@@ -189,6 +189,29 @@ export default function SmartTradingDashboard() {
     refetchInterval: 60000,
   });
 
+  // Fetch Continuous Trading status
+  const { data: continuousStatus } = useQuery<{
+    success: boolean;
+    isActive: boolean;
+    solBalance: number;
+    walletTokens: any[];
+    recentTrades: any[];
+    alerts: any[];
+    config: any;
+  }>({
+    queryKey: ['/api/continuous-trading/status'],
+    refetchInterval: 10000,
+  });
+
+  // Fetch Recent Trades
+  const { data: recentTradesData } = useQuery<{
+    success: boolean;
+    trades: any[];
+  }>({
+    queryKey: ['/api/trading/recent-trades'],
+    refetchInterval: 30000,
+  });
+
   // Start Smart Trading mutation
   const startTradingMutation = useMutation({
     mutationFn: () => fetch('/api/smart-trading/start', { method: 'POST' }).then(res => res.json()),
@@ -258,10 +281,10 @@ export default function SmartTradingDashboard() {
 
   const calculatePnL = (position: any) => {
     if (position.pnl !== undefined) return position.pnl;
-    const priceChange = (Math.random() - 0.5) * 0.4;
-    const currentPrice = position.entryPrice * (1 + priceChange);
-    const pnlPercent = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
-    return pnlPercent;
+    if (position.currentPrice && position.entryPrice) {
+      return ((position.currentPrice - position.entryPrice) / position.entryPrice) * 100;
+    }
+    return 0;
   };
 
   const getPositionStatus = (position: any) => {
@@ -527,6 +550,7 @@ export default function SmartTradingDashboard() {
           <TabsTrigger value="positions">Aktivní pozice ({currentActivePositions.length})</TabsTrigger>
           <TabsTrigger value="history">Historie obchodů ({closedPositions.length})</TabsTrigger>
           <TabsTrigger value="wallet">Peněženka ({walletPositions?.length || 0})</TabsTrigger>
+          <TabsTrigger value="realtime">Reálné výnosy</TabsTrigger>
           <TabsTrigger value="balancer">Portfolio Balancer</TabsTrigger>
           <TabsTrigger value="patterns">AI Vzorce</TabsTrigger>
           <TabsTrigger value="settings">Nastavení</TabsTrigger>
@@ -742,6 +766,170 @@ export default function SmartTradingDashboard() {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="realtime" className="space-y-4">
+          {/* Real-time Trading Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Status kontinuálního obchodování
+                {continuousStatus?.isActive && (
+                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Nepřetržité obchodování s micro-trades
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {continuousStatus?.isActive ? 'AKTIVNÍ' : 'NEAKTIVNÍ'}
+                  </div>
+                  <div className="text-sm text-gray-500">Bot Status</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {walletBalance?.solBalance || '0.000000'} SOL
+                  </div>
+                  <div className="text-sm text-gray-500">Dostupný kapitál</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {continuousStatus?.walletTokens?.length || 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Sledované pozice</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {continuousStatus?.recentTrades?.length || 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Obchody 24h</div>
+                </div>
+              </div>
+
+              {/* Alerts */}
+              {continuousStatus?.alerts?.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="font-medium mb-2">Upozornění systému</h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {continuousStatus.alerts.slice(0, 5).map((alert: any, index: number) => (
+                      <div 
+                        key={index}
+                        className={`p-2 rounded-lg text-sm ${
+                          alert.severity === 'HIGH' 
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            : alert.severity === 'MEDIUM'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <span>{alert.message}</span>
+                          <span className="text-xs opacity-70">
+                            {new Date(alert.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Trades */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Reálné obchody za posledních 24h</CardTitle>
+              <CardDescription>
+                Skutečné výsledky z blockchain transakcí
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentTradesData?.trades?.length ? (
+                <div className="space-y-3">
+                  {recentTradesData.trades.slice(0, 10).map((trade: any, index: number) => (
+                    <div key={trade.id || index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          trade.status === 'SOLD_PROFIT' ? 'bg-green-500' : 
+                          trade.status === 'SOLD_LOSS' ? 'bg-red-500' : 
+                          'bg-blue-500'
+                        }`}></div>
+                        <div>
+                          <div className="font-medium">{trade.symbol}</div>
+                          <div className="text-sm text-gray-500">
+                            {trade.txHash ? `${trade.txHash.slice(0, 8)}...` : 'Pending'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {trade.entryPrice ? `$${trade.entryPrice.toFixed(4)}` : 'Entry'}
+                          {trade.exitPrice && ` → $${trade.exitPrice.toFixed(4)}`}
+                        </div>
+                        <div className={`text-sm ${
+                          trade.pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {trade.pnl ? `${trade.pnl > 0 ? '+' : ''}${trade.pnl.toFixed(1)}%` : 'Active'}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(trade.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Žádné reálné obchody za posledních 24h</p>
+                  <p className="text-sm mt-1">Bot připravuje první obchod...</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Performance Metrics */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Výkonnostní metriky</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <div className="text-xl font-bold text-green-600">
+                    {recentTradesData?.trades?.filter((t: any) => t.status === 'SOLD_PROFIT').length || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Ziskové obchody</div>
+                </div>
+                <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <div className="text-xl font-bold text-red-600">
+                    {recentTradesData?.trades?.filter((t: any) => t.status === 'SOLD_LOSS').length || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Ztrátové obchody</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <div className="text-xl font-bold text-blue-600">
+                    {recentTradesData?.trades?.filter((t: any) => t.status === 'ACTIVE').length || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Aktivní pozice</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <div className="text-xl font-bold text-purple-600">
+                    {recentTradesData?.trades?.length ? 
+                      Math.round((recentTradesData.trades.filter((t: any) => t.status === 'SOLD_PROFIT').length / 
+                                 recentTradesData.trades.filter((t: any) => t.status !== 'ACTIVE').length) * 100) : 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">Win Rate</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
