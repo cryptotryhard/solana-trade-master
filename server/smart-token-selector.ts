@@ -3,6 +3,8 @@
  * Centralized decision engine for pump.fun token selection with comprehensive validation
  */
 
+import { riskShield } from './risk-shield';
+
 interface PumpFunToken {
   mint: string;
   name: string;
@@ -208,7 +210,15 @@ class SmartTokenSelector {
         continue;
       }
 
-      console.log(`✅ ${token.symbol} passed filters: MC=$${token.usd_market_cap.toLocaleString()}, Age=${ageHours.toFixed(1)}h, Progress=${bondingProgress.toFixed(1)}%`);
+      // AI Risk Shield Analysis
+      const riskAnalysis = await riskShield.analyzeToken(token.mint, token.symbol);
+      
+      if (riskAnalysis.isRisky) {
+        console.log(`🚨 RISKY TOKEN BLOCKED: ${token.symbol} - ${riskAnalysis.reasons.join(', ')}`);
+        continue;
+      }
+
+      console.log(`✅ ${token.symbol} passed filters: MC=$${token.usd_market_cap.toLocaleString()}, Age=${ageHours.toFixed(1)}h, Progress=${bondingProgress.toFixed(1)}%, Risk=${riskAnalysis.riskScore}%`);
       filtered.push(token);
     }
 
