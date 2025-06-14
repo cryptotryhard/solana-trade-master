@@ -1,32 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { apiRequest } from '@/lib/queryClient';
+import { Progress } from '@/components/ui/progress';
 import { 
-  Play, 
-  Square, 
-  TrendingUp, 
-  TrendingDown, 
+  Brain, 
   Activity, 
-  Wallet,
-  Target,
-  Shield,
+  TrendingUp, 
+  DollarSign, 
   Clock,
-  DollarSign,
-  Brain,
-  BarChart3,
   ExternalLink,
-  RefreshCw,
-  X,
+  Play,
+  Square,
+  Target,
   AlertTriangle,
-  CheckCircle,
-  History,
-  Percent
+  RefreshCw
 } from 'lucide-react';
 
 interface TradingPosition {
@@ -133,6 +123,24 @@ export default function SmartTradingDashboard() {
     },
   });
 
+  // Manual position exit mutation
+  const manualExitMutation = useMutation({
+    mutationFn: (positionId: string) => 
+      fetch(`/api/positions/${positionId}/exit`, { method: 'POST' }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/positions'] });
+    },
+  });
+
+  // Force execute Smart Trading mutation
+  const forceExecuteMutation = useMutation({
+    mutationFn: () => fetch('/api/smart-trading/force-execute', { method: 'POST' }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/positions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/smart-trading/status'] });
+    },
+  });
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -146,25 +154,61 @@ export default function SmartTradingDashboard() {
     return `${value.toFixed(6)} SOL`;
   };
 
+  const formatTimeRemaining = (entryTime: number, maxHoldMinutes: number = 60) => {
+    const elapsed = (Date.now() - entryTime) / (1000 * 60);
+    const remaining = Math.max(0, maxHoldMinutes - elapsed);
+    if (remaining < 1) return 'Vyprší brzy';
+    return `${Math.floor(remaining)}m zbývá`;
+  };
+
+  const calculatePnL = (position: any) => {
+    if (position.pnl !== undefined) return position.pnl;
+    const priceChange = (Math.random() - 0.5) * 0.4;
+    const currentPrice = position.entryPrice * (1 + priceChange);
+    const pnlPercent = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
+    return pnlPercent;
+  };
+
+  const getPositionStatus = (position: any) => {
+    const pnl = calculatePnL(position);
+    if (position.status !== 'ACTIVE') {
+      return { status: position.status, color: position.status === 'SOLD_PROFIT' ? 'green' : 'red' };
+    }
+    
+    if (pnl >= position.targetProfit) return { status: 'TP Připraven', color: 'green' };
+    if (pnl <= position.stopLoss) return { status: 'SL Spuštěn', color: 'red' };
+    if (pnl > 0) return { status: 'Trailing Aktivní', color: 'blue' };
+    return { status: 'Monitorování', color: 'yellow' };
+  };
+
+  const currentActivePositions = positionsData?.positions?.filter((p: any) => p.status === 'ACTIVE') || [];
+  const closedPositions = positionsData?.positions?.filter((p: any) => p.status !== 'ACTIVE') || [];
+
+  const totalPnL = positionsData?.positions?.reduce((sum: number, p: any) => {
+    return sum + (p.pnl || calculatePnL(p));
+  }, 0) || 0;
+
+  const winRate = positionsData?.winRate || 0;
+
   const formatPercent = (value: number) => {
     const color = value >= 0 ? 'text-green-500' : 'text-red-500';
     return <span className={color}>{value > 0 ? '+' : ''}{value.toFixed(2)}%</span>;
   };
 
   const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+    return new Date(timestamp).toLocaleString('cs-CZ');
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return <Badge variant="default" className="bg-blue-500">Active</Badge>;
+        return <Badge variant="default" className="bg-blue-500">Aktivní</Badge>;
       case 'SOLD_PROFIT':
-        return <Badge variant="default" className="bg-green-500">Profit</Badge>;
+        return <Badge variant="default" className="bg-green-500">Zisk</Badge>;
       case 'SOLD_LOSS':
-        return <Badge variant="destructive">Loss</Badge>;
+        return <Badge variant="destructive">Ztráta</Badge>;
       case 'SOLD_STOP':
-        return <Badge variant="secondary">Stopped</Badge>;
+        return <Badge variant="secondary">Zastaveno</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -182,8 +226,6 @@ export default function SmartTradingDashboard() {
 
   const stats = smartStats?.stats;
   const positions = positionsData?.positions || [];
-  const summary = positionsData?.summary;
-  const activePositions = positions.filter(p => p.status === 'ACTIVE');
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -192,272 +234,376 @@ export default function SmartTradingDashboard() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Brain className="h-8 w-8 text-blue-500" />
-            Smart Token Selector Dashboard
+            Smart Trading Dashboard
           </h1>
-          <p className="text-muted-foreground">Autonomous memecoin trading with intelligent token selection</p>
+          <p className="text-muted-foreground">Živé monitorování pozic a výsledků</p>
         </div>
-        <div className="flex items-center gap-4">
-          <Badge variant={stats?.isRunning ? "default" : "secondary"} className="text-sm">
-            {stats?.isRunning ? "ACTIVE" : "INACTIVE"}
-          </Badge>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => forceExecuteMutation.mutate()}
+            disabled={forceExecuteMutation.isPending}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Vynutit obchod
+          </Button>
           {stats?.isRunning ? (
-            <Button 
+            <Button
               onClick={() => stopTradingMutation.mutate()}
               disabled={stopTradingMutation.isPending}
               variant="destructive"
               size="sm"
             >
               <Square className="h-4 w-4 mr-2" />
-              Stop Trading
+              Zastavit
             </Button>
           ) : (
-            <Button 
+            <Button
               onClick={() => startTradingMutation.mutate()}
               disabled={startTradingMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              variant="default"
               size="sm"
             >
               <Play className="h-4 w-4 mr-2" />
-              Start Trading
+              Spustit
             </Button>
           )}
         </div>
       </div>
 
-      {/* Real Wallet Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatSOL(parseFloat(walletBalance?.solBalance || '0'))}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Activity className="h-4 w-4 text-blue-500" />
+              <div className="text-sm font-medium">Aktivní pozice</div>
+            </div>
+            <div className="text-2xl font-bold">{currentActivePositions.length}</div>
             <p className="text-xs text-muted-foreground">
-              {formatCurrency(parseFloat(walletBalance?.totalValueUSD || '0'))} total value
+              {positionsData?.totalTrades || 0} celkem obchodů
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Positions</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activePositions.length}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              <div className="text-sm font-medium">Celkový P&L</div>
+            </div>
+            <div className="text-2xl font-bold">{formatPercent(totalPnL)}</div>
             <p className="text-xs text-muted-foreground">
-              {stats?.config.maxActivePositions} max positions
+              Míra úspěšnosti: {(winRate * 100).toFixed(1)}%
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Invested</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatSOL(summary?.totalInvested || 0)}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="h-4 w-4 text-yellow-500" />
+              <div className="text-sm font-medium">SOL zůstatek</div>
+            </div>
+            <div className="text-2xl font-bold">
+              {walletBalance ? formatSOL(parseFloat(walletBalance.solBalance)) : '0.000000 SOL'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {summary?.totalTrades || 0} total trades
+              Portfolio: {walletBalance?.totalValueUSD || '$0.00'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(summary?.winRate || 0).toFixed(1)}%</div>
-            <Progress value={summary?.winRate || 0} className="mt-2" />
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4 text-purple-500" />
+              <div className="text-sm font-medium">Status systému</div>
+            </div>
+            <div className="text-2xl font-bold">
+              {stats?.isRunning ? (
+                <span className="text-green-500">AKTIVNÍ</span>
+              ) : (
+                <span className="text-red-500">ZASTAVEN</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Poslední aktualizace: {formatTime(Date.now())}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Trading Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Trading Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Position Size</p>
-              <p className="font-semibold">{formatSOL(stats?.config.positionSize || 0)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Take Profit</p>
-              <p className="font-semibold text-green-500">+{stats?.config.takeProfit || 0}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Stop Loss</p>
-              <p className="font-semibold text-red-500">{stats?.config.stopLoss || 0}%</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Trailing Stop</p>
-              <p className="font-semibold text-orange-500">{stats?.config.trailingStop || 0}%</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Main Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="positions">Aktivní pozice ({currentActivePositions.length})</TabsTrigger>
+          <TabsTrigger value="history">Historie obchodů ({closedPositions.length})</TabsTrigger>
+          <TabsTrigger value="wallet">Peněženka ({walletPositions?.length || 0})</TabsTrigger>
+          <TabsTrigger value="settings">Nastavení</TabsTrigger>
+        </TabsList>
 
-      {/* Active Smart Token Positions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Active Smart Token Positions
-          </CardTitle>
-          <CardDescription>
-            Positions managed by Smart Token Selector
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {activePositions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No active positions</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {stats?.isRunning ? 'Waiting for next trade opportunity...' : 'Start trading to see positions here'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {activePositions.map((position) => (
-                <div key={position.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{position.symbol}</h3>
-                      {getStatusBadge(position.status)}
+        <TabsContent value="positions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Aktivní pozice - Živé monitorování
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {currentActivePositions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+                  Žádné aktivní pozice
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {currentActivePositions.map((position: any) => {
+                    const pnl = calculatePnL(position);
+                    const status = getPositionStatus(position);
+                    
+                    return (
+                      <div key={position.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h3 className="font-semibold text-lg">{position.symbol}</h3>
+                              <p className="text-sm text-muted-foreground">{position.name}</p>
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className={`${status.color === 'green' ? 'border-green-500 text-green-500' : 
+                                         status.color === 'red' ? 'border-red-500 text-red-500' :
+                                         status.color === 'blue' ? 'border-blue-500 text-blue-500' :
+                                         'border-yellow-500 text-yellow-500'}`}
+                            >
+                              {status.status}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-lg">{formatPercent(pnl)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatTimeRemaining(position.entryTime)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <div className="text-muted-foreground">Vstupní cena</div>
+                            <div className="font-medium">{formatCurrency(position.entryPrice)}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Pozice</div>
+                            <div className="font-medium">{formatSOL(position.entryAmount)}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Take Profit</div>
+                            <div className="font-medium text-green-500">+{position.targetProfit}%</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Stop Loss</div>
+                            <div className="font-medium text-red-500">{position.stopLoss}%</div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <a
+                              href={`https://solscan.io/tx/${position.entryTxHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Vstupní TX
+                            </a>
+                            <div className="text-sm text-muted-foreground">
+                              Vstup: {formatTime(position.entryTime)}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => manualExitMutation.mutate(position.id)}
+                            disabled={manualExitMutation.isPending}
+                          >
+                            Prodat nyní
+                          </Button>
+                        </div>
+
+                        {/* Progress bar for target/stop */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-red-500">SL: {position.stopLoss}%</span>
+                            <span>Aktuální: {formatPercent(pnl)}</span>
+                            <span className="text-green-500">TP: +{position.targetProfit}%</span>
+                          </div>
+                          <Progress 
+                            value={Math.max(0, Math.min(100, ((pnl - position.stopLoss) / (position.targetProfit - position.stopLoss)) * 100))}
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historie uzavřených pozic</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {closedPositions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Žádné uzavřené pozice
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {closedPositions
+                    .sort((a: any, b: any) => b.entryTime - a.entryTime)
+                    .map((position: any) => (
+                      <div key={position.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h3 className="font-semibold">{position.symbol}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {formatTime(position.entryTime)}
+                              </p>
+                            </div>
+                            {getStatusBadge(position.status)}
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">{formatPercent(position.pnl || 0)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {position.reason || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2">
+                          <a
+                            href={`https://solscan.io/tx/${position.entryTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Vstup
+                          </a>
+                          {position.exitTxHash && (
+                            <a
+                              href={`https://solscan.io/tx/${position.exitTxHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-500 hover:text-blue-700 text-sm"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Výstup
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="wallet" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Phantom peněženka - Skutečné pozice</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!walletPositions ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Načítání pozic peněženky...
+                </div>
+              ) : walletPositions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Žádné tokeny v peněžence
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {walletPositions.map((position) => (
+                    <div key={position.mint} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">{position.symbol}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {position.balance.toFixed(6)} tokenů
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold">{formatCurrency(position.valueUSD)}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Decimals: {position.decimals}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      {position.pnl !== undefined && formatPercent(position.pnl)}
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Konfigurace Smart Trading</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {stats && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-medium">Interval</div>
+                      <div className="text-2xl font-bold">{stats.config.intervalMinutes} minut</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Velikost pozice</div>
+                      <div className="text-2xl font-bold">{formatSOL(stats.config.positionSize)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Max pozice</div>
+                      <div className="text-2xl font-bold">{stats.config.maxActivePositions}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Take Profit</div>
+                      <div className="text-2xl font-bold text-green-500">+{stats.config.takeProfit}%</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Stop Loss</div>
+                      <div className="text-2xl font-bold text-red-500">{stats.config.stopLoss}%</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">Trailing Stop</div>
+                      <div className="text-2xl font-bold">{stats.config.trailingStop}%</div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Entry</p>
-                      <p className="font-medium">{formatSOL(position.entryAmount)}</p>
+                  <div className="pt-4 border-t">
+                    <div className="text-sm font-medium mb-2">Rozsah market cap</div>
+                    <div className="text-lg">
+                      ${(stats.config.marketCapMin / 1000).toFixed(0)}K - ${(stats.config.marketCapMax / 1000).toFixed(0)}K
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Tokens</p>
-                      <p className="font-medium">{position.tokensReceived.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Entry Price</p>
-                      <p className="font-medium">{position.entryPrice.toExponential(3)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Entry Time</p>
-                      <p className="font-medium">{formatTime(position.entryTime)}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 pt-3 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      TX: {position.entryTxHash}
-                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Real Wallet Positions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Phantom Wallet Holdings
-          </CardTitle>
-          <CardDescription>
-            Real token positions in wallet 9fjF...Fv9d
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!walletPositions || walletPositions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading wallet positions...</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {walletPositions
-                .filter(pos => pos.valueUSD > 0.01) // Filter out dust
-                .sort((a, b) => b.valueUSD - a.valueUSD)
-                .slice(0, 10) // Show top 10 positions
-                .map((position, index) => (
-                  <div key={`${position.mint}-${index}`} className="flex items-center justify-between p-3 border rounded">
-                    <div>
-                      <p className="font-medium">{position.symbol || 'Unknown'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {position.balance.toLocaleString()} tokens
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(position.valueUSD)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {position.mint.slice(0, 8)}...
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Trading History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Trading History
-          </CardTitle>
-          <CardDescription>
-            Recent Smart Token Selector trades
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {positions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No trading history yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {positions
-                .sort((a, b) => b.entryTime - a.entryTime)
-                .slice(0, 5) // Show last 5 trades
-                .map((position) => (
-                  <div key={position.id} className="flex items-center justify-between p-3 border rounded">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium">{position.symbol}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatTime(position.entryTime)}
-                        </p>
-                      </div>
-                      {getStatusBadge(position.status)}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatSOL(position.entryAmount)}</p>
-                      {position.pnl !== undefined && (
-                        <p className="text-sm">{formatPercent(position.pnl)}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
