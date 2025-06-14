@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { 
   Play, 
@@ -17,7 +19,14 @@ import {
   Clock,
   DollarSign,
   Brain,
-  BarChart3
+  BarChart3,
+  ExternalLink,
+  RefreshCw,
+  X,
+  AlertTriangle,
+  CheckCircle,
+  History,
+  Percent
 } from 'lucide-react';
 
 interface TradingPosition {
