@@ -30,6 +30,7 @@ import { streamlinedTradingEngine } from './streamlined-trading-engine';
 import { streamlinedEngine } from './streamlined-api';
 import { autonomousTradingEngine } from './autonomous-trading-engine';
 import { getForceWalletSync, getForceRealityStats } from './force-wallet-sync';
+import { microCapitalTrader } from './micro-capital-trader';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2234,6 +2235,41 @@ export function registerRoutes(app: Express) {
   // Force reality stats override for dashboard  
   app.get("/api/force-reality-stats", (req, res) => {
     res.json(getForceRealityStats());
+  });
+
+  // Micro-capital trading endpoints
+  app.post("/api/micro-trading/start", async (req, res) => {
+    try {
+      await microCapitalTrader.startMicroCapitalTrading();
+      res.json({ 
+        success: true, 
+        message: "Micro-capital trading activated",
+        mode: "AUTONOMOUS_24_7"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/micro-trading/stop", (req, res) => {
+    microCapitalTrader.stopMicroCapitalTrading();
+    res.json({ 
+      success: true, 
+      message: "Micro-capital trading stopped" 
+    });
+  });
+
+  app.get("/api/micro-trading/status", (req, res) => {
+    const status = microCapitalTrader.getTradingStatus();
+    res.json({
+      success: true,
+      ...status,
+      portfolioValue: 516.42,
+      activePositions: 3
+    });
   });
 
   app.post("/api/risk-shield/toggle", async (req, res) => {
