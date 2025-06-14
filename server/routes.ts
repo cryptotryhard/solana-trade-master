@@ -31,6 +31,7 @@ import { streamlinedEngine } from './streamlined-api';
 import { autonomousTradingEngine } from './autonomous-trading-engine';
 import { getForceWalletSync, getForceRealityStats } from './force-wallet-sync';
 import { microCapitalTrader } from './micro-capital-trader';
+import { RealPortfolioService } from './real-portfolio-service';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2100,6 +2101,24 @@ export function registerRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: (error as Error).message
+      });
+    }
+  });
+
+  // Real Portfolio Value API
+  app.get("/api/portfolio/real-value", async (req, res) => {
+    try {
+      const portfolioService = new RealPortfolioService();
+      const portfolioData = await portfolioService.getPortfolioValue();
+      
+      res.json(portfolioData);
+    } catch (error) {
+      console.error('❌ Portfolio API error:', error);
+      res.status(500).json({
+        error: `Failed to fetch portfolio: ${(error as Error).message}`,
+        totalValueUSD: 0,
+        lastUpdated: Date.now(),
+        tokens: []
       });
     }
   });

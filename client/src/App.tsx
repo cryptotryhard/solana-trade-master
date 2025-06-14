@@ -21,13 +21,13 @@ import TestModeDashboard from "@/pages/test-mode-dashboard";
 import ProductionTradingDashboard from "@/pages/production-trading-dashboard";
 import StreamlinedTradingDashboard from "@/pages/streamlined-trading-dashboard";
 import LiveTradingDashboard from "@/pages/live-trading-dashboard";
-import SmartTradingDashboard from "@/pages/smart-trading-dashboard";
+import PortfolioDashboard from "@/pages/portfolio-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={VictoriaAutonomousDashboard} />
+      <Route path="/" component={PortfolioDashboard} />
       <Route path="/portfolio" component={AuthenticPortfolioDashboard} />
       <Route path="/billion" component={BillionDollarDashboard} />
       <Route path="/stark" component={StarkDashboard} />
@@ -44,7 +44,7 @@ function Router() {
       <Route path="/production" component={ProductionTradingDashboard} />
       <Route path="/streamlined" component={StreamlinedTradingDashboard} />
       <Route path="/live" component={LiveTradingDashboard} />
-      <Route path="/smart" component={SmartTradingDashboard} />
+      <Route path="/smart" component={PortfolioDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
