@@ -2290,6 +2290,192 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Portfolio Balancer API endpoints
+  app.get("/api/portfolio-balancer/status", async (req, res) => {
+    try {
+      const { portfolioBalancer } = await import('./portfolio-balancer');
+      const status = portfolioBalancer.getBalancerStatus();
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/portfolio-balancer/toggle", async (req, res) => {
+    try {
+      const { portfolioBalancer } = await import('./portfolio-balancer');
+      const { active } = req.body;
+      
+      portfolioBalancer.setActive(active);
+      
+      res.json({
+        success: true,
+        active: active,
+        message: `Portfolio Balancer ${active ? 'enabled' : 'disabled'}`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/portfolio-balancer/execute", async (req, res) => {
+    try {
+      const { portfolioBalancer } = await import('./portfolio-balancer');
+      const result = await portfolioBalancer.executeAutomaticRebalancing();
+      
+      res.json({
+        success: true,
+        result
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/portfolio-balancer/configure", async (req, res) => {
+    try {
+      const { portfolioBalancer } = await import('./portfolio-balancer');
+      const { config } = req.body;
+      
+      portfolioBalancer.configure(config);
+      
+      res.json({
+        success: true,
+        message: "Portfolio Balancer configuration updated"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Pattern Memory API endpoints
+  app.get("/api/pattern-memory/status", async (req, res) => {
+    try {
+      const { patternMemory } = await import('./pattern-memory');
+      const status = patternMemory.getStatus();
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/pattern-memory/patterns", async (req, res) => {
+    try {
+      const { patternMemory } = await import('./pattern-memory');
+      const patterns = patternMemory.getSuccessfulPatterns();
+      
+      res.json({
+        success: true,
+        ...patterns
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/pattern-memory/analyze", async (req, res) => {
+    try {
+      const { patternMemory } = await import('./pattern-memory');
+      const { tokenData } = req.body;
+      
+      const analysis = patternMemory.analyzeTokenSimilarity(tokenData);
+      
+      res.json({
+        success: true,
+        analysis
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/pattern-memory/record-trade", async (req, res) => {
+    try {
+      const { patternMemory } = await import('./pattern-memory');
+      const { tradeData } = req.body;
+      
+      const patternId = patternMemory.recordTrade(tradeData);
+      
+      res.json({
+        success: true,
+        patternId
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/pattern-memory/record-exit", async (req, res) => {
+    try {
+      const { patternMemory } = await import('./pattern-memory');
+      const { patternId, exitData } = req.body;
+      
+      patternMemory.recordTradeExit(patternId, exitData);
+      
+      res.json({
+        success: true,
+        message: "Trade exit recorded"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/pattern-memory/toggle", async (req, res) => {
+    try {
+      const { patternMemory } = await import('./pattern-memory');
+      const { active } = req.body;
+      
+      patternMemory.setActive(active);
+      
+      res.json({
+        success: true,
+        active: active,
+        message: `Pattern Memory ${active ? 'enabled' : 'disabled'}`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';

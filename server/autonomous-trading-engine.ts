@@ -6,6 +6,8 @@
 
 import { realJupiterTrader } from './real-jupiter-trader';
 import { getBestToken, RecommendedToken } from './smart-token-selector';
+import { portfolioBalancer } from './portfolio-balancer';
+import { patternMemory } from './pattern-memory';
 import { Connection, PublicKey } from '@solana/web3.js';
 import fs from 'fs/promises';
 

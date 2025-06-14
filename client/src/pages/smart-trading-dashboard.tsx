@@ -150,6 +150,45 @@ export default function SmartTradingDashboard() {
     refetchInterval: 30000,
   });
 
+  // Fetch Portfolio Balancer status
+  const { data: balancerStatus } = useQuery<{
+    success: boolean;
+    isActive: boolean;
+    metrics: {
+      totalPositions: number;
+      profitablePositions: number;
+      losingPositions: number;
+      stagnantPositions: number;
+      totalUnrealizedPnL: number;
+      averageHoldTime: number;
+      liquidationsToday: number;
+      rebalancesToday: number;
+      lastRebalance: number;
+    };
+    positions: any[];
+    pendingActions: any[];
+  }>({
+    queryKey: ['/api/portfolio-balancer/status'],
+    refetchInterval: 30000,
+  });
+
+  // Fetch Pattern Memory data
+  const { data: patternData } = useQuery<{
+    success: boolean;
+    topPatterns: any[];
+    recentInsights: any[];
+    overallStats: {
+      totalTrades: number;
+      successfulTrades: number;
+      overallSuccessRate: number;
+      averageProfit: number;
+      bestPattern: string;
+    };
+  }>({
+    queryKey: ['/api/pattern-memory/patterns'],
+    refetchInterval: 60000,
+  });
+
   // Start Smart Trading mutation
   const startTradingMutation = useMutation({
     mutationFn: () => fetch('/api/smart-trading/start', { method: 'POST' }).then(res => res.json()),
@@ -488,6 +527,8 @@ export default function SmartTradingDashboard() {
           <TabsTrigger value="positions">Aktivní pozice ({currentActivePositions.length})</TabsTrigger>
           <TabsTrigger value="history">Historie obchodů ({closedPositions.length})</TabsTrigger>
           <TabsTrigger value="wallet">Peněženka ({walletPositions?.length || 0})</TabsTrigger>
+          <TabsTrigger value="balancer">Portfolio Balancer</TabsTrigger>
+          <TabsTrigger value="patterns">AI Vzorce</TabsTrigger>
           <TabsTrigger value="settings">Nastavení</TabsTrigger>
         </TabsList>
 
@@ -699,6 +740,203 @@ export default function SmartTradingDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="balancer" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Portfolio Balancer - Automatické řízení pozic
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {balancerStatus && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Celkem pozic</div>
+                      <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                        {balancerStatus.metrics.totalPositions}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-green-700 dark:text-green-300">Ziskové</div>
+                      <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                        {balancerStatus.metrics.profitablePositions}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-red-700 dark:text-red-300">Ztrátové</div>
+                      <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                        {balancerStatus.metrics.losingPositions}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Stagnující</div>
+                      <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+                        {balancerStatus.metrics.stagnantPositions}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <div className="text-sm font-medium">Nerealizovaný P&L</div>
+                      <div className={`text-xl font-bold ${
+                        balancerStatus.metrics.totalUnrealizedPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {balancerStatus.metrics.totalUnrealizedPnL.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <div className="text-sm font-medium">Průměrná doba držení</div>
+                      <div className="text-xl font-bold">
+                        {balancerStatus.metrics.averageHoldTime.toFixed(1)} dní
+                      </div>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <div className="text-sm font-medium">Akce dnes</div>
+                      <div className="text-xl font-bold">
+                        {balancerStatus.metrics.liquidationsToday + balancerStatus.metrics.rebalancesToday}
+                      </div>
+                    </div>
+                  </div>
+
+                  {balancerStatus.pendingActions.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Doporučené akce</h3>
+                      <div className="space-y-2">
+                        {balancerStatus.pendingActions.slice(0, 5).map((action, index) => (
+                          <div key={index} className={`p-3 rounded-lg border ${
+                            action.type === 'LIQUIDATE' ? 'border-red-200 bg-red-50 dark:bg-red-900/20' :
+                            action.type === 'REBALANCE' ? 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20' :
+                            'border-green-200 bg-green-50 dark:bg-green-900/20'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium">{action.symbol}</div>
+                                <div className="text-sm text-muted-foreground">{action.reason}</div>
+                              </div>
+                              <Badge variant={
+                                action.type === 'LIQUIDATE' ? 'destructive' :
+                                action.type === 'REBALANCE' ? 'default' : 'secondary'
+                              }>
+                                {action.type === 'LIQUIDATE' ? 'PRODAT' :
+                                 action.type === 'REBALANCE' ? 'VYVÁŽIT' : 'DRŽET'}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="patterns" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                AI Pattern Memory - Učení z úspěšných obchodů
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {patternData && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-purple-700 dark:text-purple-300">Celkem obchodů</div>
+                      <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                        {patternData.overallStats.totalTrades}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-green-700 dark:text-green-300">Úspěšnost</div>
+                      <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                        {(patternData.overallStats.overallSuccessRate * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Průměrný zisk</div>
+                      <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                        {patternData.overallStats.averageProfit.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-orange-700 dark:text-orange-300">Vzorce</div>
+                      <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                        {patternData.topPatterns.length}
+                      </div>
+                    </div>
+                  </div>
+
+                  {patternData.topPatterns.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Nejúspěšnější vzorce</h3>
+                      <div className="space-y-3">
+                        {patternData.topPatterns.slice(0, 3).map((pattern, index) => (
+                          <div key={index} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-medium">{pattern.description}</div>
+                              <div className="flex gap-2">
+                                <Badge variant="default">
+                                  {(pattern.performance.successRate * 100).toFixed(1)}% úspěšnost
+                                </Badge>
+                                <Badge variant="secondary">
+                                  {pattern.performance.totalTrades} obchodů
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Průměrný zisk: {pattern.performance.averageProfit.toFixed(1)}% | 
+                              Doba držení: {pattern.performance.averageHoldTime.toFixed(1)} min
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {patternData.recentInsights.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Poslední pozorování</h3>
+                      <div className="space-y-2">
+                        {patternData.recentInsights.map((insight, index) => (
+                          <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="font-medium">{insight.condition}</div>
+                              <Badge variant={insight.successRate > 0.6 ? "default" : "destructive"}>
+                                {(insight.successRate * 100).toFixed(1)}%
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {insight.description} ({insight.sampleSize} vzorků)
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {patternData.overallStats.bestPattern && (
+                    <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg border">
+                      <div className="font-medium text-green-800 dark:text-green-200 mb-1">
+                        🏆 Nejlepší vzorec
+                      </div>
+                      <div className="text-sm text-green-700 dark:text-green-300">
+                        {patternData.overallStats.bestPattern}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
