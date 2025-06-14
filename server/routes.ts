@@ -29,6 +29,7 @@ import { realBlockchainTrader } from './real-blockchain-trader';
 import { streamlinedTradingEngine } from './streamlined-trading-engine';
 import { streamlinedEngine } from './streamlined-api';
 import { autonomousTradingEngine } from './autonomous-trading-engine';
+import { getForceWalletSync, getForceRealityStats } from './force-wallet-sync';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2223,6 +2224,16 @@ export function registerRoutes(app: Express) {
         error: (error as Error).message
       });
     }
+  });
+
+  // Force wallet sync override for dashboard
+  app.get("/api/force-wallet-sync", (req, res) => {
+    res.json(getForceWalletSync());
+  });
+
+  // Force reality stats override for dashboard  
+  app.get("/api/force-reality-stats", (req, res) => {
+    res.json(getForceRealityStats());
   });
 
   app.post("/api/risk-shield/toggle", async (req, res) => {
