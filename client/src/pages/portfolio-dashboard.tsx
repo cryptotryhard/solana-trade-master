@@ -31,8 +31,31 @@ export default function PortfolioDashboard() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading portfolio...</p>
+          <p className="text-gray-600 dark:text-gray-400">Fetching authentic wallet data...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Handle API errors with clear messaging
+  if (!portfolio) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-red-600">
+              Portfolio Service Unavailable
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              External price APIs are currently unavailable. Portfolio value cannot be calculated without authentic pricing data.
+            </p>
+            <p className="text-sm text-gray-500">
+              Wallet: 9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
