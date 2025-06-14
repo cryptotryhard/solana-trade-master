@@ -362,6 +362,31 @@ class AutonomousTradingEngine {
       this.lastTradeTime = Date.now();
       await this.savePositions();
 
+      // Record trade in Portfolio Balancer
+      portfolioBalancer.addPosition(token.mint, token.symbol, entryPrice, positionSize);
+
+      // Record trade pattern in Pattern Memory
+      const patternId = patternMemory.recordTrade({
+        mint: token.mint,
+        symbol: token.symbol,
+        entryPrice: entryPrice,
+        marketCap: token.marketCap || 25000,
+        volume24h: token.volume24h || 50000,
+        ageHours: token.ageHours || 2,
+        liquidity: token.liquidity || 100000,
+        buyTax: token.buyTax || 0,
+        sellTax: token.sellTax || 0,
+        holderCount: token.holderCount || 100,
+        bondingCurveProgress: token.bondingCurveProgress || 0.5,
+        marketCondition: 'BULL',
+        solPrice: 200,
+        totalPortfolioValue: this.getTotalPortfolioValue(),
+        positionSizePercent: (positionSize / this.getTotalPortfolioValue()) * 100
+      });
+
+      // Store pattern ID for exit tracking
+      (position as any).patternId = patternId;
+
       console.log(`✅ FORCED Smart Token Selector position opened: ${token.symbol}`);
       console.log(`💰 Amount: ${positionSize.toFixed(6)} SOL | Score: ${token.score}`);
       console.log(`🔗 TX: ${txHash}`);
@@ -369,6 +394,7 @@ class AutonomousTradingEngine {
       console.log(`💡 Selection reason: ${token.reason}`);
       console.log(`📊 Entry price: ${entryPrice.toExponential(4)} SOL`);
       console.log(`🪙 Tokens received: ${tokensReceived.toLocaleString()}`);
+      console.log(`🧠 Pattern recorded: ${patternId}`);
       console.log(`📁 Position saved to positions.json`);
       
       // Start monitoring if not already active
@@ -477,6 +503,23 @@ class AutonomousTradingEngine {
         position.exitTxHash = result.signature;
         position.reason = reason;
 
+        // Update Portfolio Balancer
+        portfolioBalancer.removePosition(position.mint);
+
+        // Record trade exit in Pattern Memory
+        const patternId = (position as any).patternId;
+        if (patternId) {
+          const exitReason = reason === 'TARGET_PROFIT' ? 'PROFIT_TARGET' : 
+                           reason === 'STOP_LOSS' ? 'STOP_LOSS' : 'TRAILING_STOP';
+          
+          patternMemory.recordTradeExit(patternId, {
+            exitPrice: position.currentPrice,
+            exitReason: exitReason
+          });
+          
+          console.log(`🧠 Pattern exit recorded: ${patternId} (${exitReason})`);
+        }
+
         // Remove from active positions
         this.activePositions.delete(position.mint);
         
@@ -520,6 +563,17 @@ class AutonomousTradingEngine {
     } catch (error) {
       return 0;
     }
+  }
+
+  /**
+   * Get total portfolio value in SOL
+   */
+  private getTotalPortfolioValue(): number {
+    const solBalance = 2.0; // Approximate SOL balance
+    const positionsValue = Array.from(this.activePositions.values())
+      .reduce((total, position) => total + position.entryAmount, 0);
+    
+    return solBalance + positionsValue;
   }
 
   /**
