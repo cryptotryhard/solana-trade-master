@@ -2206,6 +2206,90 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Risk Shield API endpoints
+  app.get("/api/risk-shield/status", async (req, res) => {
+    try {
+      const { riskShield } = await import('./risk-shield');
+      const stats = riskShield.getStats();
+      
+      res.json({
+        success: true,
+        enabled: stats.enabled,
+        stats
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/risk-shield/toggle", async (req, res) => {
+    try {
+      const { riskShield } = await import('./risk-shield');
+      const { enabled } = req.body;
+      
+      riskShield.setEnabled(enabled);
+      
+      res.json({
+        success: true,
+        enabled: riskShield.isEnabled(),
+        message: `Risk Shield ${enabled ? 'enabled' : 'disabled'}`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/risk-shield/analyze", async (req, res) => {
+    try {
+      const { riskShield } = await import('./risk-shield');
+      const { mint, symbol } = req.body;
+      
+      if (!mint) {
+        return res.status(400).json({
+          success: false,
+          error: "Token mint address required"
+        });
+      }
+
+      const analysis = await riskShield.analyzeToken(mint, symbol);
+      
+      res.json({
+        success: true,
+        analysis
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/risk-shield/quick-check/:mint", async (req, res) => {
+    try {
+      const { riskShield } = await import('./risk-shield');
+      const { mint } = req.params;
+      
+      const riskCheck = await riskShield.quickRiskCheck(mint);
+      
+      res.json({
+        success: true,
+        risk: riskCheck
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';

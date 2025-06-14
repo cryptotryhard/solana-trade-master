@@ -134,6 +134,21 @@ export default function SmartTradingDashboard() {
     refetchInterval: 30000,
   });
 
+  // Fetch Risk Shield status
+  const { data: riskShieldStatus } = useQuery<{
+    success: boolean;
+    enabled: boolean;
+    stats: {
+      enabled: boolean;
+      cacheSize: number;
+      riskThreshold: number;
+      blockedToday: number;
+    };
+  }>({
+    queryKey: ['/api/risk-shield/status'],
+    refetchInterval: 30000,
+  });
+
   // Start Smart Trading mutation
   const startTradingMutation = useMutation({
     mutationFn: () => fetch('/api/smart-trading/start', { method: 'POST' }).then(res => res.json()),
@@ -147,6 +162,19 @@ export default function SmartTradingDashboard() {
     mutationFn: () => fetch('/api/smart-trading/stop', { method: 'POST' }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/smart-trading/status'] });
+    },
+  });
+
+  // Risk Shield toggle mutation
+  const toggleRiskShieldMutation = useMutation({
+    mutationFn: (enabled: boolean) => 
+      fetch('/api/risk-shield/toggle', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/risk-shield/status'] });
     },
   });
 
@@ -715,6 +743,35 @@ export default function SmartTradingDashboard() {
                     <div className="text-lg">
                       ${(stats.config.marketCapMin / 1000).toFixed(0)}K - ${(stats.config.marketCapMax / 1000).toFixed(0)}K
                     </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium">AI Risk Shield</div>
+                        <div className="text-xs text-muted-foreground">
+                          Chrání před honeypoty a rug pull útoky
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge 
+                          variant={riskShieldStatus?.enabled ? "default" : "destructive"} 
+                          className="text-xs"
+                        >
+                          {riskShieldStatus?.enabled ? 'ZAPNUTO' : 'VYPNUTO'}
+                        </Badge>
+                        <Switch
+                          checked={riskShieldStatus?.enabled || false}
+                          onCheckedChange={(enabled) => toggleRiskShieldMutation.mutate(enabled)}
+                          disabled={toggleRiskShieldMutation.isPending}
+                        />
+                      </div>
+                    </div>
+                    {riskShieldStatus?.stats && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Dnes zablokovano: {riskShieldStatus.stats.blockedToday} rizikových tokenů
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
