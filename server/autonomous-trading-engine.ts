@@ -1,9 +1,13 @@
 /**
  * AUTONOMOUS TRADING ENGINE - Full 24/7 Operation
  * Executes trades every 10 minutes with 10k-50k market cap tokens
+ * Enhanced with Smart Token Selector for validated opportunities
  */
 
 import { realJupiterTrader } from './real-jupiter-trader';
+import { getBestToken, RecommendedToken } from './smart-token-selector';
+import { Connection, PublicKey } from '@solana/web3.js';
+import fs from 'fs/promises';
 
 interface AutonomousConfig {
   intervalMinutes: number;
@@ -25,28 +29,70 @@ interface TradingOpportunity {
   age: number;
 }
 
+interface TradingPosition {
+  id: string;
+  mint: string;
+  symbol: string;
+  name: string;
+  entryPrice: number;
+  entryAmount: number;
+  tokensReceived: number;
+  entryTime: number;
+  currentPrice: number;
+  status: 'ACTIVE' | 'SOLD_PROFIT' | 'SOLD_LOSS' | 'SOLD_STOP';
+  entryTxHash: string;
+  exitTxHash?: string;
+  targetProfit: number;
+  stopLoss: number;
+  trailingStop: number;
+  maxPriceReached: number;
+  pnl?: number;
+  reason?: string;
+}
+
+interface PositionsData {
+  positions: TradingPosition[];
+  totalInvested: number;
+  totalValue: number;
+  totalTrades: number;
+  winRate: number;
+  lastUpdated: number;
+}
+
 class AutonomousTradingEngine {
   private config: AutonomousConfig;
   private isRunning: boolean = false;
   private tradingInterval: NodeJS.Timeout | null = null;
+  private monitoringInterval: NodeJS.Timeout | null = null;
   private lastTradeTime: number = 0;
+  private activePositions: Map<string, TradingPosition> = new Map();
+  private positionsFile: string = 'data/positions.json';
+  private connection: Connection;
 
   constructor() {
     this.config = {
       intervalMinutes: 10,
       marketCapMin: 10000,
-      marketCapMax: 50000,
-      positionSize: 0.03,
-      maxActivePositions: 1,
+      marketCapMax: 70000,
+      positionSize: 0.04,
+      maxActivePositions: 3,
       takeProfit: 25,
       stopLoss: -15,
       trailingStop: 8
     };
     
-    console.log('🤖 AUTONOMOUS TRADING ENGINE INITIALIZED');
+    this.connection = new Connection(process.env.HELIUS_API_KEY ? 
+      `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}` : 
+      'https://api.mainnet-beta.solana.com');
+    
+    this.initializeDataDirectory();
+    this.loadPositions();
+    
+    console.log('🧠 Smart Token Selector Autonomous Engine Initialized');
     console.log(`⏱️ Interval: ${this.config.intervalMinutes} minutes`);
     console.log(`💰 Position size: ${this.config.positionSize} SOL`);
     console.log(`📊 Market cap range: $${this.config.marketCapMin.toLocaleString()}-$${this.config.marketCapMax.toLocaleString()}`);
+    console.log(`🎯 Max positions: ${this.config.maxActivePositions}`);
   }
 
   async startAutonomousMode(): Promise<void> {
@@ -87,7 +133,7 @@ class AutonomousTradingEngine {
 
   private async executeTradingCycle(): Promise<void> {
     try {
-      console.log('\n🔄 EXECUTING AUTONOMOUS TRADING CYCLE');
+      console.log('\n🧠 SMART TOKEN SELECTOR TRADING CYCLE');
       console.log('=' .repeat(50));
       
       // Check if we can trade
@@ -97,20 +143,31 @@ class AutonomousTradingEngine {
         return;
       }
 
-      // Find trading opportunity
-      const opportunity = await this.findBestOpportunity();
-      if (!opportunity) {
-        console.log('🔍 No suitable opportunities found, waiting for next cycle');
+      // Use Smart Token Selector to find best opportunity
+      console.log('🔍 Using Smart Token Selector for validated opportunities...');
+      const bestToken = await getBestToken();
+      
+      if (!bestToken) {
+        console.log('❌ No validated tokens found by Smart Token Selector');
         return;
       }
 
-      // Execute trade
-      await this.executeAutonomousTrade(opportunity);
-      
+      console.log(`🎯 Smart Token Selector recommends: ${bestToken.symbol}`);
+      console.log(`📊 Score: ${bestToken.score} | MC: $${bestToken.marketCap.toLocaleString()}`);
+      console.log(`💡 Reason: ${bestToken.reason}`);
+
+      // Check if we already own this token
+      if (this.activePositions.has(bestToken.mint)) {
+        console.log(`⚠️ Already holding position in ${bestToken.symbol}, skipping`);
+        return;
+      }
+
+      // Execute trade with Smart Token Selector recommendation
+      await this.executeSmartTrade(bestToken);
       this.lastTradeTime = Date.now();
       
     } catch (error) {
-      console.error('❌ Error in trading cycle:', error.message);
+      console.error('❌ Error in trading cycle:', (error as Error).message);
     }
   }
 
