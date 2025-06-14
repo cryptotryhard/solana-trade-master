@@ -2074,6 +2074,49 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Smart Token Selector positions endpoint
+  app.get("/api/smart-trading/positions", async (req, res) => {
+    try {
+      const fs = await import('fs/promises');
+      
+      // Try to read positions from file
+      try {
+        const data = await fs.readFile('data/positions.json', 'utf-8');
+        const positionsData = JSON.parse(data);
+        
+        res.json({
+          success: true,
+          positions: positionsData.positions || [],
+          summary: {
+            totalInvested: positionsData.totalInvested || 0,
+            totalValue: positionsData.totalValue || 0,
+            totalTrades: positionsData.totalTrades || 0,
+            winRate: positionsData.winRate || 0,
+            lastUpdated: positionsData.lastUpdated || Date.now()
+          }
+        });
+      } catch (fileError) {
+        // No positions file exists yet
+        res.json({
+          success: true,
+          positions: [],
+          summary: {
+            totalInvested: 0,
+            totalValue: 0,
+            totalTrades: 0,
+            winRate: 0,
+            lastUpdated: Date.now()
+          }
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';
