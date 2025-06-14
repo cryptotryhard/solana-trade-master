@@ -28,6 +28,7 @@ import { testModeDemo } from './test-mode-demo';
 import { realBlockchainTrader } from './real-blockchain-trader';
 import { streamlinedTradingEngine } from './streamlined-trading-engine';
 import { streamlinedEngine } from './streamlined-api';
+import { autonomousTradingEngine } from './autonomous-trading-engine';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -1989,6 +1990,86 @@ export function registerRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: error.message
+      });
+    }
+  });
+
+  // Smart Token Selector Autonomous Trading endpoints
+  app.post("/api/smart-trading/start", async (req, res) => {
+    try {
+      console.log('🧠 Starting Smart Token Selector autonomous trading');
+      await autonomousTradingEngine.startAutonomousMode();
+      
+      res.json({
+        success: true,
+        message: "Smart Token Selector autonomous trading started",
+        status: autonomousTradingEngine.getStats()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/smart-trading/stop", async (req, res) => {
+    try {
+      console.log('⏸️ Stopping Smart Token Selector autonomous trading');
+      await autonomousTradingEngine.stopAutonomousMode();
+      
+      res.json({
+        success: true,
+        message: "Smart Token Selector autonomous trading stopped",
+        status: autonomousTradingEngine.getStats()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/smart-trading/status", async (req, res) => {
+    try {
+      const stats = autonomousTradingEngine.getStats();
+      
+      res.json({
+        success: true,
+        stats,
+        message: stats.isRunning ? "Smart Token Selector is active" : "Smart Token Selector is inactive"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/smart-trading/config", async (req, res) => {
+    try {
+      const { intervalMinutes, positionSize, maxActivePositions, takeProfit, stopLoss, trailingStop } = req.body;
+      
+      autonomousTradingEngine.updateConfig({
+        intervalMinutes,
+        positionSize,
+        maxActivePositions,
+        takeProfit,
+        stopLoss,
+        trailingStop
+      });
+      
+      res.json({
+        success: true,
+        message: "Smart Token Selector configuration updated",
+        config: autonomousTradingEngine.getStats().config
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
       });
     }
   });

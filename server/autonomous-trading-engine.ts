@@ -171,6 +171,286 @@ class AutonomousTradingEngine {
     }
   }
 
+  /**
+   * Initialize data directory for position persistence
+   */
+  private async initializeDataDirectory(): Promise<void> {
+    try {
+      await fs.mkdir('data', { recursive: true });
+    } catch (error) {
+      // Directory might already exist
+    }
+  }
+
+  /**
+   * Load positions from persistent storage
+   */
+  private async loadPositions(): Promise<void> {
+    try {
+      const data = await fs.readFile(this.positionsFile, 'utf-8');
+      const positionsData: PositionsData = JSON.parse(data);
+      
+      for (const position of positionsData.positions) {
+        if (position.status === 'ACTIVE') {
+          this.activePositions.set(position.mint, position);
+        }
+      }
+      
+      console.log(`📁 Loaded ${this.activePositions.size} active positions from storage`);
+    } catch (error) {
+      console.log('📁 No existing positions file, starting fresh');
+    }
+  }
+
+  /**
+   * Save positions to persistent storage
+   */
+  private async savePositions(): Promise<void> {
+    try {
+      const allPositions = Array.from(this.activePositions.values());
+      const positionsData: PositionsData = {
+        positions: allPositions,
+        totalInvested: allPositions.reduce((sum, p) => sum + p.entryAmount, 0),
+        totalValue: allPositions.reduce((sum, p) => sum + (p.currentPrice * p.tokensReceived), 0),
+        totalTrades: allPositions.length,
+        winRate: this.calculateWinRate(allPositions),
+        lastUpdated: Date.now()
+      };
+      
+      await fs.writeFile(this.positionsFile, JSON.stringify(positionsData, null, 2));
+    } catch (error) {
+      console.error('❌ Error saving positions:', (error as Error).message);
+    }
+  }
+
+  /**
+   * Execute trade using Smart Token Selector recommendation
+   */
+  private async executeSmartTrade(token: RecommendedToken): Promise<void> {
+    try {
+      console.log(`🚀 Executing Smart Token Selector trade: ${token.symbol} (Score: ${token.score})`);
+      
+      // Calculate position size based on available SOL
+      const solBalance = await this.getSOLBalance();
+      const positionSize = Math.min(this.config.positionSize, solBalance * 0.8);
+      
+      if (positionSize < 0.01) {
+        console.log('❌ Insufficient SOL for trade execution');
+        return;
+      }
+
+      // Execute Jupiter swap through real trader
+      const result = await realJupiterTrader.executeSwap(
+        token.mint,
+        positionSize,
+        'So11111111111111111111111111111111111111112'
+      );
+
+      if (result.success) {
+        // Create position record
+        const position: TradingPosition = {
+          id: `smart_${Date.now()}`,
+          mint: token.mint,
+          symbol: token.symbol,
+          name: token.name,
+          entryPrice: result.price || 0,
+          entryAmount: positionSize,
+          tokensReceived: result.tokensReceived || 0,
+          entryTime: Date.now(),
+          currentPrice: result.price || 0,
+          status: 'ACTIVE',
+          entryTxHash: result.signature || '',
+          targetProfit: this.config.takeProfit,
+          stopLoss: this.config.stopLoss,
+          trailingStop: this.config.trailingStop,
+          maxPriceReached: result.price || 0
+        };
+
+        this.activePositions.set(token.mint, position);
+        await this.savePositions();
+
+        console.log(`✅ Smart Token Selector position opened: ${token.symbol}`);
+        console.log(`💰 Amount: ${positionSize} SOL | Score: ${token.score}`);
+        console.log(`🔗 TX: ${result.signature}`);
+        console.log(`🎯 Target: +${this.config.takeProfit}% | Stop: ${this.config.stopLoss}%`);
+        console.log(`💡 Selection reason: ${token.reason}`);
+        
+        // Start monitoring if not already active
+        this.startPositionMonitoring();
+        
+      } else {
+        console.log(`❌ Smart Token Selector trade failed: ${result.error}`);
+      }
+
+    } catch (error) {
+      console.error(`❌ Smart trade execution error:`, (error as Error).message);
+    }
+  }
+
+  /**
+   * Start position monitoring for active trades
+   */
+  private startPositionMonitoring(): void {
+    if (this.monitoringInterval) {
+      return;
+    }
+
+    console.log('👀 Starting Smart Token Selector position monitoring');
+    
+    this.monitoringInterval = setInterval(async () => {
+      await this.monitorPositions();
+    }, 30000); // Monitor every 30 seconds
+  }
+
+  /**
+   * Monitor active positions for exit conditions
+   */
+  private async monitorPositions(): Promise<void> {
+    if (this.activePositions.size === 0) return;
+
+    console.log(`👀 Monitoring ${this.activePositions.size} Smart Token Selector positions...`);
+
+    for (const [mint, position] of this.activePositions.entries()) {
+      try {
+        // Get current price (using simplified price tracking)
+        const currentPrice = await this.getCurrentPrice(mint);
+        if (currentPrice === 0) continue;
+
+        position.currentPrice = currentPrice;
+        position.maxPriceReached = Math.max(position.maxPriceReached, currentPrice);
+
+        // Calculate P&L
+        const pnlPercent = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
+        position.pnl = pnlPercent;
+
+        // Check exit conditions
+        const shouldExit = this.checkExitConditions(position, pnlPercent);
+        
+        if (shouldExit.exit) {
+          await this.executeExit(position, shouldExit.reason);
+        }
+
+      } catch (error) {
+        console.error(`❌ Error monitoring ${position.symbol}:`, (error as Error).message);
+      }
+    }
+
+    await this.savePositions();
+  }
+
+  /**
+   * Check if position should be exited
+   */
+  private checkExitConditions(position: TradingPosition, pnlPercent: number): { exit: boolean; reason: string } {
+    // Take profit
+    if (pnlPercent >= position.targetProfit) {
+      return { exit: true, reason: 'TARGET_PROFIT' };
+    }
+
+    // Stop loss
+    if (pnlPercent <= position.stopLoss) {
+      return { exit: true, reason: 'STOP_LOSS' };
+    }
+
+    // Trailing stop
+    const trailingStopPrice = position.maxPriceReached * (1 - position.trailingStop / 100);
+    if (position.currentPrice <= trailingStopPrice && pnlPercent > 0) {
+      return { exit: true, reason: 'TRAILING_STOP' };
+    }
+
+    return { exit: false, reason: '' };
+  }
+
+  /**
+   * Execute position exit
+   */
+  private async executeExit(position: TradingPosition, reason: string): Promise<void> {
+    try {
+      console.log(`🚪 Exiting Smart Token Selector position: ${position.symbol} (${reason})`);
+      
+      // Execute sell order via Jupiter
+      const result = await realJupiterTrader.executeSwap(
+        'So11111111111111111111111111111111111111112',
+        position.tokensReceived,
+        position.mint
+      );
+
+      if (result.success) {
+        position.status = reason === 'TARGET_PROFIT' ? 'SOLD_PROFIT' : 
+                          reason === 'STOP_LOSS' ? 'SOLD_LOSS' : 'SOLD_STOP';
+        position.exitTxHash = result.signature;
+        position.reason = reason;
+
+        // Remove from active positions
+        this.activePositions.delete(position.mint);
+        
+        console.log(`✅ Smart Token Selector position closed: ${position.symbol}`);
+        console.log(`💰 P&L: ${position.pnl?.toFixed(2)}%`);
+        console.log(`🔗 Exit TX: ${result.signature}`);
+
+      } else {
+        console.log(`❌ Exit failed for ${position.symbol}: ${result.error}`);
+      }
+
+    } catch (error) {
+      console.error(`❌ Exit execution error:`, (error as Error).message);
+    }
+  }
+
+  /**
+   * Get current SOL balance
+   */
+  private async getSOLBalance(): Promise<number> {
+    try {
+      const balance = await this.connection.getBalance(new PublicKey(process.env.WALLET_PUBLIC_KEY || ''));
+      return balance / 1e9; // Convert lamports to SOL
+    } catch (error) {
+      console.error('❌ Error getting SOL balance:', (error as Error).message);
+      return 0;
+    }
+  }
+
+  /**
+   * Get current price for a token (simplified implementation)
+   */
+  private async getCurrentPrice(mint: string): Promise<number> {
+    try {
+      // Use Jupiter price API or similar
+      const response = await fetch(`https://price.jup.ag/v4/price?ids=${mint}`);
+      if (!response.ok) return 0;
+      
+      const data = await response.json();
+      return data.data?.[mint]?.price || 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  /**
+   * Calculate win rate from positions
+   */
+  private calculateWinRate(positions: TradingPosition[]): number {
+    const completedTrades = positions.filter(p => p.status !== 'ACTIVE');
+    if (completedTrades.length === 0) return 0;
+    
+    const winningTrades = completedTrades.filter(p => p.status === 'SOLD_PROFIT');
+    return (winningTrades.length / completedTrades.length) * 100;
+  }
+
+  /**
+   * Get current statistics
+   */
+  getStats() {
+    const positions = Array.from(this.activePositions.values());
+    return {
+      isRunning: this.isRunning,
+      activePositions: positions.length,
+      totalInvested: positions.reduce((sum, p) => sum + p.entryAmount, 0),
+      config: this.config,
+      lastTradeTime: this.lastTradeTime
+    };
+  }
+
   private async checkTradingConditions(): Promise<boolean> {
     // Check active positions
     const activePositions = realJupiterTrader.getActivePositions();
