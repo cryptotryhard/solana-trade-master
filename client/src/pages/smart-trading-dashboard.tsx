@@ -212,6 +212,35 @@ export default function SmartTradingDashboard() {
     refetchInterval: 30000,
   });
 
+  // Fetch Explosive Growth status
+  const { data: explosiveStatus } = useQuery<{
+    success: boolean;
+    isActive: boolean;
+    activeTrades: any[];
+    totalInvested: number;
+    totalGains: number;
+    moonShots: number;
+    config: any;
+  }>({
+    queryKey: ['/api/explosive/status'],
+    refetchInterval: 5000,
+  });
+
+  // Fetch Explosive Live Feed
+  const { data: explosiveFeed } = useQuery<{
+    success: boolean;
+    liveFeed: any[];
+    summary: {
+      totalInvested: number;
+      totalGains: number;
+      moonShots: number;
+      activeCount: number;
+    };
+  }>({
+    queryKey: ['/api/explosive/live-feed'],
+    refetchInterval: 2000,
+  });
+
   // Start Smart Trading mutation
   const startTradingMutation = useMutation({
     mutationFn: () => fetch('/api/smart-trading/start', { method: 'POST' }).then(res => res.json()),
@@ -551,6 +580,7 @@ export default function SmartTradingDashboard() {
           <TabsTrigger value="history">Historie obchodů ({closedPositions.length})</TabsTrigger>
           <TabsTrigger value="wallet">Peněženka ({walletPositions?.length || 0})</TabsTrigger>
           <TabsTrigger value="realtime">Reálné výnosy</TabsTrigger>
+          <TabsTrigger value="explosive">💥 Explosive Mode</TabsTrigger>
           <TabsTrigger value="balancer">Portfolio Balancer</TabsTrigger>
           <TabsTrigger value="patterns">AI Vzorce</TabsTrigger>
           <TabsTrigger value="settings">Nastavení</TabsTrigger>
@@ -932,6 +962,191 @@ export default function SmartTradingDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="explosive" className="space-y-4">
+          {/* Explosive Growth Mode Header */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                💥 Explosive Growth Mode - Target 1000-6000% Returns
+                {explosiveStatus?.isActive && (
+                  <span className="inline-flex h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
+                )}
+              </CardTitle>
+              <CardDescription>
+                High-momentum trading: age &lt; 2h, bonding curve &lt; 30%, holders &gt; 800, momentum &gt; +40%
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {explosiveStatus?.isActive ? 'AKTIVNÍ' : 'NEAKTIVNÍ'}
+                  </div>
+                  <div className="text-sm text-gray-500">Explosive Mode</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold">
+                    {explosiveStatus?.activeTrades?.length || 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Aktivní pozice</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {explosiveStatus?.moonShots || 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Moon Shots (5000%+)</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${
+                    (explosiveStatus?.totalGains || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {(explosiveStatus?.totalGains || 0).toFixed(3)} SOL
+                  </div>
+                  <div className="text-sm text-gray-500">Celkové zisky</div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-2">
+                <Button 
+                  onClick={() => fetch('/api/explosive/activate', { method: 'POST' })}
+                  disabled={explosiveStatus?.isActive}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  🚀 Activate Explosive Mode
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => fetch('/api/explosive/stop', { method: 'POST' })}
+                  disabled={!explosiveStatus?.isActive}
+                >
+                  ⏹️ Stop
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Live Feed */}
+          <Card>
+            <CardHeader>
+              <CardTitle>🔴 LIVE FEED - Explosive Trades</CardTitle>
+              <CardDescription>
+                Real-time tracking of high-momentum trades with massive gain potential
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {explosiveFeed?.liveFeed?.length ? (
+                <div className="space-y-4">
+                  {explosiveFeed.liveFeed.map((trade: any) => (
+                    <div key={trade.id} className="p-4 border rounded-lg bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            trade.status === 'MOON_SHOT' ? 'bg-purple-500 animate-pulse' :
+                            trade.status === 'TARGET_HIT' ? 'bg-green-500' :
+                            trade.status === 'ACTIVE' ? 'bg-orange-500 animate-pulse' :
+                            'bg-red-500'
+                          }`}></div>
+                          <div>
+                            <div className="font-bold text-lg">{trade.symbol}</div>
+                            <div className="text-sm text-gray-500">
+                              Target: +{trade.targetGain}% | Trail: {trade.trailingStop}%
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            trade.currentGain >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {trade.currentGain > 0 ? '+' : ''}{trade.currentGain.toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            ${trade.entryPrice.toFixed(6)} → ${trade.currentPrice.toFixed(6)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Price History Mini Chart */}
+                      <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded mb-2 flex items-end gap-1 px-2">
+                        {trade.liveFeed?.priceHistory?.slice(-20).map((price: number, index: number) => {
+                          const height = Math.max(2, (price / Math.max(...trade.liveFeed.priceHistory)) * 24);
+                          return (
+                            <div
+                              key={index}
+                              className={`w-1 rounded-t ${
+                                price > trade.entryPrice ? 'bg-green-500' : 'bg-red-500'
+                              }`}
+                              style={{ height: `${height}px` }}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-4">
+                          <span>Momentum: {trade.liveFeed?.momentumScore?.toFixed(0) || 0}%</span>
+                          <span>Status: {trade.status}</span>
+                        </div>
+                        <a
+                          href={trade.solscanLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Solscan
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <div className="text-6xl mb-4">💥</div>
+                  <p className="text-lg font-medium">Žádné explosive trades</p>
+                  <p className="text-sm mt-1">Aktivujte Explosive Mode pro high-momentum trading</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Explosive Summary */}
+          {explosiveFeed?.summary && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Explosive Performance Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-orange-600">
+                      {explosiveFeed.summary.activeCount}
+                    </div>
+                    <div className="text-sm text-gray-600">Aktivní trades</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-green-600">
+                      {explosiveFeed.summary.totalInvested.toFixed(3)} SOL
+                    </div>
+                    <div className="text-sm text-gray-600">Investováno</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-purple-600">
+                      {explosiveFeed.summary.totalGains.toFixed(3)} SOL
+                    </div>
+                    <div className="text-sm text-gray-600">Zisky</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="text-xl font-bold text-yellow-600">
+                      {explosiveFeed.summary.moonShots}
+                    </div>
+                    <div className="text-sm text-gray-600">Moon Shots</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="balancer" className="space-y-4">

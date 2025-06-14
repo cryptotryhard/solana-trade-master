@@ -2564,6 +2564,95 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Explosive Growth Engine API endpoints
+  app.post("/api/explosive/activate", async (req, res) => {
+    try {
+      const { explosiveGrowthEngine } = await import('./explosive-growth-engine');
+      await explosiveGrowthEngine.activateExplosiveMode();
+      
+      res.json({
+        success: true,
+        message: "Explosive Growth Mode activated - Targeting 1000-6000% returns"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/explosive/stop", async (req, res) => {
+    try {
+      const { explosiveGrowthEngine } = await import('./explosive-growth-engine');
+      explosiveGrowthEngine.stopExplosiveMode();
+      
+      res.json({
+        success: true,
+        message: "Explosive Growth Mode stopped"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/explosive/status", async (req, res) => {
+    try {
+      const { explosiveGrowthEngine } = await import('./explosive-growth-engine');
+      const status = explosiveGrowthEngine.getExplosiveStatus();
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/explosive/live-feed", async (req, res) => {
+    try {
+      const { explosiveGrowthEngine } = await import('./explosive-growth-engine');
+      const status = explosiveGrowthEngine.getExplosiveStatus();
+      
+      // Return live feed data for dashboard
+      const liveFeed = status.activeTrades.map(trade => ({
+        id: trade.id,
+        symbol: trade.symbol,
+        entryPrice: trade.entryPrice,
+        currentPrice: trade.currentPrice,
+        currentGain: trade.currentGain,
+        targetGain: trade.targetGain,
+        entryTxHash: trade.entryTxHash,
+        status: trade.status,
+        liveFeed: trade.liveFeed,
+        solscanLink: `https://solscan.io/tx/${trade.entryTxHash}`
+      }));
+      
+      res.json({
+        success: true,
+        liveFeed,
+        summary: {
+          totalInvested: status.totalInvested,
+          totalGains: status.totalGains,
+          moonShots: status.moonShots,
+          activeCount: status.activeTrades.length
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';
