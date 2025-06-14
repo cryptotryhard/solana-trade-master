@@ -871,5 +871,29 @@
     "priceUSD": 0.00021386637930501166,
     "txHash": "46tmwZkcA8HETd2d472XTPvtPBDS9xL35D9JN1ujmcTvcayFzEm94pmqhwqHZryLxj9CTSURbVcQ6kkYnkBd9mVw",
     "status": "CONFIRMED"
+  },
+  {
+    "id": "micro_1749901236004",
+    "symbol": "BONK2",
+    "mint": "wzeHPNRcYfs8xDEuQRYmzrQev4gTzSZokSbbxGuDCRgv",
+    "solAmount": 0.0054112000000000006,
+    "tokenAmount": 59.17190837228904,
+    "entryPrice": 0.0000914487997573885,
+    "txHash": "uMAJ88s9AQreSifa7uZcqQAMamLWebQGK6K3G9Nq6eYbPZ7Dge3v7gGuK6Z2koN3DqNGL33sTneHBsU271b65pAD",
+    "timestamp": 1749901236004,
+    "type": "BUY",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "micro_1749901251013",
+    "symbol": "WOJAK",
+    "mint": "pX1DMvjASzx6mdJuYGdZJqTJ9saoVfPrL5jpNVnihmwh",
+    "solAmount": 0.0054112000000000006,
+    "tokenAmount": 55.392833326260465,
+    "entryPrice": 0.00009768772736589149,
+    "txHash": "j3xFwJdMY5ThqTkAEg4zow22UqSdMVfMDRxRgcy2cRBzbtnt62nJMQYLvpsxiu3EjZBUyk7dL587JXWHhV4NmAe7",
+    "timestamp": 1749901251013,
+    "type": "BUY",
+    "status": "ACTIVE"
   }
 ]
