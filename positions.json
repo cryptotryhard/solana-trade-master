@@ -1,0 +1,18 @@
+[
+  {
+    "id": "trade_1_1749902859473",
+    "tokenMint": "fMVmfMQDwbNBZShyMzGk6eYpRqNnWEdHy7BmZFcdYJRc",
+    "symbol": "PEPE",
+    "entryPrice": 0.011841249371292294,
+    "entryAmount": 0.011841249371292294,
+    "tokensReceived": 11.512850373333817,
+    "entryTime": 1749902859474,
+    "currentPrice": 0.009642842883900918,
+    "status": "ACTIVE",
+    "entryTxHash": "m85Sen2M8UYKtzm51eS4cUjbRmeDD3hQcwneAdkXq1qkWLweVDzQaewSdr2gkpVFP2vquu8Np5k9JG8wvPGS8B6G",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.012509845808563874
+  }
+]

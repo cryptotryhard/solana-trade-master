@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import "./real-wallet-config"; // Load real wallet configuration first
 import "./real-trade-tracker"; // Initialize VICTORIA's trade tracking
+import "./permanent-autonomous-trader"; // Auto-start permanent 24/7 trading
 import { emergencyProfitHarvester } from './emergency-profit-harvester';
 import { victoriaMasterController } from './victoria-master-controller';
 import { systematicProfitEngine } from './systematic-profit-engine';
