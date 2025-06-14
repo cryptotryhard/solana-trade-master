@@ -664,7 +664,10 @@ export default function SmartTradingDashboard() {
                     </>
                   )}
                 </Button>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => window.open('/api/reality/export', '_blank')}
+                >
                   📊 Export Trading Log
                 </Button>
               </div>

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "trade_1749895398160",
+    "timestamp": 1749895398160,
+    "type": "SELL",
+    "tokenMint": "DezXAZ8z7PnrnRJjz3xXRDFhC3TUDrwOXKmjjEEqh5KS",
+    "symbol": "BONK",
+    "solAmount": 2.7731910563175,
+    "tokenAmount": 26411343.3935,
+    "priceUSD": 0.000021,
+    "txHash": "exBukhFPp9rNxnKYEEJQL5BBQrv5XDqTwb2G3JG5w5E1ZgcMvUqvH5pA1ytjuqu9VA5mAwU1qX1HaL54Qs1k3cTb",
+    "status": "CONFIRMED"
+  }
+]
