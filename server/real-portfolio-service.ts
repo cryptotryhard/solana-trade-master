@@ -66,40 +66,58 @@ export class RealPortfolioService {
 
   async getPortfolioValue(): Promise<PortfolioValue> {
     try {
-      console.log('🔍 Fetching real portfolio data...');
+      console.log('🔍 Fetching authentic wallet data from blockchain...');
       
-      // Use authentic token holdings from Phantom wallet
-      const knownTokens = this.getFallbackTokens();
-      const prices = this.getFallbackPrices();
-      
-      // Calculate portfolio value using authentic holdings and current market prices
-      const tokens: WalletToken[] = knownTokens.map(token => {
-        const price = prices[token.mint]?.price || 0;
-        const symbol = prices[token.mint]?.symbol || this.getKnownSymbol(token.mint);
-        const valueUSD = (token.balance / Math.pow(10, token.decimals)) * price;
-        
-        return {
-          mint: token.mint,
-          symbol,
-          balance: token.balance / Math.pow(10, token.decimals),
-          decimals: token.decimals,
-          valueUSD
-        };
-      });
+      // Fetch real token accounts from wallet
+      const realTokenAccounts = await this.getRealTokenAccountsWithRetry();
+      console.log(`📊 Found ${realTokenAccounts.length} token accounts on-chain`);
 
-      // Add current SOL balance
+      if (realTokenAccounts.length === 0) {
+        throw new Error('No token accounts found - wallet may be empty or RPC issues');
+      }
+
+      // Get real-time prices for all tokens
+      const tokenMints = realTokenAccounts.map((t: any) => t.mint);
+      const realPrices = await this.getRealTimePricesWithRetry(tokenMints);
+      
+      // Calculate portfolio value using real blockchain data
+      const tokens: WalletToken[] = realTokenAccounts
+        .map((token: any) => {
+          const priceData = realPrices[token.mint];
+          if (!priceData) {
+            console.warn(`⚠️ No price data for ${token.mint}`);
+            return null;
+          }
+          
+          const valueUSD = (token.balance / Math.pow(10, token.decimals)) * priceData.price;
+          
+          return {
+            mint: token.mint,
+            symbol: priceData.symbol,
+            balance: token.balance / Math.pow(10, token.decimals),
+            decimals: token.decimals,
+            valueUSD
+          };
+        })
+        .filter((token): token is WalletToken => token !== null);
+
+      // Add real SOL balance
+      const realSOLBalance = await this.getRealSOLBalanceWithRetry();
+      const solPrice = await this.getRealSOLPriceWithRetry();
+      const solValueUSD = (realSOLBalance / 1e9) * solPrice;
+      
       tokens.push({
         mint: 'So11111111111111111111111111111111111111112',
         symbol: 'SOL',
-        balance: 0.006764,
+        balance: realSOLBalance / 1e9,
         decimals: 9,
-        valueUSD: 0.98
+        valueUSD: solValueUSD
       });
 
       const totalValueUSD = tokens.reduce((sum, token) => sum + token.valueUSD, 0);
 
-      console.log(`💰 Total portfolio value: $${totalValueUSD.toFixed(2)}`);
-      console.log(`📊 Holdings: ${tokens.map(t => `${t.symbol}: $${t.valueUSD.toFixed(2)}`).join(', ')}`);
+      console.log(`💰 Real portfolio value: $${totalValueUSD.toFixed(2)}`);
+      console.log(`📊 Verified holdings: ${tokens.map(t => `${t.symbol}: $${t.valueUSD.toFixed(2)}`).join(', ')}`);
 
       return {
         totalValueUSD,
@@ -108,8 +126,8 @@ export class RealPortfolioService {
       };
 
     } catch (error) {
-      console.error('❌ Error fetching portfolio:', error);
-      throw new Error(`Portfolio fetch failed: ${(error as Error).message}`);
+      console.error('❌ Error fetching real portfolio:', error);
+      throw new Error(`Real portfolio fetch failed: ${(error as Error).message}`);
     }
   }
 
@@ -166,25 +184,155 @@ export class RealPortfolioService {
     }
   }
 
-  private getFallbackTokens() {
-    // Your authentic token holdings from Phantom wallet 9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d
-    return [
-      {
-        mint: 'DezXAZ8z7PnrnRJjz3xXRDFhC3TUDrwOXKmjjEEqh5KS', // BONK
-        balance: 26411343393500, // 26.41M BONK
-        decimals: 5
-      },
-      {
-        mint: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', // SAMO  
-        balance: 25727440400, // 25,727 SAMO
-        decimals: 9
-      },
-      {
-        mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr', // POPCAT
-        balance: 19315700000, // 19.31 POPCAT
-        decimals: 9
+  private async getRealTokenAccountsWithRetry(maxRetries = 5): Promise<any[]> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const connection = this.getNextConnection();
+        const publicKey = new PublicKey(this.walletAddress);
+        
+        console.log(`🔍 Attempt ${i + 1}: Fetching token accounts from blockchain...`);
+        
+        const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+          programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+        });
+
+        const validTokens = tokenAccounts.value
+          .filter(account => {
+            const tokenAmount = account.account.data.parsed.info.tokenAmount;
+            return parseFloat(tokenAmount.amount) > 0;
+          })
+          .map(account => {
+            const tokenAmount = account.account.data.parsed.info.tokenAmount;
+            return {
+              mint: account.account.data.parsed.info.mint,
+              balance: parseFloat(tokenAmount.amount),
+              decimals: tokenAmount.decimals
+            };
+          });
+
+        console.log(`✅ Successfully fetched ${validTokens.length} token accounts`);
+        return validTokens;
+
+      } catch (error) {
+        console.log(`❌ Attempt ${i + 1} failed:`, (error as Error).message);
+        if (i === maxRetries - 1) {
+          throw new Error(`Failed to fetch token accounts after ${maxRetries} attempts: ${(error as Error).message}`);
+        }
+        
+        const delay = Math.min(1000 * Math.pow(2, i), 10000);
+        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-    ];
+    }
+    
+    return [];
+  }
+
+  private async getRealTimePricesWithRetry(mints: string[], maxRetries = 3): Promise<TokenPrice> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        console.log(`🔍 Attempt ${i + 1}: Fetching real-time prices for ${mints.length} tokens...`);
+        
+        // Try Jupiter API first
+        const jupiterResponse = await fetch(`https://price.jup.ag/v6/price?ids=${mints.join(',')}`);
+        if (jupiterResponse.ok) {
+          const jupiterData: any = await jupiterResponse.json();
+          const prices: TokenPrice = {};
+          
+          for (const mint of mints) {
+            if (jupiterData.data && jupiterData.data[mint]) {
+              prices[mint] = {
+                price: jupiterData.data[mint].price,
+                symbol: this.getTokenSymbolFromMint(mint)
+              };
+            }
+          }
+          
+          console.log(`✅ Jupiter API: Got prices for ${Object.keys(prices).length} tokens`);
+          return prices;
+        }
+
+        // Fallback to CoinGecko
+        console.log(`🔄 Jupiter failed, trying CoinGecko...`);
+        const cgResponse = await fetch(`https://api.coingecko.com/api/v3/simple/token_price/solana?contract_addresses=${mints.join(',')}&vs_currencies=usd`);
+        if (cgResponse.ok) {
+          const cgData = await cgResponse.json();
+          const prices: TokenPrice = {};
+          
+          for (const mint of mints) {
+            if (cgData[mint] && cgData[mint].usd) {
+              prices[mint] = {
+                price: cgData[mint].usd,
+                symbol: this.getTokenSymbolFromMint(mint)
+              };
+            }
+          }
+          
+          console.log(`✅ CoinGecko: Got prices for ${Object.keys(prices).length} tokens`);
+          return prices;
+        }
+
+      } catch (error) {
+        console.log(`❌ Price fetch attempt ${i + 1} failed:`, (error as Error).message);
+        if (i === maxRetries - 1) {
+          throw new Error(`Failed to fetch prices after ${maxRetries} attempts: ${(error as Error).message}`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+      }
+    }
+    
+    throw new Error('All price fetching attempts failed');
+  }
+
+  private async getRealSOLBalanceWithRetry(maxRetries = 3): Promise<number> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const connection = this.getNextConnection();
+        const balance = await connection.getBalance(new PublicKey(this.walletAddress));
+        console.log(`✅ SOL balance: ${balance / 1e9} SOL`);
+        return balance;
+      } catch (error) {
+        console.log(`❌ SOL balance fetch attempt ${i + 1} failed:`, (error as Error).message);
+        if (i === maxRetries - 1) {
+          throw new Error(`Failed to fetch SOL balance after ${maxRetries} attempts`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+    return 0;
+  }
+
+  private async getRealSOLPriceWithRetry(maxRetries = 3): Promise<number> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        if (response.ok) {
+          const data = await response.json();
+          const price = data.solana.usd;
+          console.log(`✅ SOL price: $${price}`);
+          return price;
+        }
+      } catch (error) {
+        console.log(`❌ SOL price fetch attempt ${i + 1} failed:`, (error as Error).message);
+        if (i === maxRetries - 1) {
+          throw new Error(`Failed to fetch SOL price after ${maxRetries} attempts`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+    return 0;
+  }
+
+  private getTokenSymbolFromMint(mint: string): string {
+    const knownTokens: { [key: string]: string } = {
+      'DezXAZ8z7PnrnRJjz3xXRDFhC3TUDrwOXKmjjEEqh5KS': 'BONK',
+      '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU': 'SAMO',
+      '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr': 'POPCAT',
+      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 'USDC',
+      'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': 'USDT'
+    };
+    return knownTokens[mint] || 'UNKNOWN';
   }
 
   private async getTokenPrices(mints: string[]): Promise<TokenPrice> {
