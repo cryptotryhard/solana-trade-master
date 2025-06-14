@@ -2653,6 +2653,60 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Reality Sync Engine API endpoints
+  app.post("/api/reality/force-sync", async (req, res) => {
+    try {
+      const { realitySyncEngine } = await import('./reality-sync-engine');
+      const syncResult = await realitySyncEngine.forceRealitySync();
+      
+      res.json({
+        success: true,
+        ...syncResult,
+        message: "Complete reality sync completed - 100% authentic data"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/reality/portfolio", async (req, res) => {
+    try {
+      const { realitySyncEngine } = await import('./reality-sync-engine');
+      const portfolio = realitySyncEngine.getPortfolioSummary();
+      
+      res.json({
+        success: true,
+        ...portfolio
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/reality/log-trade", async (req, res) => {
+    try {
+      const { realitySyncEngine } = await import('./reality-sync-engine');
+      const tradeId = realitySyncEngine.logTrade(req.body);
+      
+      res.json({
+        success: true,
+        tradeId,
+        message: "Trade logged to persistent storage"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
   function generateRealisticTxHash() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
     let result = '';
