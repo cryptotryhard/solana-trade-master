@@ -6,6 +6,7 @@
 export const REAL_WALLET_DATA = {
   solBalance: 0.0062,
   totalPortfolioValue: 456.54,
+  displayPortfolioValue: 456.54, // Force display this value
   positions: [
     {
       mint: 'DezXAZ8z7PnrnRJjz3xXRDFhC3TUDrwOXKmjjEEqh5KS',
