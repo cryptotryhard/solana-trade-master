@@ -107,6 +107,33 @@ export default function SmartTradingDashboard() {
     refetchInterval: 15000,
   });
 
+  // Fetch capital metrics
+  const { data: capitalMetrics } = useQuery<{
+    success: boolean;
+    metrics: {
+      totalSOL: number;
+      totalValueUSD: number;
+      activePositions: number;
+      capitalUsedPercent: number;
+      dynamicPositionSize: number;
+      maxAllowedPositions: number;
+      riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+      lastUpdated: number;
+    };
+  }>({
+    queryKey: ['/api/capital/metrics'],
+    refetchInterval: 30000,
+  });
+
+  // Fetch capital warnings
+  const { data: capitalWarnings } = useQuery<{
+    success: boolean;
+    warnings: string[];
+  }>({
+    queryKey: ['/api/capital/warnings'],
+    refetchInterval: 30000,
+  });
+
   // Start Smart Trading mutation
   const startTradingMutation = useMutation({
     mutationFn: () => fetch('/api/smart-trading/start', { method: 'POST' }).then(res => res.json()),
@@ -240,6 +267,14 @@ export default function SmartTradingDashboard() {
         </div>
         <div className="flex gap-2">
           <Button
+            onClick={() => fetch('/api/capital/simulate-growth', { method: 'POST' })}
+            variant="outline"
+            size="sm"
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Simulace růstu
+          </Button>
+          <Button
             onClick={() => forceExecuteMutation.mutate()}
             disabled={forceExecuteMutation.isPending}
             variant="outline"
@@ -307,7 +342,7 @@ export default function SmartTradingDashboard() {
               <div className="text-sm font-medium">SOL zůstatek</div>
             </div>
             <div className="text-2xl font-bold">
-              {walletBalance ? formatSOL(parseFloat(walletBalance.solBalance)) : '0.000000 SOL'}
+              {walletBalance?.solBalance ? formatSOL(parseFloat(walletBalance.solBalance)) : '0.000000 SOL'}
             </div>
             <p className="text-xs text-muted-foreground">
               Portfolio: {walletBalance?.totalValueUSD || '$0.00'}
@@ -334,6 +369,89 @@ export default function SmartTradingDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Capital Management Dashboard */}
+      {capitalMetrics?.metrics && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              Capital Manager - Dynamické řízení pozic
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Portfolio Value</div>
+                <div className="text-2xl font-bold text-green-500">
+                  ${capitalMetrics.metrics.totalValueUSD.toFixed(2)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {formatSOL(capitalMetrics.metrics.totalSOL)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Capital Used</div>
+                <div className="text-2xl font-bold">
+                  {capitalMetrics.metrics.capitalUsedPercent.toFixed(1)}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {capitalMetrics.metrics.activePositions}/{capitalMetrics.metrics.maxAllowedPositions} pozic
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Dynamic Position Size</div>
+                <div className="text-2xl font-bold text-blue-500">
+                  {formatSOL(capitalMetrics.metrics.dynamicPositionSize)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Automaticky upravováno
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground">Risk Level</div>
+                <div className={`text-2xl font-bold ${
+                  capitalMetrics.metrics.riskLevel === 'LOW' ? 'text-green-500' :
+                  capitalMetrics.metrics.riskLevel === 'MEDIUM' ? 'text-yellow-500' : 'text-red-500'
+                }`}>
+                  {capitalMetrics.metrics.riskLevel === 'LOW' ? 'NÍZKÉ' :
+                   capitalMetrics.metrics.riskLevel === 'MEDIUM' ? 'STŘEDNÍ' : 'VYSOKÉ'}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Riziko portfolia
+                </div>
+              </div>
+            </div>
+            
+            {/* Capital Usage Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Využití kapitálu</span>
+                <span>{capitalMetrics.metrics.capitalUsedPercent.toFixed(1)}% / 80%</span>
+              </div>
+              <Progress 
+                value={capitalMetrics.metrics.capitalUsedPercent} 
+                className="h-3"
+              />
+            </div>
+
+            {/* Warnings */}
+            {capitalWarnings?.warnings && capitalWarnings.warnings.length > 0 && (
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <span className="font-medium text-yellow-800 dark:text-yellow-200">Varování kapitálu</span>
+                </div>
+                <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                  {capitalWarnings.warnings.map((warning, index) => (
+                    <li key={index}>• {warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

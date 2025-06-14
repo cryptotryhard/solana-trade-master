@@ -118,6 +118,16 @@ app.use((req, res, next) => {
     const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
     await ultraAggressiveTrader.startTrading();
     console.log('💰 ULTRA-AGGRESSIVE TRADER ACTIVATED');
+
+    // Initialize Capital Manager for dynamic position sizing
+    const { getCapitalManager } = await import('./capital-manager');
+    const capitalManager = getCapitalManager();
+    console.log('💰 Capital Manager initialized - Dynamic position sizing every 30s');
+    
+    // Run growth simulation
+    setTimeout(() => {
+      capitalManager.simulateGrowth();
+    }, 5000);
     console.log('🎯 Target: $1,000,000,000 through memecoin scalping');
     console.log('⚡ High-frequency trading with exponential compounding');
     

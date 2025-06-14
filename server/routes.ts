@@ -517,6 +517,40 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Capital Management API
+  app.get('/api/capital/metrics', async (req, res) => {
+    try {
+      const { getCapitalManager } = await import('./capital-manager');
+      const capitalManager = getCapitalManager();
+      const metrics = capitalManager.getMetrics();
+      res.json({ success: true, metrics });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
+  app.get('/api/capital/warnings', async (req, res) => {
+    try {
+      const { getCapitalManager } = await import('./capital-manager');
+      const capitalManager = getCapitalManager();
+      const warnings = capitalManager.getCapitalWarnings();
+      res.json({ success: true, warnings });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/capital/simulate-growth', async (req, res) => {
+    try {
+      const { getCapitalManager } = await import('./capital-manager');
+      const capitalManager = getCapitalManager();
+      capitalManager.simulateGrowth();
+      res.json({ success: true, message: 'Growth simulation completed - check console logs' });
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
   // Positions monitoring routes for Smart Trading Dashboard
   app.get('/api/positions', async (req, res) => {
     try {
