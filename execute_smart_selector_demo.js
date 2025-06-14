@@ -3,8 +3,8 @@
  * Execute forced Smart Token Selector trade with position tracking
  */
 
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import path from 'path';
 
 async function executeSmartTokenSelectorDemo() {
     console.log('\n🚀 FORCED EXECUTION: Smart Token Selector Trade Override');

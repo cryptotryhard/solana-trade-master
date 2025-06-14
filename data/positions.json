@@ -1,0 +1,26 @@
+{
+  "positions": [
+    {
+      "id": "smart_forced_1749887484837",
+      "mint": "FLOKi2GemHunterPumpFun9Y8AwQhKDxLowMcXtr5vEqps",
+      "symbol": "FLOKI2",
+      "name": "Floki Gem Hunter",
+      "entryPrice": 0.00000247,
+      "entryAmount": 0.006764,
+      "tokensReceived": 2738,
+      "entryTime": 1749887484837,
+      "currentPrice": 0.00000247,
+      "status": "ACTIVE",
+      "entryTxHash": "Y9jbgtzcnH5Ag6UcqMWANCrbqMG3ersJx15FPRymVF7rzFZFAWEyYj5n3bhqwDRF",
+      "targetProfit": 25,
+      "stopLoss": -15,
+      "trailingStop": 8,
+      "maxPriceReached": 0.00000247
+    }
+  ],
+  "totalInvested": 0.006764,
+  "totalValue": 0.006764,
+  "totalTrades": 1,
+  "winRate": 0,
+  "lastUpdated": 1749887484839
+}
