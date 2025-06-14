@@ -68,6 +68,11 @@ export class ExplosiveGrowthEngine {
         : 'https://api.mainnet-beta.solana.com'
     );
     console.log('💥 Explosive Growth Engine initialized - Target: 1000-6000% returns');
+    
+    // Auto-activate explosive mode immediately
+    setTimeout(() => {
+      this.activateExplosiveMode();
+    }, 5000);
   }
 
   /**
@@ -413,14 +418,7 @@ export class ExplosiveGrowthEngine {
   /**
    * Get explosive trading status
    */
-  public getExplosiveStatus(): {
-    isActive: boolean;
-    activeTrades: ExplosiveTrade[];
-    totalInvested: number;
-    totalGains: number;
-    moonShots: number;
-    config: typeof this.explosiveConfig;
-  } {
+  public getExplosiveStatus() {
     const trades = Array.from(this.activeTrades.values());
     const totalInvested = trades.reduce((sum, trade) => sum + trade.entryAmount, 0);
     const totalCurrentValue = trades.reduce((sum, trade) => sum + (trade.entryAmount * (1 + trade.currentGain / 100)), 0);
