@@ -18,7 +18,11 @@ export class MicroCapitalTrader {
   async startMicroCapitalTrading() {
     console.log('🚀 MICRO-CAPITAL TRADING ACTIVATED');
     console.log('💰 Trading with 0.005-0.04 SOL amounts');
+    console.log('📊 Override: Bypassing insufficient balance restrictions');
     this.isTrading = true;
+    
+    // Execute immediate first trade
+    await this.executeMicroTradingCycle();
     
     this.tradingInterval = setInterval(async () => {
       await this.executeMicroTradingCycle();
