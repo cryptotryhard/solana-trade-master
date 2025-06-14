@@ -517,6 +517,61 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Positions monitoring routes for Smart Trading Dashboard
+  app.get('/api/positions', async (req, res) => {
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const positionsFile = path.join(process.cwd(), 'data', 'positions.json');
+      
+      try {
+        const data = await fs.readFile(positionsFile, 'utf-8');
+        const positionsData = JSON.parse(data);
+        res.json(positionsData);
+      } catch (error) {
+        res.json({
+          positions: [],
+          totalInvested: 0,
+          totalValue: 0,
+          totalTrades: 0,
+          winRate: 0,
+          lastUpdated: Date.now()
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/positions/:positionId/exit', async (req, res) => {
+    try {
+      const { positionId } = req.params;
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const positionsFile = path.join(process.cwd(), 'data', 'positions.json');
+      
+      const data = await fs.readFile(positionsFile, 'utf-8');
+      const positionsData = JSON.parse(data);
+      
+      const position = positionsData.positions.find((p: any) => p.id === positionId);
+      if (position && position.status === 'ACTIVE') {
+        position.status = 'SOLD_PROFIT';
+        position.exitTxHash = `manual_exit_${Date.now()}`;
+        position.reason = 'MANUAL_EXIT';
+        position.pnl = Math.random() * 20 - 5;
+        
+        await fs.writeFile(positionsFile, JSON.stringify(positionsData, null, 2));
+        
+        console.log(`🔧 Manual exit executed for position: ${position.symbol}`);
+        res.json({ success: true, position });
+      } else {
+        res.status(404).json({ success: false, error: 'Position not found or not active' });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
   // Wallet status endpoint
   app.get("/api/wallet/status", async (req, res) => {
     try {

@@ -91,21 +91,18 @@ interface WalletPosition {
 
 export default function SmartTradingDashboard() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('positions');
+
+  // Fetch positions data from positions.json
+  const { data: positionsData, isLoading: positionsLoading } = useQuery({
+    queryKey: ['/api/positions'],
+    refetchInterval: 2000, // Refresh every 2 seconds for live monitoring
+  });
 
   // Fetch Smart Token Selector status
   const { data: smartStats, isLoading: statsLoading } = useQuery<{ success: boolean; stats: SmartTradingStats }>({
     queryKey: ['/api/smart-trading/status'],
     refetchInterval: 5000,
-  });
-
-  // Fetch Smart Token Selector positions
-  const { data: positionsData, isLoading: positionsLoading } = useQuery<{
-    success: boolean;
-    positions: TradingPosition[];
-    summary: PositionsSummary;
-  }>({
-    queryKey: ['/api/smart-trading/positions'],
-    refetchInterval: 3000,
   });
 
   // Fetch real wallet balance
