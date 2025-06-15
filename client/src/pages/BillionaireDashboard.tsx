@@ -293,7 +293,9 @@ export default function BillionaireDashboard() {
                   <div className="mt-4 pt-4 border-t">
                     <div className="flex justify-between text-sm">
                       <span>Total Position Value:</span>
-                      <span className="font-semibold">${activePositions.totalValueUSD?.toFixed(0)}</span>
+                      <span className="font-semibold">
+                        ${activePositions.reduce((sum, pos) => sum + (pos.amount * 152), 0).toFixed(0)}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
