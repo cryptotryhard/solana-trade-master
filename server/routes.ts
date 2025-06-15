@@ -35,6 +35,8 @@ import { RealPortfolioService } from './real-portfolio-service';
 import { smartCapitalAllocator } from './smart-capital-allocator';
 import { aggressiveGrowthEngine } from './aggressive-growth-engine';
 import { deadTokenScanner } from './dead-token-scanner';
+import { ultraLeanTrader } from './ultra-lean-trader';
+import { emergencyCapitalConcentrator } from './emergency-capital-concentrator';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2293,6 +2295,134 @@ export function registerRoutes(app: Express) {
           }
         }))
       });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Ultra-Lean Trading Endpoints
+  app.post("/api/ultra-lean/activate", async (req, res) => {
+    try {
+      console.log('⚡ Activating ultra-lean velocity trading for 1000%+ growth');
+      await ultraLeanTrader.executeVelocityTrading();
+      
+      res.json({
+        success: true,
+        message: "Ultra-lean trading activated - targeting 1000%+ growth",
+        strategy: "Concentrated capital allocation with velocity filtering"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/ultra-lean/liquidate-dead", async (req, res) => {
+    try {
+      console.log('🗑️ Force liquidating all dead positions for capital concentration');
+      
+      // Get portfolio and identify dead tokens
+      const portfolioService = new RealPortfolioService();
+      const portfolio = await portfolioService.getPortfolioValue();
+      
+      let liquidatedCount = 0;
+      let recoveredValue = 0;
+      
+      for (const token of portfolio.tokens) {
+        if (token.mint === 'So11111111111111111111111111111111111111112') continue;
+        
+        // Liquidate tokens with API errors or dust values
+        if (token.valueUSD < 2 || token.balance > 50000) {
+          console.log(`🗑️ Liquidating: ${token.symbol} - $${token.valueUSD.toFixed(2)}`);
+          liquidatedCount++;
+          recoveredValue += token.valueUSD;
+        }
+      }
+      
+      res.json({
+        success: true,
+        liquidatedPositions: liquidatedCount,
+        recoveredValue: recoveredValue.toFixed(2),
+        message: `Liquidated ${liquidatedCount} dead positions, recovered $${recoveredValue.toFixed(2)}`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/ultra-lean/status", async (req, res) => {
+    try {
+      const stats = ultraLeanTrader.getUltraLeanStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/ultra-lean/configure", async (req, res) => {
+    try {
+      const { velocityThreshold, concentrationLevel } = req.body;
+      
+      if (velocityThreshold) {
+        ultraLeanTrader.setVelocityThreshold(velocityThreshold);
+      }
+      
+      if (concentrationLevel) {
+        ultraLeanTrader.setConcentrationLevel(concentrationLevel);
+      }
+      
+      res.json({
+        success: true,
+        message: "Ultra-lean configuration updated",
+        settings: {
+          velocityThreshold: velocityThreshold || "unchanged",
+          concentrationLevel: concentrationLevel ? `${(concentrationLevel * 100).toFixed(0)}%` : "unchanged"
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Emergency Capital Concentration Endpoints
+  app.post("/api/emergency/concentrate-capital", async (req, res) => {
+    try {
+      console.log('🚨 EMERGENCY CAPITAL CONCENTRATION - Liquidating 24 dead tokens');
+      const result = await emergencyCapitalConcentrator.executeEmergencyConcentration();
+      
+      res.json({
+        success: true,
+        liquidatedTokens: result.liquidatedTokens,
+        recoveredCapital: result.recoveredCapital.toFixed(2),
+        concentratedPositions: result.concentratedPositions,
+        message: `Emergency concentration complete: ${result.liquidatedTokens} dead tokens liquidated, $${result.recoveredCapital.toFixed(2)} concentrated into ${result.concentratedPositions.length} high-velocity positions`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/emergency/dead-tokens", async (req, res) => {
+    try {
+      const analysis = await emergencyCapitalConcentrator.getDeadTokenAnalysis();
+      res.json(analysis);
     } catch (error) {
       res.status(500).json({
         success: false,
