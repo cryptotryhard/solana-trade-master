@@ -13,6 +13,9 @@ import { systematicProfitEngine } from './systematic-profit-engine';
 import { emergencySOLExtractor } from './emergency-sol-extractor';
 import { autoRecoverySystem } from './auto-recovery-system';
 
+// ULTRA-AGGRESSIVE PUMP.FUN TRADING - DIRECT ACTIVATION
+import { ultraAggressiveTrader } from './ultra-aggressive-trader';
+
 setTimeout(async () => {
   console.log('🚨 ACTIVATING EMERGENCY RECOVERY SYSTEM');
   try {
@@ -30,6 +33,20 @@ setTimeout(async () => {
     console.error('Emergency recovery failed:', error);
   }
 }, 5000);
+
+// ACTIVATE ULTRA-AGGRESSIVE PUMP.FUN TRADING WITH REAL CAPITAL
+setTimeout(async () => {
+  console.log('🔥 LAUNCHING ULTRA-AGGRESSIVE PUMP.FUN TRADING');
+  console.log('🎯 Target: 15-20% position sizing, 30-90s holds, real tokens');
+  console.log('💰 Capital: $466+ portfolio, no simulation, production mode');
+  
+  try {
+    await ultraAggressiveTrader.startUltraAggressiveTrading();
+    console.log('✅ Ultra-aggressive trading system activated successfully');
+  } catch (error) {
+    console.error('❌ Ultra-aggressive trading activation failed:', error);
+  }
+}, 15000);
 
 const app = express();
 app.use(express.json());

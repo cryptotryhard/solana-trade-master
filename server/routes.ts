@@ -39,6 +39,7 @@ import { ultraLeanTrader } from './ultra-lean-trader';
 import { emergencyCapitalConcentrator } from './emergency-capital-concentrator';
 import { liveTradingEngine } from './live-trading-engine';
 import { optimizedTradingExecutor } from './optimized-trading-executor';
+import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2173,6 +2174,103 @@ export function registerRoutes(app: Express) {
       console.error("Optimized trading status error:", error);
       res.status(500).json({ 
         error: "Failed to get optimized trading status",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Ultra-Aggressive Pump.Fun Trading Routes
+  app.post("/api/trading/ultra-aggressive-start", async (req, res) => {
+    try {
+      console.log('🔥 Starting ultra-aggressive pump.fun trading');
+      await ultraAggressiveTrader.startUltraAggressiveTrading();
+      
+      const stats = ultraAggressiveTrader.getTradingStats();
+      const portfolio = await enhancedPortfolioService.getPortfolioValue();
+      
+      res.json({
+        success: true,
+        message: "Ultra-aggressive pump.fun trading activated",
+        stats,
+        portfolio: {
+          totalValue: portfolio.totalValueUSD,
+          availableCapital: portfolio.totalValueUSD * 0.20,
+          tokenCount: portfolio.tokens.length
+        }
+      });
+    } catch (error) {
+      console.error("Ultra-aggressive trading activation error:", error);
+      res.status(500).json({ 
+        error: "Failed to activate ultra-aggressive trading",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/trading/ultra-aggressive-status", async (req, res) => {
+    try {
+      const stats = ultraAggressiveTrader.getTradingStats();
+      const activePositions = ultraAggressiveTrader.getActivePositions();
+      const recentTrades = ultraAggressiveTrader.getRecentTrades(5);
+      const tokenMemory = ultraAggressiveTrader.getTokenMemory();
+      
+      res.json({
+        success: true,
+        stats,
+        activePositions,
+        recentTrades,
+        tokenMemory: tokenMemory.slice(0, 10),
+        systemHealth: "ULTRA_AGGRESSIVE_MODE"
+      });
+    } catch (error) {
+      console.error("Ultra-aggressive status error:", error);
+      res.status(500).json({ 
+        error: "Failed to get ultra-aggressive status",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/trading/alpha-trade-log", async (req, res) => {
+    try {
+      const recentTrades = ultraAggressiveTrader.getRecentTrades(20);
+      const stats = ultraAggressiveTrader.getTradingStats();
+      
+      res.json({
+        success: true,
+        trades: recentTrades,
+        summary: {
+          totalTrades: stats.totalTrades,
+          totalPnL: stats.totalPnL,
+          unrealizedPnL: stats.unrealizedPnL,
+          avgHoldTime: stats.avgHoldTime
+        }
+      });
+    } catch (error) {
+      console.error("Alpha trade log error:", error);
+      res.status(500).json({ 
+        error: "Failed to get alpha trade log",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/trading/ultra-aggressive-stop", async (req, res) => {
+    try {
+      console.log('⏸️ Stopping ultra-aggressive trading');
+      ultraAggressiveTrader.stopTrading();
+      
+      const finalStats = ultraAggressiveTrader.getTradingStats();
+      
+      res.json({
+        success: true,
+        message: "Ultra-aggressive trading stopped",
+        finalStats
+      });
+    } catch (error) {
+      console.error("Ultra-aggressive stop error:", error);
+      res.status(500).json({ 
+        error: "Failed to stop ultra-aggressive trading",
         details: error instanceof Error ? error.message : String(error)
       });
     }
