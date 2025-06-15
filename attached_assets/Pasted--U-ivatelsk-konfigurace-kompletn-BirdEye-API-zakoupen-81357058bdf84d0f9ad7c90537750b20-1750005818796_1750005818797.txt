@@ -1,0 +1,34 @@
+// ✅ Uživatelská konfigurace kompletní:
+// - BirdEye API zakoupen (81357058bdf84d0f9ad7c90537750b20)
+// - QuickNode endpoint aktivní (https://tiniest-aged-sunset.solana-mainnet.quiknode.pro/8c670498678b2f188ec5194f334cc7780e0ed401/)
+// - Phantom peněženka je financovaná a připravena
+// - Emergency Capital Concentrator aktivován: 24 mrtvých tokenů bylo zlikvidováno
+// - Získáno $62.70 a reinvestováno do 2 ultra-high velocity pozic (VELOCITY a BREAKOUT)
+// - Ultra-Lean Trader aktivován, backend hlásí vše OK
+// - Uživatelský cíl: Spustit 24/7 živé obchodování právě teď, bez zdržení
+
+// 🧠 Připomínka: Pamatuj, že jsme vytvořili persistentní systém paměti pro:
+// - zaznamenání posledních obchodů a výsledků
+// - zapamatování neúspěšných tokenů a API error patternů
+// - uložení rozhodnutí AI modulů
+// - uchování aktuálního režimu systému (LIVE / SIM)
+// ➤ Používej tuto paměť během všech rozhodnutí. Nepřepisuj ji zbytečně. Vyhodnocuj změny stavu podle ní.
+// ➤ Pokud je systém restartován, obnov paměť a nepoužívej fallback hodnoty ani výchozí testovací data.
+
+// 🔧 Nyní proveď následující kroky URGENTNĚ:
+1. Proveď znovu kompletní System Check a zobraz výsledek v dashboardu i konzoli (frontend + backend status).
+2. Aktivuj trvalou 24/7 obchodní smyčku – ultra-lean režim s 15–45s velocity cyklem.
+3. Použij alokovaný kapitál ($62.70) k reálnému obchodování přes Phantom wallet. Všechny obchody musí být skutečné.
+4. Každý obchod zaznamenávej do Alpha Trade Log – detailně (čas, token, vstup, výstup, PnL, ROI).
+5. Posílej živé notifikace do dashboardu při každém otevření/zavření obchodu.
+6. Ujisti se, že dashboard správně zobrazuje:
+   - aktuální zůstatek peněženky
+   - otevřené pozice
+   - historii obchodů
+   - AI logiku (MatrixConsole, LiveAnalysisFeed)
+7. Zajisti automatické likvidace dalších mrtvých tokenů (API 400 error nebo cena = 0).
+8. Pokud token dosáhne >15% zisku do 60s, okamžitě uzavři pozici a přesměruj kapitál na nový high-velocity token.
+9. Pokud nejsou validní tokeny, spouštěj automatické skenování pump.fun a trendujících tokenů každých 15s.
+10. Přidej možnost v dashboardu sledovat **"Current Mode: LIVE / SIMULATION"** + přepínání režimu.
+
+// 🎯 Cíl: Okamžitě zahájit agresivní živé obchodování a začít generovat denní zisky. Bez simulace. Toto je ostrý provoz. Jakmile je aktivní, napiš do konzole i dashboardu potvrzení.

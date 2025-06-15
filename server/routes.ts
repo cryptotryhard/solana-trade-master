@@ -37,6 +37,7 @@ import { aggressiveGrowthEngine } from './aggressive-growth-engine';
 import { deadTokenScanner } from './dead-token-scanner';
 import { ultraLeanTrader } from './ultra-lean-trader';
 import { emergencyCapitalConcentrator } from './emergency-capital-concentrator';
+import { liveTradingEngine } from './live-trading-engine';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2423,6 +2424,135 @@ export function registerRoutes(app: Express) {
     try {
       const analysis = await emergencyCapitalConcentrator.getDeadTokenAnalysis();
       res.json(analysis);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Live Trading Engine Endpoints
+  app.post("/api/live/system-check", async (req, res) => {
+    try {
+      console.log('🔍 EXECUTING COMPREHENSIVE SYSTEM CHECK - LIVE MODE');
+      const checkResults = await liveTradingEngine.executeSystemCheck();
+      
+      res.json({
+        success: true,
+        timestamp: checkResults.timestamp,
+        mode: checkResults.mode,
+        apiStatus: checkResults.apiStatus,
+        portfolioStatus: checkResults.portfolioStatus,
+        tradingStatus: checkResults.tradingStatus,
+        systemHealth: checkResults.systemHealth,
+        message: `System check complete - ${checkResults.systemHealth}`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/live/activate", async (req, res) => {
+    try {
+      console.log('🚀 ACTIVATING 24/7 LIVE TRADING ENGINE');
+      await liveTradingEngine.activateLiveTrading();
+      
+      res.json({
+        success: true,
+        message: "24/7 Live Trading Engine activated with $62.70 concentrated capital",
+        mode: "LIVE",
+        capital: "$62.70",
+        cycles: "15-second velocity intervals",
+        targets: "15% profit in 60s maximum hold time"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/live/status", async (req, res) => {
+    try {
+      const stats = liveTradingEngine.getLiveStats();
+      const memory = liveTradingEngine.getSystemMemory();
+      
+      res.json({
+        success: true,
+        liveStats: stats,
+        systemMemory: {
+          mode: memory.mode,
+          totalCapital: memory.totalCapital,
+          activeTrades: memory.activeTrades.length,
+          completedTrades: memory.completedTrades.length,
+          totalPnL: memory.totalPnL,
+          totalROI: memory.totalROI,
+          tradingActive: memory.tradingActive
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/live/trades/active", async (req, res) => {
+    try {
+      const activeTrades = liveTradingEngine.getActiveTrades();
+      res.json({
+        success: true,
+        activeTrades,
+        count: activeTrades.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/live/trades/history", async (req, res) => {
+    try {
+      const tradeHistory = liveTradingEngine.getTradeHistory();
+      res.json({
+        success: true,
+        tradeHistory,
+        count: tradeHistory.length
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/live/mode", async (req, res) => {
+    try {
+      const { mode } = req.body;
+      
+      if (!mode || !['LIVE', 'SIMULATION'].includes(mode)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid mode. Must be 'LIVE' or 'SIMULATION'"
+        });
+      }
+
+      liveTradingEngine.switchMode(mode);
+      
+      res.json({
+        success: true,
+        message: `Trading mode switched to ${mode}`,
+        currentMode: mode
+      });
     } catch (error) {
       res.status(500).json({
         success: false,
