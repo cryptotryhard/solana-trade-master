@@ -165,7 +165,7 @@ export class RealPortfolioService {
     }
   }
 
-  private async getRealTokenAccountsWithRetry(maxRetries = 5): Promise<any[]> {
+  private async getRealTokenAccountsWithRetry(maxRetries = 8): Promise<any[]> {
     for (let i = 0; i < maxRetries; i++) {
       try {
         const connection = this.getNextConnection();
@@ -200,7 +200,7 @@ export class RealPortfolioService {
           throw new Error(`Failed to fetch token accounts after ${maxRetries} attempts: ${(error as Error).message}`);
         }
         
-        const delay = Math.min(1000 * Math.pow(2, i), 15000);
+        const delay = Math.min(1000 * Math.pow(2, i), 20000);
         console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }

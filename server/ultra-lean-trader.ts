@@ -5,6 +5,7 @@
  */
 
 import { RealPortfolioService } from './real-portfolio-service';
+import { errorHandler } from './enhanced-error-handler';
 import { dexScreenerFallback } from './dexscreener-fallback';
 
 interface HighVelocityTarget {
@@ -54,8 +55,18 @@ export class UltraLeanTrader {
     try {
       console.log('⚡ VELOCITY SCAN: Hunting high-momentum breakouts');
       
-      const portfolio = await this.portfolioService.getPortfolioValue();
-      if (portfolio.totalValueUSD < 50) return; // Skip if insufficient capital
+      // Use enhanced error handling for portfolio fetching
+      const portfolio = await errorHandler.handleRpcError(
+        () => this.portfolioService.getPortfolioValue(),
+        'portfolio_fetch',
+        8,
+        1000
+      );
+      
+      if (!portfolio || portfolio.totalValueUSD < 50) {
+        console.log('⚠️ Portfolio data unavailable, continuing with cached operations');
+        return;
+      }
       
       // Liquidate dead positions first
       await this.liquidateDeadPositions(portfolio.tokens);
