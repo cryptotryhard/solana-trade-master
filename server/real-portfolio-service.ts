@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { dexScreenerFallback } from './dexscreener-fallback';
+import { rpcManager } from './rpc-manager';
 import fetch from 'node-fetch';
 
 interface TokenPrice {
@@ -27,17 +28,12 @@ export class RealPortfolioService {
   private connections: Connection[];
   private currentConnectionIndex: number;
   private walletAddress: string;
+  private lastPortfolioValue: PortfolioValue | null = null;
+  private lastPriceUpdate: number = 0;
 
   constructor() {
-    // Use multiple RPC endpoints for reliability
-    const rpcEndpoints = [
-      'https://api.mainnet-beta.solana.com',
-      'https://solana-api.projectserum.com',
-      `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY || ''}`,
-      'https://rpc.ankr.com/solana'
-    ];
-    
-    this.connections = rpcEndpoints.map(endpoint => new Connection(endpoint, 'confirmed'));
+    // Use enhanced RPC manager for connection pooling
+    this.connections = [rpcManager.getConnection()];
     this.currentConnectionIndex = 0;
     this.walletAddress = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
   }
@@ -67,21 +63,22 @@ export class RealPortfolioService {
 
   async getPortfolioValue(): Promise<PortfolioValue> {
     try {
-      console.log('🔍 Fetching authentic wallet data from blockchain...');
+      // Use cached portfolio data to avoid rate limiting during high-frequency operations
+      if (this.lastPortfolioValue && Date.now() - this.lastPortfolioValue.lastUpdated < 30000) {
+        return this.lastPortfolioValue;
+      }
+
+      console.log('🔍 Fetching authenticated portfolio data...');
       
-      // Fetch real token accounts from wallet
+      // Fetch real token accounts from wallet with enhanced error handling
       const realTokenAccounts = await this.getRealTokenAccountsWithRetry();
       console.log(`📊 Found ${realTokenAccounts.length} token accounts on-chain`);
-
-      if (realTokenAccounts.length === 0) {
-        throw new Error('No token accounts found - wallet may be empty or RPC issues');
-      }
 
       // Get real-time prices for all tokens
       const tokenMints = realTokenAccounts.map((t: any) => t.mint);
       const realPrices = await this.getRealTimePricesWithRetry(tokenMints);
       
-      // Calculate portfolio value using real blockchain data
+      // Calculate portfolio value using authenticated blockchain data
       const tokens: WalletToken[] = realTokenAccounts
         .map((token: any) => {
           const priceData = realPrices[token.mint];
@@ -102,7 +99,7 @@ export class RealPortfolioService {
         })
         .filter((token): token is WalletToken => token !== null);
 
-      // Add real SOL balance
+      // Add authenticated SOL balance
       const realSOLBalance = await this.getRealSOLBalanceWithRetry();
       const solPrice = await this.getRealSOLPriceWithRetry();
       const solValueUSD = (realSOLBalance / 1e9) * solPrice;
