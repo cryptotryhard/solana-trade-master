@@ -209,12 +209,12 @@ export class RealPortfolioService {
     return [];
   }
 
-  private async getRealTimePricesWithRetry(mints: string[], maxRetries = 3): Promise<TokenPrice> {
+  private async getRealTimePricesWithRetry(mints: string[], maxRetries = 3): Promise<{[mint: string]: {price: number; symbol: string}}> {
     for (let i = 0; i < maxRetries; i++) {
       try {
         console.log(`🔍 Attempt ${i + 1}: Fetching real-time prices from Birdeye for ${mints.length} tokens...`);
         
-        const prices: TokenPrice = {};
+        const prices: {[mint: string]: {price: number; symbol: string}} = {};
         
         // Use Birdeye API with actual API key
         for (const mint of mints) {
