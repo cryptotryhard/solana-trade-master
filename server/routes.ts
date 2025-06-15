@@ -32,6 +32,7 @@ import { autonomousTradingEngine } from './autonomous-trading-engine';
 import { getForceWalletSync, getForceRealityStats } from './force-wallet-sync';
 import { microCapitalTrader } from './micro-capital-trader';
 import { RealPortfolioService } from './real-portfolio-service';
+import { smartCapitalAllocator } from './smart-capital-allocator';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2132,6 +2133,36 @@ export function registerRoutes(app: Express) {
         success: true,
         message: "Smart Token Selector autonomous trading stopped",
         status: autonomousTradingEngine.getStats()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Smart Capital Allocation Endpoints
+  app.get("/api/capital/status", async (req, res) => {
+    try {
+      const allocationStatus = await smartCapitalAllocator.getAllocationStatus();
+      res.json(allocationStatus);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/capital/rebalance", async (req, res) => {
+    try {
+      console.log('🎯 Triggering smart capital rebalancing for maximum growth');
+      await smartCapitalAllocator.executeSmartRebalancing();
+      
+      res.json({
+        success: true,
+        message: "Capital rebalancing initiated for rapid compounding"
       });
     } catch (error) {
       res.status(500).json({
