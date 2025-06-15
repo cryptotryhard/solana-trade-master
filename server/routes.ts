@@ -2113,6 +2113,36 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Execute Real Liquidation - Authentic Jupiter Swaps
+  app.post("/api/trading/execute-real-liquidation", async (req, res) => {
+    try {
+      const { realLiquidationEngine } = await import('./real-liquidation-engine');
+      
+      console.log('🔥 Executing REAL liquidation with Phantom wallet');
+      const liquidationResults = await realLiquidationEngine.executeCompleteLiquidation();
+      
+      res.json({
+        success: liquidationResults.success,
+        message: liquidationResults.success ? 
+          `Real liquidation completed - ${liquidationResults.liquidatedTokens.length} tokens converted to SOL` : 
+          "Real liquidation failed",
+        totalSOLRecovered: liquidationResults.totalSOLRecovered,
+        liquidatedTokens: liquidationResults.liquidatedTokens,
+        txHashes: liquidationResults.txHashes,
+        walletAddress: realLiquidationEngine.getWalletAddress(),
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error('❌ Real liquidation error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to execute real liquidation',
+        message: `Real liquidation failed: ${(error as Error).message}`
+      });
+    }
+  });
+
   // Complete Strategy Reset - Liquidate All to SOL
   app.post("/api/trading/complete-reset", async (req, res) => {
     try {
