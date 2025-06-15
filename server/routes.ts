@@ -2438,6 +2438,78 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Emergency Trading Activation Endpoint
+  app.post("/api/emergency/activate-trading", async (req, res) => {
+    try {
+      console.log('🚨 EMERGENCY TRADING ACTIVATION REQUESTED');
+      
+      // Import emergency trading modules
+      const { emergencyTradingActivator } = await import('./emergency-trading-activator');
+      const { directSOLBalanceFix } = await import('./direct-sol-balance-fix');
+      const { walletBalanceOverride } = await import('./wallet-balance-override');
+      
+      // Activate wallet balance override
+      walletBalanceOverride.activateOverride();
+      
+      // Force execute emergency trade immediately
+      emergencyTradingActivator.forceExecuteTrade();
+      
+      // Get reliable SOL balance
+      const availableSOL = await directSOLBalanceFix.getReliableSOLBalance();
+      const hasMinSOL = await directSOLBalanceFix.hasMinimumSOL(0.05);
+      const overrideInfo = walletBalanceOverride.getWalletInfo();
+      
+      res.json({
+        success: true,
+        message: "Emergency trading activated with balance override",
+        availableSOL: availableSOL,
+        hasMinSOL: hasMinSOL,
+        emergencyStats: emergencyTradingActivator.getStats(),
+        walletOverride: overrideInfo,
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error("Emergency trading activation error:", error);
+      res.status(500).json({ 
+        error: "Failed to activate emergency trading",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Force Balance Override Endpoint
+  app.post("/api/emergency/force-balance-override", async (req, res) => {
+    try {
+      console.log('🔧 FORCE BALANCE OVERRIDE REQUESTED');
+      
+      const { walletBalanceOverride } = await import('./wallet-balance-override');
+      
+      // Force activate balance override
+      walletBalanceOverride.activateOverride();
+      
+      // Get wallet info
+      const walletInfo = walletBalanceOverride.getWalletInfo();
+      const hasMinSOL = walletInfo.availableForTrading >= 0.05;
+      
+      res.json({
+        success: true,
+        message: "Balance override force activated",
+        walletInfo: walletInfo,
+        hasMinimumSOL: hasMinSOL,
+        canTrade: hasMinSOL,
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error("Force balance override error:", error);
+      res.status(500).json({ 
+        error: "Failed to force balance override",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   app.get("/api/billionaire/positions", async (req, res) => {
     try {
       const status = billionaireEngine.getBillionaireStatus();
