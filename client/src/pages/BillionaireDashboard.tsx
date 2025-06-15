@@ -44,6 +44,7 @@ interface AIPosition {
 }
 
 const MILESTONES = [
+  { target: 1000, label: '$1K', color: 'bg-green-500', strategy: 'Breakthrough Achievement', special: true },
   { target: 5000, label: '$5K', color: 'bg-yellow-500', strategy: 'Diversify + Momentum' },
   { target: 10000, label: '$10K', color: 'bg-orange-500', strategy: 'Compound Rotations' },
   { target: 100000, label: '$100K', color: 'bg-red-500', strategy: 'Protect Winners' },
