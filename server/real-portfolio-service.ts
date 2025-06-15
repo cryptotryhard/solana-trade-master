@@ -294,7 +294,7 @@ export class RealPortfolioService {
         });
         
         if (response.ok) {
-          const data = await response.json();
+          const data: any = await response.json();
           const price = data.data?.value || 0;
           if (price > 0) {
             console.log(`✅ Birdeye SOL price: $${price}`);
