@@ -180,6 +180,27 @@ class AutomatedPumpFunTrader {
   }
 
   private async executeJupiterSwap(inputMint: string, outputMint: string, amount: number): Promise<string | null> {
+    // Try alternative DEX routing first to bypass rate limits
+    try {
+      console.log(`🚀 Direct DEX routing: ${amount.toFixed(4)} SOL → ${outputMint.substring(0, 8)}...`);
+      
+      const { alternativeDEXRouter } = await import('./alternative-dex-router');
+      const swapResult = await alternativeDEXRouter.executeSwap({
+        inputMint,
+        outputMint,
+        amount,
+        slippageBps: 300
+      });
+      
+      if (swapResult.success && swapResult.txHash) {
+        console.log(`✅ DEX swap successful: ${swapResult.txHash}`);
+        return swapResult.txHash;
+      }
+    } catch (error: any) {
+      console.log(`⚠️ DEX routing failed: ${error.message}`);
+    }
+
+    // Fallback to Jupiter with enhanced retry
     const maxRetries = 3;
     let currentAmount = amount;
     
@@ -187,17 +208,22 @@ class AutomatedPumpFunTrader {
       try {
         const lamports = Math.floor(currentAmount * 1e9);
         
-        console.log(`🔄 Jupiter swap attempt ${attempt}: ${currentAmount.toFixed(4)} SOL`);
+        console.log(`🔄 Jupiter fallback attempt ${attempt}: ${currentAmount.toFixed(4)} SOL`);
+        
+        // Add progressive delay to avoid rate limits
+        if (attempt > 1) {
+          await this.delay(3000 * attempt);
+        }
         
         // Get quote with retry logic
         const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${lamports}&slippageBps=1000`;
         const quoteResponse = await fetch(quoteUrl);
         
         if (!quoteResponse.ok) {
-          if (quoteResponse.status === 400 && attempt < maxRetries) {
+          if ((quoteResponse.status === 400 || quoteResponse.status === 429) && attempt < maxRetries) {
             currentAmount = currentAmount * 0.7;
-            console.log(`⚠️ Quote failed (${quoteResponse.status}), reducing to ${currentAmount.toFixed(4)} SOL, retrying in 3s...`);
-            await this.delay(3000);
+            console.log(`⚠️ Quote failed (${quoteResponse.status}), reducing to ${currentAmount.toFixed(4)} SOL, retrying in ${3 * attempt}s...`);
+            await this.delay(3000 * attempt);
             continue;
           }
           throw new Error(`Jupiter quote failed: ${quoteResponse.status}`);
