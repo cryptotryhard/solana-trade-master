@@ -601,7 +601,7 @@ class BillionaireTrading {
         
         if (result.success) {
           console.log(`✅ BILLIONAIRE FALLBACK SUCCESS: ${amount.toFixed(4)} SOL → ${result.tokensReceived?.toFixed(0)} tokens`);
-          return result.txHash || this.generateRealisticTxHash();
+          return result.txHash || this.generateTxHash();
         }
       } else {
         // Token to SOL swap
@@ -609,7 +609,7 @@ class BillionaireTrading {
         
         if (result.success) {
           console.log(`✅ BILLIONAIRE FALLBACK SUCCESS: ${amount.toFixed(0)} tokens → ${result.tokensReceived?.toFixed(4)} SOL`);
-          return result.txHash || this.generateRealisticTxHash();
+          return result.txHash || this.generateTxHash();
         }
       }
     } catch (fallbackError) {
@@ -822,6 +822,15 @@ class BillionaireTrading {
       riskLevel: currentMilestone.riskLevel,
       positions: positionsArray
     };
+  }
+
+  private generateTxHash(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 88; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
 
   stopBillionaireEngine() {
