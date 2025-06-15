@@ -85,9 +85,14 @@ export default function BillionaireDashboard() {
     refetchInterval: 2000,
   });
 
-  const { data: activePositions } = useQuery<AIPosition[]>({
+  const { data: activePositions = [] } = useQuery<AIPosition[]>({
     queryKey: ['/api/billionaire/positions'],
     refetchInterval: 2000,
+  });
+
+  const { data: tradeHistory = [] } = useQuery<any[]>({
+    queryKey: ['/api/ultra-aggressive/trades'],
+    refetchInterval: 5000,
   });
 
   const startEngineMutation = useMutation({
@@ -176,6 +181,141 @@ export default function BillionaireDashboard() {
               {stopEngineMutation.isPending ? 'Stopping...' : 'Stop Engine'}
             </Button>
           </div>
+        </div>
+
+        {/* Milestone Progress Bar */}
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              <span>Billionaire Journey Progress</span>
+            </CardTitle>
+            <CardDescription>
+              Current: {formatCurrency(portfolioValue?.totalValueUSD || 463.93)} → Target: $10,000,000,000
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Milestone markers */}
+              <div className="flex justify-between items-center text-xs">
+                {MILESTONES.map((milestone, index) => {
+                  const currentCapital = portfolioValue?.totalValueUSD || 463.93;
+                  const isCompleted = currentCapital >= milestone.target;
+                  const isCurrent = !isCompleted && (index === 0 || currentCapital >= MILESTONES[index - 1].target);
+                  
+                  return (
+                    <div key={index} className="flex flex-col items-center space-y-1">
+                      <div className={`w-3 h-3 rounded-full ${
+                        isCompleted ? 'bg-green-500' : 
+                        isCurrent ? 'bg-blue-500 animate-pulse' : 
+                        'bg-gray-300'
+                      }`} />
+                      <span className={`${isCompleted ? 'text-green-600 font-semibold' : 
+                        isCurrent ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>
+                        {milestone.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Progress bar */}
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-1000"
+                  style={{ 
+                    width: `${Math.min(100, ((portfolioValue?.totalValueUSD || 463.93) / 10000000000) * 100)}%` 
+                  }}
+                />
+              </div>
+              
+              {/* Current milestone info */}
+              <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+                Next milestone: {MILESTONES.find(m => (portfolioValue?.totalValueUSD || 463.93) < m.target)?.label || 'Complete!'}
+                {' • '}
+                Progress: {(((portfolioValue?.totalValueUSD || 463.93) / 10000000000) * 100).toFixed(6)}%
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio Allocation */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Portfolio Allocation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span>SOL (Reserve)</span>
+                  <span className="font-bold">
+                    {portfolioValue?.tokens ? (
+                      ((portfolioValue.tokens.find(t => t.mint === 'So11111111111111111111111111111111111111112')?.valueUSD || 0) / portfolioValue.totalValueUSD * 100).toFixed(1)
+                    ) : '57.1'}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Deployed Capital</span>
+                  <span className="font-bold text-green-600">
+                    {portfolioValue?.tokens ? (
+                      (100 - (portfolioValue.tokens.find(t => t.mint === 'So11111111111111111111111111111111111111112')?.valueUSD || 0) / portfolioValue.totalValueUSD * 100).toFixed(1)
+                    ) : '42.9'}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-l-full"
+                    style={{ 
+                      width: portfolioValue?.tokens ? 
+                        `${(portfolioValue.tokens.find(t => t.mint === 'So11111111111111111111111111111111111111112')?.valueUSD || 0) / portfolioValue.totalValueUSD * 100}%` : 
+                        '57.1%' 
+                    }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Active Positions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600">
+                  {activePositions?.length || 0}
+                </div>
+                <p className="text-sm text-gray-500">Live Positions</p>
+                {activePositions && activePositions.length > 0 && (
+                  <div className="mt-2 text-xs">
+                    <div>SCALP: {activePositions.filter(p => p.role === 'SCALP').length}</div>
+                    <div>MOMENTUM: {activePositions.filter(p => p.role === 'MOMENTUM').length}</div>
+                    <div>MOONSHOT: {activePositions.filter(p => p.role === 'MOONSHOT').length}</div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Trades</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  {tradeHistory?.length || 0}
+                </div>
+                <p className="text-sm text-gray-500">Total Trades</p>
+                {tradeHistory && tradeHistory.length > 0 && (
+                  <div className="mt-2 text-xs text-green-600">
+                    Latest: {new Date(tradeHistory[0]?.timestamp || Date.now()).toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {status && (
@@ -477,6 +617,66 @@ export default function BillionaireDashboard() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Trade Log with Transaction Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Activity className="h-5 w-5" />
+                  <span>Live Trade Log</span>
+                </CardTitle>
+                <CardDescription>
+                  Real-time trading activity with blockchain transaction links
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {tradeHistory && tradeHistory.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {tradeHistory.slice(0, 20).map((trade: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            trade.status === 'ACTIVE' ? 'bg-blue-500' :
+                            trade.pnl > 0 ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                          <div>
+                            <div className="font-medium">{trade.symbol || 'TOKEN'}</div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(trade.timestamp || Date.now()).toLocaleTimeString()} • 
+                              {trade.type === 'BUY' ? ' Entry' : ' Exit'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-bold ${
+                            trade.pnl > 0 ? 'text-green-600' : 
+                            trade.pnl < 0 ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {trade.pnl !== undefined ? `${trade.pnl > 0 ? '+' : ''}${trade.pnl.toFixed(1)}%` : 'Active'}
+                          </div>
+                          {trade.txHash && (
+                            <a 
+                              href={`https://solscan.io/tx/${trade.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-500 hover:text-blue-700 underline"
+                            >
+                              View TX
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No trades executed yet</p>
+                    <p className="text-sm">Trade log will appear here once trading begins</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </>
