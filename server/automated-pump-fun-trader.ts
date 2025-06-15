@@ -245,30 +245,104 @@ class AutomatedPumpFunTrader {
   }
 
   private async executeJupiterSwap(inputMint: string, outputMint: string, amount: number) {
-    try {
-      const lamports = Math.floor(amount * 1e9);
-      
-      // Get quote
-      const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${lamports}&slippageBps=1000`;
-      const quoteResponse = await fetch(quoteUrl);
-      const quoteData = await quoteResponse.json();
-      
-      if (!quoteResponse.ok || quoteData.error) {
-        throw new Error('Jupiter quote failed');
+    const maxRetries = 3;
+    let currentAmount = amount;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const lamports = Math.floor(currentAmount * 1e9);
+        
+        console.log(`🔄 Jupiter swap attempt ${attempt}: ${currentAmount.toFixed(4)} SOL`);
+        
+        // Get quote with retry logic
+        const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${lamports}&slippageBps=1000`;
+        const quoteResponse = await fetch(quoteUrl);
+        
+        if (!quoteResponse.ok) {
+          if (quoteResponse.status === 400 && attempt < maxRetries) {
+            currentAmount = currentAmount * 0.7;
+            console.log(`⚠️ Quote failed (${quoteResponse.status}), reducing to ${currentAmount.toFixed(4)} SOL, retrying in 3s...`);
+            await this.delay(3000);
+            continue;
+          }
+          throw new Error(`Jupiter quote failed: ${quoteResponse.status}`);
+        }
+        
+        const quoteData = await quoteResponse.json();
+        
+        if (quoteData.error || !quoteData.outAmount) {
+          if (attempt < maxRetries) {
+            currentAmount = currentAmount * 0.5;
+            console.log(`⚠️ Invalid quote response, reducing to ${currentAmount.toFixed(4)} SOL, retrying...`);
+            await this.delay(3000);
+            continue;
+          }
+          throw new Error('Jupiter quote error or zero liquidity');
+        }
+        
+        // Check for meaningful output amount
+        const outputAmount = Number(quoteData.outAmount);
+        if (outputAmount === 0) {
+          if (attempt < maxRetries) {
+            console.log(`⚠️ Zero output amount, skipping to next opportunity...`);
+            await this.delay(1000);
+            continue;
+          }
+          throw new Error('Zero liquidity detected');
+        }
+        
+        // Get swap transaction
+        const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quoteResponse: quoteData,
+            userPublicKey: this.wallet.publicKey.toString(),
+            wrapAndUnwrapSol: true,
+            dynamicComputeUnitLimit: true,
+            prioritizationFeeLamports: 5000
+          })
+        });
+        
+        const swapData = await swapResponse.json();
+        
+        if (!swapResponse.ok) {
+          if (attempt < maxRetries) {
+            console.log(`⚠️ Swap transaction failed, retrying in 3s...`);
+            await this.delay(3000);
+            continue;
+          }
+          throw new Error('Jupiter swap transaction failed');
+        }
+        
+        // Execute transaction
+        const swapTransactionBuf = Buffer.from(swapData.swapTransaction, 'base64');
+        const { VersionedTransaction } = await import('@solana/web3.js');
+        const transaction = VersionedTransaction.deserialize(swapTransactionBuf);
+        
+        transaction.sign([this.wallet]);
+        
+        const signature = await this.connection.sendRawTransaction(transaction.serialize());
+        
+        console.log(`✅ Jupiter swap successful: ${signature}`);
+        return signature;
+        
+      } catch (error) {
+        if (attempt === maxRetries) {
+          console.error(`❌ Jupiter swap failed after ${maxRetries} attempts:`, error);
+          throw error;
+        }
+        console.log(`⚠️ Attempt ${attempt} failed, retrying...`);
+        await this.delay(3000);
       }
-      
-      // Get swap transaction
-      const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quoteData,
-          userPublicKey: this.wallet.publicKey.toString(),
-          wrapAndUnwrapSol: true,
-          dynamicComputeUnitLimit: true,
-          prioritizationFeeLamports: 5000
-        })
-      });
+    }
+    
+    return null;
+  }
+  
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
       
       const swapData = await swapResponse.json();
       

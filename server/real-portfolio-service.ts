@@ -200,7 +200,7 @@ export class RealPortfolioService {
           throw new Error(`Failed to fetch token accounts after ${maxRetries} attempts: ${(error as Error).message}`);
         }
         
-        const delay = Math.min(1000 * Math.pow(2, i), 10000);
+        const delay = Math.min(1000 * Math.pow(2, i), 15000);
         console.log(`⏳ Waiting ${delay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
