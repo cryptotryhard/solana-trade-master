@@ -119,6 +119,36 @@ export class RealBlockchainTrader {
       
     } catch (error) {
       console.error('❌ Jupiter swap failed:', error);
+      
+      // Activate fallback DEX routing when Jupiter fails
+      try {
+        const { fallbackDEXRouter } = await import('./fallback-dex-router');
+        console.log(`🔄 REAL BLOCKCHAIN FALLBACK: Using Raydium/Orca for ${outputMint.slice(0, 8)}...`);
+        
+        // Convert lamports to SOL for fallback router
+        const solAmount = amount / 1e9;
+        
+        if (inputMint === 'So11111111111111111111111111111111111111112') {
+          // SOL to token swap
+          const result = await fallbackDEXRouter.executeSwap(inputMint, outputMint, solAmount);
+          
+          if (result.success) {
+            console.log(`✅ REAL BLOCKCHAIN FALLBACK SUCCESS: ${solAmount.toFixed(4)} SOL → ${result.tokensReceived?.toFixed(0)} tokens`);
+            return result.txHash || null;
+          }
+        } else {
+          // Token to SOL swap
+          const result = await fallbackDEXRouter.sellTokens(inputMint, amount);
+          
+          if (result.success) {
+            console.log(`✅ REAL BLOCKCHAIN FALLBACK SUCCESS: ${amount.toFixed(0)} tokens → ${result.tokensReceived?.toFixed(4)} SOL`);
+            return result.txHash || null;
+          }
+        }
+      } catch (fallbackError) {
+        console.log(`❌ Real blockchain fallback failed: ${fallbackError}`);
+      }
+      
       return null;
     }
   }
