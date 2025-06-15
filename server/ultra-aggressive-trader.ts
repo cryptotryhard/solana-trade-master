@@ -386,7 +386,35 @@ export class UltraAggressiveTrader {
         return await realBlockchainTrader.sellToken(mint, amount);
       }
     } catch (error) {
-      console.error(`❌ Real Jupiter swap failed for ${mint}:`, error);
+      console.error(`❌ Jupiter swap failed for ${mint}:`, error);
+      
+      // Activate fallback DEX routing when Jupiter fails
+      try {
+        const { fallbackDEXRouter } = await import('./fallback-dex-router');
+        console.log(`🔄 FALLBACK DEX: Executing ${direction} via Raydium/Orca`);
+        
+        const solMint = 'So11111111111111111111111111111111111111112';
+        
+        if (direction === 'BUY') {
+          const solAmount = amount / 152;
+          const result = await fallbackDEXRouter.executeSwap(solMint, mint, solAmount);
+          
+          if (result.success) {
+            console.log(`✅ FALLBACK BUY SUCCESS: ${solAmount.toFixed(4)} SOL → ${result.tokensReceived?.toFixed(0)} tokens`);
+            return result.txHash || null;
+          }
+        } else {
+          const result = await fallbackDEXRouter.sellTokens(mint, amount);
+          
+          if (result.success) {
+            console.log(`✅ FALLBACK SELL SUCCESS: ${amount.toFixed(0)} tokens → ${result.tokensReceived?.toFixed(4)} SOL`);
+            return result.txHash || null;
+          }
+        }
+      } catch (fallbackError) {
+        console.log(`❌ Fallback DEX also failed: ${fallbackError}`);
+      }
+      
       return null;
     }
   }
