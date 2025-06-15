@@ -9,6 +9,7 @@ import { emergencySOLExtractor } from './emergency-sol-extractor';
 import { tokenLiquidator } from './token-liquidator';
 import { emergencyTokenLiquidator } from './emergency-token-liquidator';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
+import { billionaireEngine } from './billionaire-trading-engine';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 import { walletTokenScanner } from './wallet-token-scanner';
 import { pumpFunTrader } from './pump-fun-trader';
@@ -2392,6 +2393,62 @@ export function registerRoutes(app: Express) {
       console.error("Alpha trade log error:", error);
       res.status(500).json({ 
         error: "Failed to get alpha trade log",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Victoria Billionaire Engine API Endpoints
+  app.post("/api/billionaire/start", async (req, res) => {
+    try {
+      console.log('🚀 Starting Victoria Billionaire Engine via API');
+      await billionaireEngine.startBillionaireEngine();
+      
+      res.json({
+        success: true,
+        message: "Victoria Billionaire Engine activated",
+        target: "$10,000,000,000+",
+        strategy: "Adaptive milestone-based AI trading"
+      });
+    } catch (error) {
+      console.error("Billionaire engine start error:", error);
+      res.status(500).json({ 
+        error: "Failed to start billionaire engine",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/billionaire/status", async (req, res) => {
+    try {
+      const status = billionaireEngine.getBillionaireStatus();
+      
+      res.json({
+        success: true,
+        ...status,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error("Billionaire status error:", error);
+      res.status(500).json({ 
+        error: "Failed to get billionaire status",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.post("/api/billionaire/stop", async (req, res) => {
+    try {
+      billionaireEngine.stopBillionaireEngine();
+      
+      res.json({
+        success: true,
+        message: "Victoria Billionaire Engine stopped"
+      });
+    } catch (error) {
+      console.error("Billionaire engine stop error:", error);
+      res.status(500).json({ 
+        error: "Failed to stop billionaire engine",
         details: error instanceof Error ? error.message : String(error)
       });
     }
