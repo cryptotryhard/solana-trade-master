@@ -56,13 +56,13 @@ class BillionaireTrading {
     {
       target: 5000,
       strategy: "aggressive capital scaling",
-      rotationSpeed: 10000, // 10s rotations for faster scaling
+      rotationSpeed: 5000, // 5s rotations for maximum aggressiveness
       maxPositionSize: 0.25, // 25% SOL per high-score token
       riskLevel: 'ULTRA',
       holdingPeriod: 120000, // 2 min max hold for quick rotations
       minTokenAge: 5000, // 5s min age for fresh launches
-      minScore: 85, // Only trade tokens with >85% AI score
-      maxMarketCap: 100000, // Focus on <$100K MC tokens
+      minScore: 75, // Lowered from 85% to 75% for more opportunities
+      maxMarketCap: 300000, // Increased from 100K to 300K for more liquidity
       stopLossRange: [-8, -12], // Smart SL -8% to -12%
       trailingStopEnabled: true
     },
