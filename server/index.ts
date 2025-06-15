@@ -41,12 +41,15 @@ setTimeout(async () => {
   console.log('💰 Capital: $466+ portfolio, no simulation, production mode');
   
   try {
+    const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
     await ultraAggressiveTrader.startUltraAggressiveTrading();
     console.log('✅ Ultra-aggressive trading system activated successfully');
+    console.log('🔍 Scanning pump.fun every 10-15 seconds for fresh launches');
+    console.log('📊 Live positions and P&L tracking activated');
   } catch (error) {
     console.error('❌ Ultra-aggressive trading activation failed:', error);
   }
-}, 15000);
+}, 10000);
 
 const app = express();
 app.use(express.json());
@@ -134,7 +137,7 @@ app.use((req, res, next) => {
     
     // Initialize Ultra-Aggressive Trader for $1B target
     const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
-    await ultraAggressiveTrader.startTrading();
+    await ultraAggressiveTrader.startUltraAggressiveTrading();
     console.log('💰 ULTRA-AGGRESSIVE TRADER ACTIVATED');
 
     // Initialize Capital Manager for dynamic position sizing

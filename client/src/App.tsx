@@ -23,6 +23,7 @@ import StreamlinedTradingDashboard from "@/pages/streamlined-trading-dashboard";
 import LiveTradingDashboard from "@/pages/live-trading-dashboard";
 import PortfolioDashboard from "@/pages/portfolio-dashboard";
 import CapitalAllocationDashboard from "@/pages/capital-allocation-dashboard";
+import UltraAggressiveDashboard from "@/pages/UltraAggressiveDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -47,6 +48,7 @@ function Router() {
       <Route path="/live" component={LiveTradingDashboard} />
       <Route path="/smart" component={PortfolioDashboard} />
       <Route path="/allocation" component={CapitalAllocationDashboard} />
+      <Route path="/ultra-aggressive" component={UltraAggressiveDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
