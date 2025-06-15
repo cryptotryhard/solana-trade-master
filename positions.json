@@ -1,37 +1,5 @@
 [
   {
-    "id": "trade_10_1750009393905",
-    "tokenMint": "fLV91RJb8HYK1JVrQQwUTUwXhFq321wxggAeCnXT8MG8",
-    "symbol": "FLOKI",
-    "entryPrice": 0.03692030822305048,
-    "entryAmount": 0.03692030822305048,
-    "tokensReceived": 38.183538129298036,
-    "entryTime": 1750009393905,
-    "currentPrice": 0.0372490888437728,
-    "status": "ACTIVE",
-    "entryTxHash": "TKpAtSrE6mq6Q3tfbjLThCp2xE48e5hWyqba5NsktjBbjspFjLwGtGsMAtUAWsKJpr2gCpWF5f3g8rby5hUbtE9f",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.03803200613455519
-  },
-  {
-    "id": "trade_11_1750009423907",
-    "tokenMint": "UpzH259gQ33gCedA3F1nBM8HDPyakvN2zCA8Ck5HzrRn",
-    "symbol": "PEPE",
-    "entryPrice": 0.011017133239692882,
-    "entryAmount": 0.011017133239692882,
-    "tokensReceived": 10.54620781603461,
-    "entryTime": 1750009423907,
-    "currentPrice": 0.011718541384751577,
-    "status": "ACTIVE",
-    "entryTxHash": "LnFwVKcmjGZchwHMf2sdkeLWHVv5wP7cFfsPyeNrV9y8gbb4eX45ZPShXDd9QG3tWBrghyrpUsxY2FGAjev8TpRs",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.01177056971900454
-  },
-  {
     "id": "trade_12_1750009453906",
     "tokenMint": "RjbZyPNwpFwUwGgGHjJzRbfug8arynAPZ1gWBRJw6WHY",
     "symbol": "BONK2",
@@ -798,5 +766,37 @@
     "stopLoss": 15,
     "trailingStop": 10,
     "maxPriceReached": 0.03138106621641823
+  },
+  {
+    "id": "trade_2_1750010858922",
+    "tokenMint": "dQXXdm6zGTmvLah7PX6NfTjF2JxR3RzUzr7811VDd1Vn",
+    "symbol": "DOGE",
+    "entryPrice": 0.038357693593789176,
+    "entryAmount": 0.038357693593789176,
+    "tokensReceived": 38.407665589693515,
+    "entryTime": 1750010858922,
+    "currentPrice": 0.040400558878763565,
+    "status": "ACTIVE",
+    "entryTxHash": "3sr5nP71jKdE2XxBDvvx6YbU8MnwTqyFHjrAxUL4WjCvQhSKryAbUr94EFjwDFs52XnUV3MCKBhBmVnQcvgDYdNJ",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.03912290027166389
+  },
+  {
+    "id": "trade_1_1750010870947",
+    "tokenMint": "D6vpEsW2GHvn76yjFQ58MGDwML1AdBbYrjSQ9G4Nafgq",
+    "symbol": "DOGE",
+    "entryPrice": 0.020722971219947553,
+    "entryAmount": 0.020722971219947553,
+    "tokensReceived": 20.068989448915644,
+    "entryTime": 1750010870947,
+    "currentPrice": 0.021116657083049092,
+    "status": "ACTIVE",
+    "entryTxHash": "Q4hXUnNXcTKPaAFrNF94VwcY9D8xsWCej4h8cz4tzcHT8EDCJZvUunhmDm5sd9UMmBvt82z4CUZyfh7mpPbEru4c",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.022158776247235293
   }
 ]

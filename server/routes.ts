@@ -10,6 +10,7 @@ import { tokenLiquidator } from './token-liquidator';
 import { emergencyTokenLiquidator } from './emergency-token-liquidator';
 import { ultraAggressiveTrader } from './ultra-aggressive-trader';
 import { billionaireEngine } from './billionaire-trading-engine';
+import { victoriaBillionaireInitializer } from './victoria-billionaire-initializer';
 import { authenticWalletBalanceManager } from './authentic-wallet-balance-manager';
 import { walletTokenScanner } from './wallet-token-scanner';
 import { pumpFunTrader } from './pump-fun-trader';
@@ -2453,6 +2454,9 @@ export function registerRoutes(app: Express) {
       });
     }
   });
+
+  // Initialize Victoria Billionaire Engine on server startup
+  victoriaBillionaireInitializer.initializeOnStartup();
 
   app.post("/api/trading/ultra-aggressive-stop", async (req, res) => {
     try {
