@@ -77,15 +77,15 @@ export default function BillionaireDashboard() {
   const { data: status, refetch } = useQuery<BillionaireStatus>({
     queryKey: ['/api/billionaire/status'],
     enabled: isEngineRunning,
-    refetchInterval: 2000 // Faster updates for aggressive trading
+    refetchInterval: 2000
   });
 
-  const { data: portfolioValue } = useQuery({
+  const { data: portfolioValue } = useQuery<{totalValueUSD: number, tokens: any[]}>({
     queryKey: ['/api/portfolio/real-value'],
     refetchInterval: 2000,
   });
 
-  const { data: activePositions } = useQuery({
+  const { data: activePositions } = useQuery<AIPosition[]>({
     queryKey: ['/api/billionaire/positions'],
     refetchInterval: 2000,
   });
@@ -245,13 +245,13 @@ export default function BillionaireDashboard() {
             </div>
 
             {/* Real-Time Active Positions */}
-            {(activePositions?.positions?.length > 0 || status?.positions?.length > 0) && (
+            {(activePositions && activePositions.length > 0) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Activity className="h-5 w-5" />
                     <span>Active Pump.Fun Positions</span>
-                    <Badge variant="secondary">{activePositions.totalPositions}</Badge>
+                    <Badge variant="secondary">{activePositions.length}</Badge>
                   </CardTitle>
                   <CardDescription>
                     Real-time position tracking with role-based management
@@ -259,30 +259,31 @@ export default function BillionaireDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {(activePositions?.positions || status?.positions || []).map((position: any, index: number) => {
-                      const entryTimeAgo = position.entryTimeAgo || Math.floor((Date.now() - (position.entryTime || Date.now() - 300000)) / 60000);
-                      const pnl = position.pnl || ((Math.random() - 0.3) * 40); // Simulated PnL
-                      const valueUSD = position.valueUSD || (position.amount || 0.05) * 152;
+                    {activePositions.map((position: AIPosition, index: number) => {
+                      const entryTimeAgo = Math.floor((Date.now() - position.entryTime) / 60000);
+                      const currentPrice = position.maxPriceReached || position.entryPrice * 1.1;
+                      const pnl = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
+                      const valueUSD = position.amount * 152;
                       
                       return (
                         <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="flex items-center space-x-4">
                             <div>
-                              <div className="font-semibold text-lg">{position.symbol || `TOKEN${index + 1}`}</div>
+                              <div className="font-semibold text-lg">{position.symbol}</div>
                               <div className="text-sm text-gray-500">
-                                {entryTimeAgo}min ago • Entry: ${(position.entryPrice || 0.00001)?.toFixed(8)}
+                                {entryTimeAgo}min ago • Entry: ${position.entryPrice.toFixed(8)}
                               </div>
                             </div>
-                            <Badge className={ROLE_COLORS[(position.role || 'SCALP') as keyof typeof ROLE_COLORS]}>
-                              {position.role || 'SCALP'}
+                            <Badge className={ROLE_COLORS[position.role]}>
+                              {position.role}
                             </Badge>
                           </div>
                           <div className="text-right">
                             <div className={`font-bold ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {pnl >= 0 ? '+' : ''}{pnl?.toFixed(1)}%
+                              {pnl >= 0 ? '+' : ''}{pnl.toFixed(1)}%
                             </div>
                             <div className="text-sm text-gray-500">
-                              ${valueUSD?.toFixed(0)} • {position.targetMultiplier || 2}x target
+                              ${valueUSD.toFixed(0)} • {position.targetMultiplier}x target
                             </div>
                           </div>
                         </div>
