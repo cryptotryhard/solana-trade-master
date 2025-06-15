@@ -219,6 +219,7 @@ export class AggressiveGrowthEngine {
 
   private async getMomentumData(mint: string): Promise<any> {
     try {
+      // Try Birdeye first
       const response = await fetch(`https://public-api.birdeye.so/defi/price?address=${mint}`, {
         headers: {
           'X-API-KEY': process.env.BIRDEYE_API_KEY || '81357058bdf84d0f9ad7c90537750b20'
@@ -233,7 +234,19 @@ export class AggressiveGrowthEngine {
         };
       }
     } catch (error) {
-      // Fallback momentum simulation
+      // Try DexScreener fallback
+      try {
+        const { dexScreenerFallback } = await import('./dexscreener-fallback');
+        const tokenInfo = await dexScreenerFallback.getTokenInfo(mint);
+        if (tokenInfo) {
+          return {
+            priceChange24h: tokenInfo.priceChange24h || 0,
+            volume24h: tokenInfo.volume24h || 0
+          };
+        }
+      } catch (fallbackError) {
+        // Silent fallback
+      }
     }
     
     return { priceChange24h: 0, volume24h: 0 };

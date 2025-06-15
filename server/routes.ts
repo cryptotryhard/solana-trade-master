@@ -34,6 +34,7 @@ import { microCapitalTrader } from './micro-capital-trader';
 import { RealPortfolioService } from './real-portfolio-service';
 import { smartCapitalAllocator } from './smart-capital-allocator';
 import { aggressiveGrowthEngine } from './aggressive-growth-engine';
+import { deadTokenScanner } from './dead-token-scanner';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2236,6 +2237,61 @@ export function registerRoutes(app: Express) {
       res.json({
         success: true,
         message: `Trading frequency set to ${intervalSeconds}s intervals`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Dead Token Detection Endpoints
+  app.get("/api/dead-tokens/scan", async (req, res) => {
+    try {
+      console.log('🔍 Executing comprehensive dead token scan');
+      const deadTokens = await deadTokenScanner.getSpecificDeadTokens();
+      
+      res.json({
+        success: true,
+        deadTokensCount: deadTokens.length,
+        deadTokens: deadTokens,
+        message: `Scanned portfolio and found ${deadTokens.length} dead tokens flagged for cleanup`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/dead-tokens/analysis", async (req, res) => {
+    try {
+      console.log('📊 Running detailed dead token analysis');
+      const analysis = await deadTokenScanner.scanForDeadTokens();
+      
+      const deadTokens = analysis.filter(t => t.isDead);
+      const monitorTokens = analysis.filter(t => t.recommendedAction === 'MONITOR');
+      
+      res.json({
+        success: true,
+        totalTokens: analysis.length,
+        deadTokens: deadTokens.length,
+        monitorTokens: monitorTokens.length,
+        analysis: analysis.map(t => ({
+          symbol: t.symbol,
+          mint: t.mint.slice(0, 8) + '...',
+          valueUSD: t.valueUSD,
+          isDead: t.isDead,
+          reason: t.reason,
+          action: t.recommendedAction,
+          scores: {
+            liquidity: t.liquidityScore,
+            volume: t.volumeScore,
+            priceChange: t.priceChangeScore
+          }
+        }))
       });
     } catch (error) {
       res.status(500).json({

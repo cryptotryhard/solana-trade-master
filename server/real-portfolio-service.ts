@@ -1,4 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js';
+import { dexScreenerFallback } from './dexscreener-fallback';
 import fetch from 'node-fetch';
 
 interface TokenPrice {
@@ -262,7 +263,26 @@ export class RealPortfolioService {
       }
     }
     
-    throw new Error('Birdeye API is currently unavailable');
+    // Fallback to DexScreener when Birdeye fails
+    console.log('🔄 Birdeye failed, falling back to DexScreener...');
+    try {
+      const tokenMints = Object.keys(this.cachedPrices);
+      const dexScreenerPrices = await dexScreenerFallback.getTokenPrices(tokenMints);
+      
+      const prices: { [mint: string]: number } = {};
+      dexScreenerPrices.forEach((price, mint) => {
+        prices[mint] = price;
+      });
+      
+      if (Object.keys(prices).length > 0) {
+        console.log(`✅ DexScreener fallback: Got ${Object.keys(prices).length} prices`);
+        return prices;
+      }
+    } catch (fallbackError) {
+      console.log(`❌ DexScreener fallback also failed: ${fallbackError}`);
+    }
+    
+    throw new Error('Both Birdeye and DexScreener APIs are currently unavailable');
   }
 
   private async getRealSOLBalanceWithRetry(maxRetries = 3): Promise<number> {
