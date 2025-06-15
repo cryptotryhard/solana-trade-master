@@ -468,14 +468,14 @@ class BillionaireTrading {
     const priceChange = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
     const holdTime = Date.now() - position.entryTime;
     const targetPrice = position.entryPrice * position.targetMultiplier;
-    const milestone = this.getCurrentMilestone();
+    const currentMilestone = this.getCurrentMilestone();
     
     let shouldExit = false;
     let exitReason = '';
     let sellPercentage = 100; // Default: sell entire position
     
     // Smart stop-loss based on milestone and volatility (-8% to -12%)
-    const stopLossRange = milestone.stopLossRange || [-8, -12];
+    const stopLossRange = currentMilestone.stopLossRange || [-8, -12];
     const dynamicStopLoss = stopLossRange[0] + (Math.random() * (stopLossRange[1] - stopLossRange[0]));
     
     if (priceChange <= dynamicStopLoss) {
@@ -484,7 +484,7 @@ class BillionaireTrading {
     }
     
     // AI trailing stop hit (if enabled)
-    if (milestone.trailingStopEnabled && currentPrice <= position.aiTrailingStop) {
+    if (currentMilestone.trailingStopEnabled && currentPrice <= position.aiTrailingStop) {
       shouldExit = true;
       exitReason = 'AI_TRAILING_STOP';
     }

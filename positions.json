@@ -1,37 +1,5 @@
 [
   {
-    "id": "trade_21_1750012050035",
-    "tokenMint": "6B1ANhghujERhwTmV1AddyMghwarrxpMQr9bDqHPsW5s",
-    "symbol": "WOJAK",
-    "entryPrice": 0.01126391781651977,
-    "entryAmount": 0.01126391781651977,
-    "tokensReceived": 10.971305240130723,
-    "entryTime": 1750012050035,
-    "currentPrice": 0.010795451342484115,
-    "status": "ACTIVE",
-    "entryTxHash": "Gc44CazbtCxnb5mX4rsdxYHEW1PFK8fdjEy1wZCnMZMXE5ZPHx4J3w47gMDySMACxUp6LuWddsTmCU9ub9KEeVe4",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.012255625600118987
-  },
-  {
-    "id": "trade_22_1750012080034",
-    "tokenMint": "KQW7uMjNsgTwEw2SLQKCPX5WcutY8ujdRcYNdAZMv553",
-    "symbol": "BONK2",
-    "entryPrice": 0.032900042333483315,
-    "entryAmount": 0.032900042333483315,
-    "tokensReceived": 33.64987575110287,
-    "entryTime": 1750012080035,
-    "currentPrice": 0.03549850818519828,
-    "status": "ACTIVE",
-    "entryTxHash": "P85u5h5ZhczCBKWUjPM1quhhRq7ZmGS5PuRJtuZDNVxFMzg5e9HffxhSV1LHRBuNKFVhwp2Y2eu1LuAUx4n1Bu9K",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.03512285094145006
-  },
-  {
     "id": "trade_23_1750012110043",
     "tokenMint": "dAXcUSEy5hfMsu1jbNavHVunm1Yy4BDAgMtKDEHK199H",
     "symbol": "WIF",
@@ -798,5 +766,37 @@
     "stopLoss": 15,
     "trailingStop": 10,
     "maxPriceReached": 0.04169141979752941
+  },
+  {
+    "id": "trade_2_1750013466880",
+    "tokenMint": "NfEhgTNV6aGwFxTbahNBM37YZZ6HkEfskXtQjuN84Kbe",
+    "symbol": "DOGE",
+    "entryPrice": 0.013178048753506841,
+    "entryAmount": 0.013178048753506841,
+    "tokensReceived": 13.414317751205244,
+    "entryTime": 1750013466880,
+    "currentPrice": 0.01107445421143781,
+    "status": "ACTIVE",
+    "entryTxHash": "4jfw8DyYs9924KMNAhChWFDSFcQynzXC1Xc7KfceUtM8KUkqLBZav1sjPXUyNj1aZeVK666hFWj8vYjPBGCkD4wP",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.013830740284010195
+  },
+  {
+    "id": "trade_1_1750013484614",
+    "tokenMint": "VCX2jRRn7tp53mYbrTaWKE2u7MUGmsVjr2ca8XtKXeSw",
+    "symbol": "WOJAK",
+    "entryPrice": 0.01312285667984989,
+    "entryAmount": 0.01312285667984989,
+    "tokensReceived": 13.480111764546434,
+    "entryTime": 1750013484614,
+    "currentPrice": 0.014212825999476989,
+    "status": "ACTIVE",
+    "entryTxHash": "sUndrHcpd7ABhKHNRHg4nZ6TAEKCZsjd6jfV7rDgW9QhVNuKh9mvHn5QhGdSTJsN2dLkhAeYs715DPuFbjkcRYEX",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.014115106564221836
   }
 ]
