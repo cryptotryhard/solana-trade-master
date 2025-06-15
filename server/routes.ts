@@ -38,6 +38,7 @@ import { deadTokenScanner } from './dead-token-scanner';
 import { ultraLeanTrader } from './ultra-lean-trader';
 import { emergencyCapitalConcentrator } from './emergency-capital-concentrator';
 import { liveTradingEngine } from './live-trading-engine';
+import { optimizedTradingExecutor } from './optimized-trading-executor';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2111,11 +2112,10 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Real Portfolio Value API
+  // Real Portfolio Value API with Enhanced Service
   app.get("/api/portfolio/real-value", async (req, res) => {
     try {
-      const portfolioService = new RealPortfolioService();
-      const portfolioData = await portfolioService.getPortfolioValue();
+      const portfolioData = await enhancedPortfolioService.getPortfolioValue();
       
       res.json(portfolioData);
     } catch (error) {
@@ -2125,6 +2125,55 @@ export function registerRoutes(app: Express) {
         totalValueUSD: 0,
         lastUpdated: Date.now(),
         tokens: []
+      });
+    }
+  });
+
+  // Activate Optimized Trading (Authenticated Data)
+  app.post("/api/trading/activate-optimized", async (req, res) => {
+    try {
+      await optimizedTradingExecutor.activateOptimizedTrading();
+      const stats = optimizedTradingExecutor.getTradingStats();
+      const portfolio = await enhancedPortfolioService.getPortfolioValue();
+      
+      res.json({
+        success: true,
+        message: "Optimized trading activated with authenticated BirdEye data",
+        stats,
+        portfolio: {
+          totalValue: portfolio.totalValueUSD,
+          tokenCount: portfolio.tokens.length,
+          solBalance: portfolio.tokens.find(t => t.symbol === 'SOL')?.balance || 0
+        }
+      });
+    } catch (error) {
+      console.error("Optimized trading activation error:", error);
+      res.status(500).json({ 
+        error: "Failed to activate optimized trading",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Get Optimized Trading Status
+  app.get("/api/trading/optimized-status", async (req, res) => {
+    try {
+      const stats = optimizedTradingExecutor.getTradingStats();
+      const activeTrades = optimizedTradingExecutor.getActiveTrades();
+      const rpcStatus = enhancedPortfolioService.getRPCStatus();
+      
+      res.json({
+        success: true,
+        stats,
+        activeTrades,
+        rpcStatus,
+        systemHealth: "OPERATIONAL_WITH_AUTHENTICATED_DATA"
+      });
+    } catch (error) {
+      console.error("Optimized trading status error:", error);
+      res.status(500).json({ 
+        error: "Failed to get optimized trading status",
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });
