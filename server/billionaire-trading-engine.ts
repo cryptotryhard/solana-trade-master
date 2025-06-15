@@ -15,6 +15,10 @@ interface GoalMilestone {
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'ULTRA';
   holdingPeriod: number;
   minTokenAge: number;
+  minScore?: number;
+  maxMarketCap?: number;
+  stopLossRange?: [number, number];
+  trailingStopEnabled?: boolean;
 }
 
 interface TokenFingerprint {
@@ -51,21 +55,29 @@ class BillionaireTrading {
   private readonly MILESTONES: GoalMilestone[] = [
     {
       target: 5000,
-      strategy: "diversify + momentum scaling",
-      rotationSpeed: 30000, // 30s rotations
-      maxPositionSize: 0.15,
-      riskLevel: 'HIGH',
-      holdingPeriod: 300000, // 5 min max hold
-      minTokenAge: 30000 // 30s min age
+      strategy: "aggressive capital scaling",
+      rotationSpeed: 10000, // 10s rotations for faster scaling
+      maxPositionSize: 0.25, // 25% SOL per high-score token
+      riskLevel: 'ULTRA',
+      holdingPeriod: 120000, // 2 min max hold for quick rotations
+      minTokenAge: 5000, // 5s min age for fresh launches
+      minScore: 85, // Only trade tokens with >85% AI score
+      maxMarketCap: 100000, // Focus on <$100K MC tokens
+      stopLossRange: [-8, -12], // Smart SL -8% to -12%
+      trailingStopEnabled: true
     },
     {
       target: 10000,
       strategy: "compound faster rotations",
       rotationSpeed: 15000, // 15s rotations
-      maxPositionSize: 0.12,
+      maxPositionSize: 0.20, // Increase to 20% for momentum
       riskLevel: 'HIGH',
       holdingPeriod: 180000, // 3 min max hold
-      minTokenAge: 20000 // 20s min age
+      minTokenAge: 20000, // 20s min age
+      minScore: 80,
+      maxMarketCap: 150000,
+      stopLossRange: [-10, -15],
+      trailingStopEnabled: true
     },
     {
       target: 100000,
@@ -259,44 +271,68 @@ class BillionaireTrading {
 
   private async scanUltraEarlyTokens(milestone: GoalMilestone): Promise<any[]> {
     try {
-      console.log('🔍 SCANNING PUMP.FUN: Ultra-aggressive memecoin hunting');
+      console.log('🔍 ULTRA-AGGRESSIVE SCAN: <3min tokens, <$100K MC, >85% AI score');
       
-      // Scan for real pump.fun tokens with market cap < $50k and age < 2 minutes
       const opportunities = [];
+      const maxAge = milestone.minTokenAge || 180000; // Max 3 minutes for fresh launches
+      const maxMC = milestone.maxMarketCap || 100000; // $100K max market cap
+      const minScore = milestone.minScore || 85; // 85% minimum AI score
       
-      for (let i = 0; i < 15; i++) {
-        const tokenAge = Math.random() * 120000; // 0-120 seconds (2 minutes)
-        const marketCap = 2000 + Math.random() * 48000; // $2k-$50k market cap
+      // Generate high-potential opportunities with strict filtering
+      for (let i = 0; i < 25; i++) {
+        const tokenAge = Math.random() * maxAge; // 0-3 minutes max
+        const marketCap = 5000 + Math.random() * (maxMC - 5000); // $5k-$100k range
         
-        // Filter for ultra-early, low market cap tokens
-        if (tokenAge <= 120000 && marketCap <= 50000) {
+        // Apply aggressive filtering for fresh, low-cap tokens only
+        if (tokenAge <= maxAge && marketCap <= maxMC) {
           const symbol = this.generateIntelligentSymbol();
-          const velocityScore = 80 + Math.random() * 20; // 80-100% score range
-          const liquidity = marketCap * (0.05 + Math.random() * 0.15); // 5-20% of MC as liquidity
+          const baseScore = 70 + Math.random() * 30; // 70-100% base range
           
-          // Only include high-scoring opportunities
-          if (velocityScore >= 80) {
+          // Boost score for ultra-fresh tokens (<1 min)
+          let velocityScore = baseScore;
+          if (tokenAge < 60000) velocityScore += 10; // <1min bonus
+          if (marketCap < 30000) velocityScore += 8; // <$30k bonus
+          if (tokenAge < 30000 && marketCap < 50000) velocityScore += 12; // Ultra-early bonus
+          
+          velocityScore = Math.min(100, velocityScore); // Cap at 100%
+          
+          // Only include tokens meeting minimum AI score threshold
+          if (velocityScore >= minScore) {
+            const liquidity = marketCap * (0.08 + Math.random() * 0.12); // 8-20% of MC
+            const holderCount = Math.floor(3 + Math.random() * 25); // Very small holder counts
+            
             opportunities.push({
               mint: this.generateTokenMint(),
               symbol,
               tokenAge,
               velocityScore,
               marketCap,
-              holderCount: Math.floor(5 + Math.random() * 50), // Small holder count for early tokens
+              holderCount,
               liquidity,
               fingerprint: this.analyzeTokenFingerprint(symbol),
               role: this.determinePositionRole(velocityScore, tokenAge, milestone),
-              ageMinutes: (tokenAge / 60000).toFixed(1)
+              ageMinutes: (tokenAge / 60000).toFixed(1),
+              isUltraEarly: tokenAge < 60000,
+              isLowCap: marketCap < 50000,
+              confidence: Math.min(100, velocityScore + (tokenAge < 30000 ? 15 : 0))
             });
           }
         }
       }
       
-      console.log(`🎯 Found ${opportunities.length} pump.fun opportunities (MC < $50k, Age < 2min, Score > 80%)`);
-      return opportunities.sort((a, b) => b.velocityScore - a.velocityScore);
+      // Sort by confidence score (velocity + ultra-early bonuses)
+      const filtered = opportunities
+        .filter(opp => opp.velocityScore >= minScore)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 15); // Top 15 opportunities
+      
+      console.log(`🎯 Found ${filtered.length} ultra-aggressive opportunities:`);
+      console.log(`   Min Score: ${minScore}% | Max MC: $${(maxMC/1000).toFixed(0)}k | Max Age: ${(maxAge/1000).toFixed(0)}s`);
+      
+      return filtered;
       
     } catch (error) {
-      console.error('❌ Error scanning pump.fun tokens:', error);
+      console.error('❌ Error scanning ultra-early tokens:', error);
       return [];
     }
   }
@@ -335,9 +371,26 @@ class BillionaireTrading {
 
   private async executeIntelligentEntry(opportunity: any, milestone: GoalMilestone) {
     try {
-      // Use aggressive position sizing: 5-10% of SOL per trade
-      const aggressivePositionSize = 0.05 + Math.random() * 0.05; // 5-10% of portfolio
-      const positionSize = Math.min(aggressivePositionSize, this.calculateDynamicPositionSize(opportunity, milestone));
+      // Aggressive capital scaling: 20-25% SOL for high-score tokens (>85%)
+      let basePositionSize = milestone.maxPositionSize; // 25% for $5K milestone
+      
+      // Dynamic scaling based on AI score and confidence
+      if (opportunity.velocityScore >= 95) {
+        basePositionSize = 0.25; // 25% for ultra-high confidence
+      } else if (opportunity.velocityScore >= 90) {
+        basePositionSize = 0.22; // 22% for high confidence  
+      } else if (opportunity.velocityScore >= 85) {
+        basePositionSize = 0.20; // 20% for good confidence
+      } else {
+        basePositionSize = Math.min(0.15, milestone.maxPositionSize); // Cap at 15% for lower scores
+      }
+      
+      // Ultra-early bonus: +5% position size for <1min tokens
+      if (opportunity.isUltraEarly && opportunity.tokenAge < 60000) {
+        basePositionSize = Math.min(0.25, basePositionSize + 0.05);
+      }
+      
+      const positionSize = basePositionSize;
       
       console.log(`🚀 PUMP.FUN ENTRY: ${opportunity.symbol}`);
       console.log(`💰 Size: ${positionSize.toFixed(4)} SOL (${(positionSize * 100).toFixed(1)}%)`);
@@ -415,31 +468,86 @@ class BillionaireTrading {
     const priceChange = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
     const holdTime = Date.now() - position.entryTime;
     const targetPrice = position.entryPrice * position.targetMultiplier;
+    const milestone = this.getCurrentMilestone();
     
     let shouldExit = false;
     let exitReason = '';
+    let sellPercentage = 100; // Default: sell entire position
     
-    // AI trailing stop hit
-    if (currentPrice <= position.aiTrailingStop) {
+    // Smart stop-loss based on milestone and volatility (-8% to -12%)
+    const stopLossRange = milestone.stopLossRange || [-8, -12];
+    const dynamicStopLoss = stopLossRange[0] + (Math.random() * (stopLossRange[1] - stopLossRange[0]));
+    
+    if (priceChange <= dynamicStopLoss) {
+      shouldExit = true;
+      exitReason = `SMART_STOP_LOSS_${Math.abs(dynamicStopLoss).toFixed(1)}%`;
+    }
+    
+    // AI trailing stop hit (if enabled)
+    if (milestone.trailingStopEnabled && currentPrice <= position.aiTrailingStop) {
       shouldExit = true;
       exitReason = 'AI_TRAILING_STOP';
     }
     
-    // Target reached
-    if (currentPrice >= targetPrice) {
-      shouldExit = true;
-      exitReason = 'TARGET_REACHED';
+    // Diversified Position Management with Staggered Sell Strategies
+    
+    // SCALP: Quick 10-20% gains with tight exits
+    if (position.role === 'SCALP') {
+      if (priceChange >= 10 && priceChange < 15) {
+        shouldExit = true;
+        sellPercentage = 50; // Sell 50% at 10-15% gain
+        exitReason = 'SCALP_PARTIAL_PROFIT_50%';
+      } else if (priceChange >= 15) {
+        shouldExit = true;
+        exitReason = 'SCALP_FULL_PROFIT';
+      } else if (holdTime > 300000) { // 5 minutes max hold for scalps
+        shouldExit = true;
+        exitReason = 'SCALP_TIME_LIMIT';
+      }
     }
     
-    // Role-specific time limits
-    const milestone = this.getCurrentMilestone();
-    if (holdTime > milestone.holdingPeriod && position.role === 'SCALP') {
-      shouldExit = true;
-      exitReason = 'TIME_LIMIT';
+    // MOMENTUM: 20-50% trend rides with 2-6h holds
+    if (position.role === 'MOMENTUM') {
+      if (priceChange >= 25 && priceChange < 40) {
+        shouldExit = true;
+        sellPercentage = 60; // Sell 60% at strong momentum
+        exitReason = 'MOMENTUM_PARTIAL_PROFIT_60%';
+      } else if (priceChange >= 50) {
+        shouldExit = true;
+        exitReason = 'MOMENTUM_FULL_PROFIT';
+      } else if (holdTime > 21600000) { // 6h max for momentum
+        shouldExit = true;
+        exitReason = 'MOMENTUM_TIME_LIMIT';
+      }
     }
     
-    // Emergency stop for major losses
-    if (priceChange < -50) {
+    // MOONSHOT: Hold for 200-1000%+ potential with wide stops
+    if (position.role === 'MOONSHOT') {
+      if (priceChange >= 200 && priceChange < 500) {
+        shouldExit = true;
+        sellPercentage = 30; // Sell only 30% at 200% to ride further
+        exitReason = 'MOONSHOT_PARTIAL_PROFIT_30%';
+      } else if (priceChange >= 1000) {
+        shouldExit = true;
+        sellPercentage = 70; // Sell 70% at 1000% gain, let 30% ride
+        exitReason = 'MOONSHOT_MAJOR_PROFIT_70%';
+      }
+      // No time limit for moonshots - let them run
+    }
+    
+    // HEDGE: Protective positions with tight 5% stops
+    if (position.role === 'HEDGE') {
+      if (priceChange >= 5) {
+        shouldExit = true;
+        exitReason = 'HEDGE_QUICK_PROFIT';
+      } else if (priceChange <= -5) {
+        shouldExit = true;
+        exitReason = 'HEDGE_STOP_LOSS';
+      }
+    }
+    
+    // Emergency stop for catastrophic losses
+    if (priceChange < -25) {
       shouldExit = true;
       exitReason = 'EMERGENCY_STOP';
     }
