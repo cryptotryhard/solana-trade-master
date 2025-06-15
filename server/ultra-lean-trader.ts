@@ -216,12 +216,40 @@ export class UltraLeanTrader {
     }
   }
 
-  private async isTokenDead(token: any): boolean {
-    // Simple dead token detection based on value and patterns
+  private async isTokenDead(token: any): Promise<boolean> {
+    // Enhanced dead token detection based on API errors and patterns
+    const deadTokenMints = [
+      'Fu8RMwcqKJz5a94QG55XadJGwB7JhSUdi8PH9up8pump',
+      'EA3CvT2p21djVsNcQmFz9FZhrTQ13jjoBdNnyjB8pump',
+      '5V8uDBebhecZb6b5VQj3pV7W3xKydmLM23o7uQxppump',
+      '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr',
+      '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+      'BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump',
+      'CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump',
+      'FXQzaTpB2drqUyb1cdXAr3YGzMdo1TUayinjLwodrEsg',
+      '9h7qR7fnzu8XqyY4ZEEt7cm46yUJNUiGZ7A7fzEApump',
+      '7pczR38YFCwyWx3Fot9re3QAMsRC5kMNdqLR47YZpump',
+      'E2FydmpsuX3dRmhVbQLrm8aBcm4jPxmaRfwa3wNKpump',
+      '3Gpzq2QiiNfgWfmnt545JWZYm62u62TgJGQTHvXApump',
+      '7yd83JWcDedJoDn4FZ8H9kLN2fesMqwdnKsFT6yLpump',
+      '44F2PgifSCPxqpJw6vVPYvtEx2NLEiANwGrrzSKXpump',
+      '3Qc3UTcdkoDpWWBAVAaPgE7c2vkGJoXjFFApYUMMpump',
+      '4qcDvxxqt1SPzr7DwM4DWfW8spoydDvkWZhfaefYpump',
+      'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+      '3qb9cAGdQSmdbGDq35ZRAMwk8zVAzBxyvhmzGMj9pump',
+      'Gx1ftbmWrJXMRy3j5CTKcXA4KKJjeXudFYwrrsPUpump',
+      '3ZFPNiazj2AdZV1jKBkTbJH3M645T61pcbJeMSGzpump',
+      '45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q',
+      'CbUPTbC4K7zdAEWxfa1nad4468xpX3LpWPhZVnzybhfN',
+      '8h7itUDy8pm9PT2drbL1PK6c47ww3av6R9hs9vhbpump',
+      'AE1GjXMWZ5prShES9wNGhgLXeAFjztZHJ9fbomzppump'
+    ];
+    
     return (
+      deadTokenMints.includes(token.mint) || // Known dead tokens
       token.valueUSD < 1 || // Dust value
       (token.balance > 100000 && token.valueUSD < 5) || // High balance, low value
-      token.symbol?.includes('pump') && token.valueUSD < 2 // Low-value pump tokens
+      (token.symbol?.includes('pump') && token.valueUSD < 2) // Low-value pump tokens
     );
   }
 
