@@ -2438,6 +2438,30 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/billionaire/positions", async (req, res) => {
+    try {
+      const status = billionaireEngine.getBillionaireStatus();
+      const positions = status.positions || [];
+      
+      res.json({ 
+        positions: positions.map(p => ({
+          ...p,
+          pnl: ((p.maxPriceReached - p.entryPrice) / p.entryPrice) * 100,
+          entryTimeAgo: Math.floor((Date.now() - p.entryTime) / 60000), // minutes ago
+          valueUSD: p.amount * 152 // Estimate USD value
+        })),
+        totalPositions: positions.length,
+        totalValueUSD: positions.reduce((sum, p) => sum + (p.amount * 152), 0)
+      });
+    } catch (error) {
+      console.error("Billionaire positions error:", error);
+      res.status(500).json({ 
+        error: "Failed to get active positions",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   app.post("/api/billionaire/stop", async (req, res) => {
     try {
       billionaireEngine.stopBillionaireEngine();

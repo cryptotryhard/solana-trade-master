@@ -76,7 +76,17 @@ export default function BillionaireDashboard() {
   const { data: status, refetch } = useQuery<BillionaireStatus>({
     queryKey: ['/api/billionaire/status'],
     enabled: isEngineRunning,
-    refetchInterval: 5000
+    refetchInterval: 2000 // Faster updates for aggressive trading
+  });
+
+  const { data: portfolioValue } = useQuery({
+    queryKey: ['/api/portfolio/real-value'],
+    refetchInterval: 2000,
+  });
+
+  const { data: activePositions } = useQuery({
+    queryKey: ['/api/billionaire/positions'],
+    refetchInterval: 2000,
   });
 
   const startEngineMutation = useMutation({
@@ -233,6 +243,104 @@ export default function BillionaireDashboard() {
               </Card>
             </div>
 
+            {/* Real-Time Active Positions */}
+            {activePositions?.positions?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="h-5 w-5" />
+                    <span>Active Pump.Fun Positions</span>
+                    <Badge variant="secondary">{activePositions.totalPositions}</Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time position tracking with role-based management
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {activePositions.positions.map((position: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div>
+                            <div className="font-semibold text-lg">{position.symbol}</div>
+                            <div className="text-sm text-gray-500">
+                              {position.entryTimeAgo}min ago • Entry: ${position.entryPrice?.toFixed(8)}
+                            </div>
+                          </div>
+                          <Badge className={ROLE_COLORS[position.role as keyof typeof ROLE_COLORS]}>
+                            {position.role}
+                          </Badge>
+                        </div>
+                        <div className="text-right">
+                          <div className={`font-bold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {position.pnl >= 0 ? '+' : ''}{position.pnl?.toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            ${position.valueUSD?.toFixed(0)} • {position.targetMultiplier}x target
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Position Value:</span>
+                      <span className="font-semibold">${activePositions.totalValueUSD?.toFixed(0)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Portfolio Allocation */}
+            {portfolioValue && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="h-5 w-5" />
+                    <span>Portfolio Allocation</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time distribution of capital across assets
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Total Portfolio Value</span>
+                      <span className="text-xl font-bold text-green-600">
+                        ${portfolioValue.totalValueUSD?.toFixed(0)}
+                      </span>
+                    </div>
+                    
+                    {portfolioValue.tokens && (
+                      <div className="space-y-2">
+                        {portfolioValue.tokens
+                          .filter((token: any) => token.valueUSD > 1)
+                          .sort((a: any, b: any) => b.valueUSD - a.valueUSD)
+                          .slice(0, 8)
+                          .map((token: any, index: number) => {
+                            const percentage = (token.valueUSD / portfolioValue.totalValueUSD) * 100;
+                            return (
+                              <div key={index} className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                  <span className="text-sm font-medium">{token.symbol || 'SOL'}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm">{percentage.toFixed(1)}%</span>
+                                  <span className="text-sm text-gray-500">${token.valueUSD.toFixed(0)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Milestone Progress */}
             <Card>
               <CardHeader>
@@ -258,12 +366,15 @@ export default function BillionaireDashboard() {
                   {MILESTONES.map((milestone, index) => {
                     const isReached = status.currentCapital >= milestone.target;
                     const isCurrent = getCurrentMilestoneIndex() === index;
+                    const isBreakthrough = milestone.target === 1000; // Special $1K milestone
                     
                     return (
                       <div
                         key={milestone.target}
                         className={`text-center p-3 rounded-lg border-2 transition-all ${
-                          isReached 
+                          isBreakthrough && isReached
+                            ? 'border-yellow-500 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 ring-2 ring-yellow-400'
+                            : isReached 
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                             : isCurrent
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -271,13 +382,17 @@ export default function BillionaireDashboard() {
                         }`}
                       >
                         <div className={`w-8 h-8 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold ${
-                          isReached ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-gray-400'
+                          isBreakthrough && isReached 
+                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
+                            : isReached ? 'bg-green-500' : isCurrent ? 'bg-blue-500' : 'bg-gray-400'
                         }`}>
-                          {isReached ? '✓' : index + 1}
+                          {isBreakthrough && isReached ? '🏆' : isReached ? '✓' : index + 1}
                         </div>
-                        <div className="text-xs font-medium">{milestone.label}</div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {milestone.strategy}
+                        <div className={`text-xs font-medium ${isBreakthrough && isReached ? 'text-yellow-700 dark:text-yellow-300' : ''}`}>
+                          {milestone.label}
+                        </div>
+                        <div className={`text-xs mt-1 ${isBreakthrough && isReached ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : 'text-muted-foreground'}`}>
+                          {isBreakthrough && isReached ? '🎉 BREAKTHROUGH!' : milestone.strategy}
                         </div>
                       </div>
                     );

@@ -703,6 +703,19 @@ class BillionaireTrading {
     const progress = nextMilestone ? 
       ((this.currentCapital - currentMilestone.target) / (nextMilestone.target - currentMilestone.target)) * 100 : 100;
     
+    const positionsArray = Array.from(this.positions.values()).map(position => ({
+      mint: position.mint,
+      symbol: position.symbol,
+      role: position.role,
+      entryPrice: position.entryPrice,
+      amount: position.amount,
+      entryTime: position.entryTime,
+      aiTrailingStop: position.aiTrailingStop,
+      maxPriceReached: position.maxPriceReached,
+      velocityScore: position.velocityScore,
+      targetMultiplier: position.targetMultiplier
+    }));
+    
     return {
       currentCapital: this.currentCapital,
       currentMilestone: currentMilestone.target,
@@ -711,7 +724,8 @@ class BillionaireTrading {
       strategy: currentMilestone.strategy,
       activePositions: this.positions.size,
       learnedPatterns: this.tokenFingerprints.size,
-      riskLevel: currentMilestone.riskLevel
+      riskLevel: currentMilestone.riskLevel,
+      positions: positionsArray
     };
   }
 
