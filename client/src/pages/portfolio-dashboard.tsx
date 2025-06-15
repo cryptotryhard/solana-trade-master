@@ -49,11 +49,17 @@ export default function PortfolioDashboard() {
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              External price APIs are currently unavailable. Portfolio value cannot be calculated without authentic pricing data.
+              Unable to fetch authentic portfolio data. This could be due to network issues or API limitations.
             </p>
             <p className="text-sm text-gray-500">
               Wallet: 9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d
             </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Retry
+            </button>
           </CardContent>
         </Card>
       </div>

@@ -131,24 +131,7 @@ export class RealPortfolioService {
     }
   }
 
-  private getCurrentMarketPrices(): TokenPrice {
-    // Real-time market prices (updated based on current market conditions)
-    // These prices are sourced from live market data when external APIs are accessible
-    return {
-      'DezXAZ8z7PnrnRJjz3xXRDFhC3TUDrwOXKmjjEEqh5KS': { price: 0.00001728, symbol: 'BONK' }, // Current BONK price
-      '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU': { price: 0.00186, symbol: 'SAMO' },    // Current SAMO price
-      '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr': { price: 0.274, symbol: 'POPCAT' }     // Current POPCAT price
-    };
-  }
 
-  private getFallbackPrice(mint: string): number {
-    const priceMap: { [key: string]: number } = {
-      'DezXAZ8z7PnrnRJjz3xXRDFhC3TUDrwOXKmjjEEqh5KS': 0.0000148, // BONK
-      '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU': 0.00221, // SAMO
-      '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr': 0.318 // POPCAT
-    };
-    return priceMap[mint] || 0;
-  }
 
   private getKnownSymbol(mint: string): string {
     const symbolMap: { [key: string]: string } = {
@@ -180,8 +163,7 @@ export class RealPortfolioService {
         .filter(token => token.balance > 0);
     } catch (error) {
       console.error('❌ Error fetching token accounts:', error);
-      // Return known tokens as fallback when RPC fails
-      return this.getFallbackTokens();
+      throw new Error('Unable to fetch token accounts from blockchain');
     }
   }
 
@@ -229,79 +211,58 @@ export class RealPortfolioService {
     return [];
   }
 
-  private async getRealTimePricesWithRetry(mints: string[], maxRetries = 5): Promise<TokenPrice> {
-    const priceEndpoints = [
-      {
-        name: 'DexScreener',
-        fetchPrice: async (mint: string) => {
-          const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`, {
-            headers: { 'User-Agent': 'VICTORIA/1.0' }
-          });
-          if (response.ok) {
-            const data: any = await response.json();
-            return parseFloat(data.pairs?.[0]?.priceUsd || '0');
-          }
-          return 0;
-        }
-      },
-      {
-        name: 'Birdeye',
-        fetchPrice: async (mint: string) => {
-          const response = await fetch(`https://public-api.birdeye.so/defi/price?address=${mint}`, {
-            headers: { 'X-API-KEY': 'YOUR_API_KEY' }
-          });
-          if (response.ok) {
-            const data: any = await response.json();
-            return data.data?.value || 0;
-          }
-          return 0;
-        }
-      }
-    ];
-
+  private async getRealTimePricesWithRetry(mints: string[], maxRetries = 3): Promise<TokenPrice> {
     for (let i = 0; i < maxRetries; i++) {
       try {
-        console.log(`🔍 Attempt ${i + 1}: Fetching real-time prices for ${mints.length} tokens...`);
+        console.log(`🔍 Attempt ${i + 1}: Fetching real-time prices from Birdeye for ${mints.length} tokens...`);
         
         const prices: TokenPrice = {};
         
-        // Try to get prices for each token
+        // Use Birdeye API with actual API key
         for (const mint of mints) {
-          for (const endpoint of priceEndpoints) {
-            try {
-              const price = await endpoint.fetchPrice(mint);
+          try {
+            const response = await fetch(`https://public-api.birdeye.so/defi/price?address=${mint}`, {
+              headers: { 
+                'X-API-KEY': process.env.BIRDEYE_API_KEY || '81357058bdf84d0f9ad7c90537750b20',
+                'User-Agent': 'VICTORIA/1.0'
+              }
+            });
+            
+            if (response.ok) {
+              const data: any = await response.json();
+              const price = data.data?.value || 0;
+              
               if (price > 0) {
                 prices[mint] = {
                   price,
                   symbol: this.getTokenSymbolFromMint(mint)
                 };
-                console.log(`✅ ${endpoint.name}: ${this.getTokenSymbolFromMint(mint)} = $${price}`);
-                break;
+                console.log(`✅ Birdeye: ${this.getTokenSymbolFromMint(mint)} = $${price}`);
               }
-            } catch (error) {
-              console.log(`❌ ${endpoint.name} failed for ${mint}`);
-              continue;
+            } else {
+              console.log(`⚠️ Birdeye API error for ${mint}: ${response.status}`);
             }
+          } catch (error) {
+            console.log(`❌ Birdeye failed for ${mint}:`, (error as Error).message);
           }
         }
         
         if (Object.keys(prices).length > 0) {
-          console.log(`✅ Got prices for ${Object.keys(prices).length}/${mints.length} tokens`);
+          console.log(`✅ Birdeye API: Got prices for ${Object.keys(prices).length}/${mints.length} tokens`);
           return prices;
         }
 
       } catch (error) {
         console.log(`❌ Price fetch attempt ${i + 1} failed:`, (error as Error).message);
         if (i === maxRetries - 1) {
-          // When all external APIs fail, we must fail rather than use fake data
-          throw new Error(`Failed to fetch real prices after ${maxRetries} attempts. External APIs unavailable.`);
+          throw new Error(`Failed to fetch authentic prices from Birdeye after ${maxRetries} attempts`);
         }
         
-        await new Promise(resolve => setTimeout(resolve, 3000 * (i + 1)));
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
       }
     }
     
-    throw new Error('All real-time price sources are currently unavailable');
+    throw new Error('Birdeye API is currently unavailable');
   }
 
   private async getRealSOLBalanceWithRetry(maxRetries = 3): Promise<number> {
@@ -325,22 +286,30 @@ export class RealPortfolioService {
   private async getRealSOLPriceWithRetry(maxRetries = 3): Promise<number> {
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+        const response = await fetch('https://public-api.birdeye.so/defi/price?address=So11111111111111111111111111111111111111112', {
+          headers: { 
+            'X-API-KEY': process.env.BIRDEYE_API_KEY || '81357058bdf84d0f9ad7c90537750b20',
+            'User-Agent': 'VICTORIA/1.0'
+          }
+        });
+        
         if (response.ok) {
           const data = await response.json();
-          const price = data.solana.usd;
-          console.log(`✅ SOL price: $${price}`);
-          return price;
+          const price = data.data?.value || 0;
+          if (price > 0) {
+            console.log(`✅ Birdeye SOL price: $${price}`);
+            return price;
+          }
         }
       } catch (error) {
         console.log(`❌ SOL price fetch attempt ${i + 1} failed:`, (error as Error).message);
         if (i === maxRetries - 1) {
-          throw new Error(`Failed to fetch SOL price after ${maxRetries} attempts`);
+          throw new Error(`Failed to fetch SOL price from Birdeye after ${maxRetries} attempts`);
         }
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
     }
-    return 0;
+    throw new Error('Birdeye SOL price unavailable');
   }
 
   private getTokenSymbolFromMint(mint: string): string {
