@@ -34,22 +34,38 @@ setTimeout(async () => {
   }
 }, 5000);
 
-// ACTIVATE ULTRA-AGGRESSIVE PUMP.FUN TRADING WITH REAL CAPITAL
+// VALIDATE REAL WALLET CONNECTION AND STOP FAKE TRADING
 setTimeout(async () => {
-  console.log('🔥 LAUNCHING ULTRA-AGGRESSIVE PUMP.FUN TRADING');
-  console.log('🎯 Target: 15-20% position sizing, 30-90s holds, real tokens');
-  console.log('💰 Capital: $466+ portfolio, no simulation, production mode');
+  console.log('🛑 EMERGENCY: STOPPING ALL FAKE TRADING - REAL WALLET VALIDATION');
+  console.log('🎯 Target wallet: 9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d');
   
   try {
-    const { ultraAggressiveTrader } = await import('./ultra-aggressive-trader');
-    await ultraAggressiveTrader.startUltraAggressiveTrading();
-    console.log('✅ Ultra-aggressive trading system activated successfully');
-    console.log('🔍 Scanning pump.fun every 10-15 seconds for fresh launches');
-    console.log('📊 Live positions and P&L tracking activated');
+    const { realTradingValidator } = await import('./real-trading-validator');
+    
+    // Stop all fake trading systems
+    realTradingValidator.stopAllFakeTrading();
+    
+    // Validate wallet connection
+    const validation = await realTradingValidator.validateRealWalletConnection();
+    
+    if (validation.isValid) {
+      console.log('✅ REAL WALLET VALIDATED');
+      console.log(`💰 Available SOL: ${validation.actualBalance}`);
+      console.log('🔥 Executing test transaction to verify real trading capability');
+      
+      const testTx = await realTradingValidator.executeTestTransaction();
+      if (testTx) {
+        console.log('✅ REAL TRADING CONFIRMED - System ready for live execution');
+      } else {
+        console.log('❌ REAL TRADING FAILED - Check wallet private key configuration');
+      }
+    } else {
+      console.error('❌ WALLET VALIDATION FAILED:', validation.message);
+    }
   } catch (error) {
-    console.error('❌ Ultra-aggressive trading activation failed:', error);
+    console.error('❌ Real wallet validation failed:', error);
   }
-}, 10000);
+}, 5000);
 
 const app = express();
 app.use(express.json());

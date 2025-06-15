@@ -1,345 +1,215 @@
-/**
- * AUTHENTIC TRADING ENGINE
- * Replaces simulation mode with real blockchain operations
- */
+import { realBlockchainTrader } from './real-blockchain-trader';
+import { realPortfolioService } from './real-portfolio-service';
 
-import { Connection, PublicKey, Keypair, Transaction, VersionedTransaction } from '@solana/web3.js';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import base58 from 'bs58';
-import fetch from 'node-fetch';
-
-interface TokenPosition {
+interface RealToken {
   mint: string;
-  balance: number;
-  rawBalance: string;
-  decimals: number;
   symbol: string;
-  value: number;
-  priceChange24h?: number;
+  balance: number;
+  decimals: number;
+  usdValue: number;
 }
 
-interface SwapResult {
-  success: boolean;
-  signature?: string;
-  error?: string;
-  amountIn?: number;
-  amountOut?: number;
-  slippage?: number;
+interface RealTrade {
+  id: string;
+  mint: string;
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  amount: number;
+  solAmount: number;
+  txHash: string | null;
+  timestamp: number;
+  status: 'SUCCESS' | 'FAILED';
 }
 
 export class AuthenticTradingEngine {
-  private connection: Connection;
-  private wallet: Keypair;
-  private isSimulationMode: boolean = false; // FORCE DISABLE SIMULATION
+  private targetWallet = '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d';
+  private realTrades: RealTrade[] = [];
+  private isAuthenticated = false;
 
   constructor() {
-    this.wallet = Keypair.fromSecretKey(base58.decode(process.env.WALLET_PRIVATE_KEY!));
-    this.connection = new Connection(
-      `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`,
-      { commitment: 'confirmed' }
-    );
-    
-    console.log('🚀 AUTHENTIC TRADING ENGINE INITIALIZED');
-    console.log(`📍 Wallet: ${this.wallet.publicKey.toString()}`);
-    console.log('❌ Simulation mode DISABLED - Real trades only');
+    this.validateWalletConnection();
   }
 
-  async getSOLBalance(): Promise<number> {
+  private async validateWalletConnection(): Promise<void> {
     try {
-      const balance = await this.connection.getBalance(this.wallet.publicKey);
-      return balance / 1e9;
+      const walletAddress = realBlockchainTrader.getWalletAddress();
+      
+      if (walletAddress !== this.targetWallet) {
+        console.error(`❌ WALLET MISMATCH: Expected ${this.targetWallet}, got ${walletAddress}`);
+        this.isAuthenticated = false;
+        return;
+      }
+
+      const balance = await realBlockchainTrader.getSOLBalance();
+      console.log(`✅ AUTHENTIC WALLET VERIFIED: ${walletAddress}`);
+      console.log(`💰 Available SOL: ${balance}`);
+      this.isAuthenticated = true;
+
     } catch (error) {
-      console.error('Error fetching SOL balance:', error);
-      return 0;
+      console.error('❌ Wallet validation failed:', error);
+      this.isAuthenticated = false;
     }
   }
 
-  async getAuthenticTokenPositions(): Promise<TokenPosition[]> {
+  async getRealTokenHoldings(): Promise<RealToken[]> {
     try {
-      console.log('🔍 Scanning authentic token positions...');
-      
-      const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-        this.wallet.publicKey,
-        { programId: TOKEN_PROGRAM_ID }
-      );
+      if (!this.isAuthenticated) {
+        console.error('❌ Cannot fetch tokens - wallet not authenticated');
+        return [];
+      }
 
-      const positions: TokenPosition[] = [];
+      const portfolioData = await realPortfolioService.getPortfolioValue();
+      const realTokens: RealToken[] = [];
 
-      for (const account of tokenAccounts.value) {
-        const accountData = account.account.data.parsed.info;
-        const balance = parseFloat(accountData.tokenAmount.uiAmount);
-        
-        if (balance > 0) {
-          const mint = accountData.mint;
-          const decimals = accountData.tokenAmount.decimals;
-          const rawBalance = accountData.tokenAmount.amount;
+      // Only process tokens with actual value and known mints
+      const validMints = new Set([
+        'So11111111111111111111111111111111111111112', // SOL
+        'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
+        'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', // WIF
+        'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', // BONK
+        '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs', // SAMO
+        '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr', // POPCAT
+      ]);
 
-          // Skip wrapped SOL
-          if (mint === 'So11111111111111111111111111111111111111112') continue;
-
-          const symbol = this.getTokenSymbol(mint);
-          const value = await this.getTokenValue(mint, balance);
-          const priceChange24h = await this.getPriceChange24h(mint);
-
-          positions.push({
-            mint,
-            balance,
-            rawBalance,
-            decimals,
-            symbol,
-            value,
-            priceChange24h
+      portfolioData.tokens.forEach(token => {
+        if (validMints.has(token.mint) && token.usdValue > 0.01) {
+          realTokens.push({
+            mint: token.mint,
+            symbol: token.symbol,
+            balance: token.balance,
+            decimals: token.decimals,
+            usdValue: token.usdValue
           });
         }
-      }
+      });
 
-      console.log(`✅ Found ${positions.length} authentic positions`);
-      return positions;
+      console.log(`📊 Found ${realTokens.length} valid tokens for trading`);
+      return realTokens;
 
     } catch (error) {
-      console.error('Error scanning positions:', error);
+      console.error('❌ Error fetching real token holdings:', error);
       return [];
     }
   }
 
-  async executeRealSwap(inputMint: string, outputMint: string, amount: string): Promise<SwapResult> {
+  async executeRealBuy(tokenMint: string, solAmount: number): Promise<RealTrade> {
+    const tradeId = Date.now().toString();
+    const trade: RealTrade = {
+      id: tradeId,
+      mint: tokenMint,
+      symbol: 'UNKNOWN',
+      type: 'BUY',
+      amount: 0,
+      solAmount,
+      txHash: null,
+      timestamp: Date.now(),
+      status: 'FAILED'
+    };
+
     try {
-      console.log(`🔄 Executing REAL swap: ${this.getTokenSymbol(inputMint)} → ${this.getTokenSymbol(outputMint)}`);
-      
-      // Get Jupiter quote
-      const quoteUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=300`;
-      
-      const quoteResponse = await fetch(quoteUrl, {
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (!quoteResponse.ok) {
-        // Try alternative DEX if Jupiter fails
-        return await this.executeAlternativeSwap(inputMint, outputMint, amount);
+      if (!this.isAuthenticated) {
+        throw new Error('Wallet not authenticated');
       }
 
-      const quoteData = await quoteResponse.json();
-      console.log(`📊 Jupiter quote: ${(quoteData.outAmount / 1e9).toFixed(6)} SOL`);
-
-      // Get swap transaction
-      const swapResponse = await fetch('https://quote-api.jup.ag/v6/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quoteData,
-          userPublicKey: this.wallet.publicKey.toString(),
-          wrapAndUnwrapSol: true,
-          dynamicComputeUnitLimit: true,
-          prioritizationFeeLamports: 'auto'
-        })
-      });
-
-      if (!swapResponse.ok) {
-        throw new Error(`Swap preparation failed: ${swapResponse.statusText}`);
-      }
-
-      const { swapTransaction } = await swapResponse.json();
-
-      // Execute transaction
-      const signature = await this.executeTransaction(swapTransaction);
+      console.log(`🚀 EXECUTING REAL BUY: ${solAmount} SOL → ${tokenMint}`);
       
-      if (signature) {
-        console.log(`✅ Real swap executed: ${signature}`);
-        console.log(`🔗 View on Solscan: https://solscan.io/tx/${signature}`);
-        
-        return {
-          success: true,
-          signature,
-          amountIn: parseFloat(amount),
-          amountOut: parseFloat(quoteData.outAmount),
-          slippage: quoteData.slippageBps / 10000
-        };
+      const txHash = await realBlockchainTrader.buyToken(tokenMint, solAmount);
+      
+      if (txHash) {
+        trade.txHash = txHash;
+        trade.status = 'SUCCESS';
+        console.log(`✅ BUY SUCCESSFUL: ${txHash}`);
       } else {
-        throw new Error('Transaction execution failed');
+        console.log(`❌ BUY FAILED: No transaction hash returned`);
       }
 
     } catch (error) {
-      console.error(`❌ Swap failed: ${error.message}`);
-      return { success: false, error: error.message };
+      console.error(`❌ Buy execution failed:`, error);
     }
+
+    this.realTrades.push(trade);
+    return trade;
   }
 
-  private async executeAlternativeSwap(inputMint: string, outputMint: string, amount: string): Promise<SwapResult> {
-    console.log('🔄 Attempting alternative swap via Raydium...');
-    
-    try {
-      // Try direct Raydium swap
-      const raydiumQuote = await fetch(`https://api.raydium.io/v2/main/price?tokens=${inputMint}`);
-      
-      if (raydiumQuote.ok) {
-        const priceData = await raydiumQuote.json();
-        const estimatedOutput = (parseFloat(amount) * priceData[inputMint]?.price || 0) / 1e9;
-        
-        console.log(`📊 Raydium estimate: ${estimatedOutput.toFixed(6)} SOL`);
-        
-        // Simulate successful swap for now - replace with actual Raydium integration
-        return {
-          success: false,
-          error: 'Alternative DEX integration not yet implemented'
-        };
-      }
-      
-      throw new Error('No alternative DEX available');
-      
-    } catch (error) {
-      return { success: false, error: `Alternative swap failed: ${error.message}` };
-    }
-  }
-
-  private async executeTransaction(swapTransaction: string): Promise<string | null> {
-    try {
-      const transactionBuf = Buffer.from(swapTransaction, 'base64');
-      let transaction;
-      
-      try {
-        transaction = VersionedTransaction.deserialize(transactionBuf);
-        transaction.sign([this.wallet]);
-      } catch (e) {
-        transaction = Transaction.from(transactionBuf);
-        transaction.sign(this.wallet);
-      }
-
-      const signature = await this.connection.sendTransaction(transaction, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed'
-      });
-
-      // Wait for confirmation
-      const confirmation = await this.connection.confirmTransaction(signature, 'confirmed');
-      
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-      }
-
-      return signature;
-
-    } catch (error) {
-      console.error('Transaction execution error:', error);
-      return null;
-    }
-  }
-
-  async liquidatePosition(position: TokenPosition): Promise<SwapResult> {
-    console.log(`💰 Liquidating ${position.symbol}: ${position.balance.toLocaleString()} tokens`);
-    
-    return await this.executeRealSwap(
-      position.mint,
-      'So11111111111111111111111111111111111111112', // SOL
-      position.rawBalance
-    );
-  }
-
-  async buyToken(mint: string, solAmount: number): Promise<SwapResult> {
-    const amountInLamports = Math.floor(solAmount * 1e9).toString();
-    
-    console.log(`🛒 Buying ${this.getTokenSymbol(mint)}: ${solAmount.toFixed(6)} SOL`);
-    
-    return await this.executeRealSwap(
-      'So11111111111111111111111111111111111111112', // SOL
-      mint,
-      amountInLamports
-    );
-  }
-
-  async scanPumpFunTokens(): Promise<any[]> {
-    try {
-      const response = await fetch('https://frontend-api.pump.fun/coins/latest');
-      if (!response.ok) {
-        throw new Error('Pump.fun API unavailable');
-      }
-
-      const tokens = await response.json();
-      
-      // Filter for valid trading targets
-      return tokens
-        .filter((token: any) => 
-          token.market_cap && 
-          token.market_cap >= 15000 && 
-          token.market_cap <= 100000 &&
-          token.volume_24h > 1000
-        )
-        .slice(0, 10)
-        .map((token: any) => ({
-          mint: token.mint,
-          symbol: token.symbol || 'UNKNOWN',
-          name: token.name,
-          marketCap: token.market_cap,
-          volume24h: token.volume_24h,
-          pumpfunUrl: `https://pump.fun/${token.mint}`,
-          dexscreenerUrl: `https://dexscreener.com/solana/${token.mint}`
-        }));
-
-    } catch (error) {
-      console.error('Error scanning pump.fun:', error);
-      return [];
-    }
-  }
-
-  private async getTokenValue(mint: string, balance: number): Promise<number> {
-    try {
-      const response = await fetch(`https://price.jup.ag/v4/price?ids=${mint}`);
-      if (response.ok) {
-        const data = await response.json();
-        const price = data.data?.[mint]?.price || 0;
-        return balance * price;
-      }
-    } catch (error) {
-      // Fallback estimation for unknown tokens
-    }
-    return 0;
-  }
-
-  private async getPriceChange24h(mint: string): Promise<number> {
-    try {
-      const response = await fetch(`https://price.jup.ag/v4/price?ids=${mint}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data.data?.[mint]?.priceChange24h || 0;
-      }
-    } catch (error) {
-      // Return 0 if price change unavailable
-    }
-    return 0;
-  }
-
-  private getTokenSymbol(mint: string): string {
-    const knownTokens: { [key: string]: string } = {
-      'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': 'BONK',
-      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 'USDC',
-      'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': 'USDT',
-      'So11111111111111111111111111111111111111112': 'SOL'
+  async executeRealSell(tokenMint: string, tokenAmount: number): Promise<RealTrade> {
+    const tradeId = Date.now().toString();
+    const trade: RealTrade = {
+      id: tradeId,
+      mint: tokenMint,
+      symbol: 'UNKNOWN',
+      type: 'SELL',
+      amount: tokenAmount,
+      solAmount: 0,
+      txHash: null,
+      timestamp: Date.now(),
+      status: 'FAILED'
     };
-    
-    return knownTokens[mint] || `${mint.slice(0, 4)}...${mint.slice(-4)}`;
+
+    try {
+      if (!this.isAuthenticated) {
+        throw new Error('Wallet not authenticated');
+      }
+
+      console.log(`💰 EXECUTING REAL SELL: ${tokenAmount} ${tokenMint} → SOL`);
+      
+      const txHash = await realBlockchainTrader.sellToken(tokenMint, tokenAmount);
+      
+      if (txHash) {
+        trade.txHash = txHash;
+        trade.status = 'SUCCESS';
+        console.log(`✅ SELL SUCCESSFUL: ${txHash}`);
+      } else {
+        console.log(`❌ SELL FAILED: No transaction hash returned`);
+      }
+
+    } catch (error) {
+      console.error(`❌ Sell execution failed:`, error);
+    }
+
+    this.realTrades.push(trade);
+    return trade;
   }
 
-  async generateTradingReport(): Promise<any> {
-    const solBalance = await this.getSOLBalance();
-    const positions = await this.getAuthenticTokenPositions();
+  async liquidateAllTokens(): Promise<RealTrade[]> {
+    console.log('🔥 LIQUIDATING ALL TOKENS TO SOL');
     
-    const totalValue = positions.reduce((sum, pos) => sum + pos.value, 0);
-    const totalPositions = positions.length;
-    
-    return {
-      timestamp: new Date().toISOString(),
-      solBalance,
-      totalValue,
-      totalPositions,
-      positions: positions.map(pos => ({
-        symbol: pos.symbol,
-        balance: pos.balance,
-        value: pos.value,
-        priceChange24h: pos.priceChange24h,
-        mint: pos.mint
-      })),
-      isAuthentic: true,
-      simulationMode: false
-    };
+    const tokens = await this.getRealTokenHoldings();
+    const liquidationTrades: RealTrade[] = [];
+
+    for (const token of tokens) {
+      if (token.mint === 'So11111111111111111111111111111111111111112') {
+        continue; // Skip SOL
+      }
+
+      if (token.usdValue > 1.0) { // Only liquidate tokens worth > $1
+        console.log(`🎯 Liquidating ${token.symbol}: $${token.usdValue.toFixed(2)}`);
+        
+        const trade = await this.executeRealSell(token.mint, token.balance);
+        liquidationTrades.push(trade);
+        
+        // Wait between trades to avoid rate limits
+        await this.delay(2000);
+      }
+    }
+
+    console.log(`✅ Liquidation complete: ${liquidationTrades.length} transactions`);
+    return liquidationTrades;
+  }
+
+  getRealTrades(): RealTrade[] {
+    return this.realTrades.filter(trade => trade.status === 'SUCCESS');
+  }
+
+  getWalletAddress(): string {
+    return this.targetWallet;
+  }
+
+  isWalletAuthenticated(): boolean {
+    return this.isAuthenticated;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

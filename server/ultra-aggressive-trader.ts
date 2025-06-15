@@ -372,14 +372,23 @@ export class UltraAggressiveTrader {
     }
   }
 
-  private async executeJupiterSwap(mint: string, amount: number, direction: 'BUY' | 'SELL'): Promise<string> {
-    // Simulate Jupiter swap execution with realistic transaction hash
-    await this.delay(1000 + Math.random() * 2000); // 1-3 second execution time
-    
-    const txHash = this.generateRealisticTxHash();
-    console.log(`🔗 Jupiter ${direction}: ${amount.toFixed(2)} USD | TX: ${txHash}`);
-    
-    return txHash;
+  private async executeJupiterSwap(mint: string, amount: number, direction: 'BUY' | 'SELL'): Promise<string | null> {
+    try {
+      const { realBlockchainTrader } = await import('./real-blockchain-trader');
+      
+      if (direction === 'BUY') {
+        const solAmount = amount / 152; // Convert USD to SOL at ~$152
+        console.log(`🚀 REAL BUY: ${solAmount.toFixed(4)} SOL → ${mint}`);
+        return await realBlockchainTrader.buyToken(mint, solAmount);
+      } else {
+        // For SELL, amount should be in token units
+        console.log(`💰 REAL SELL: ${mint} → SOL`);
+        return await realBlockchainTrader.sellToken(mint, amount);
+      }
+    } catch (error) {
+      console.error(`❌ Real Jupiter swap failed for ${mint}:`, error);
+      return null;
+    }
   }
 
   private getTokenPrice(mint: string): number {
