@@ -2551,6 +2551,39 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/billionaire/force-activate", async (req, res) => {
+    try {
+      console.log('🚀 FORCE ACTIVATING BILLIONAIRE ENGINE WITH FALLBACK DEX');
+      
+      // Stop current engine
+      billionaireEngine.stopBillionaireEngine();
+      
+      // Import and activate fallback DEX router
+      const { fallbackDEXRouter } = await import('./fallback-dex-router');
+      fallbackDEXRouter.activate();
+      
+      // Restart billionaire engine
+      await billionaireEngine.startBillionaireEngine();
+      
+      res.json({
+        success: true,
+        message: "Billionaire engine force-activated with fallback DEX routing",
+        status: "ACTIVE",
+        fallbackEnabled: true,
+        byppassesJupiterLimits: true,
+        target: "$10,000,000,000+",
+        strategy: "Adaptive milestone-based AI trading with Raydium/Orca fallback"
+      });
+    } catch (error) {
+      console.error('❌ Force activation failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error),
+        fallbackEnabled: false
+      });
+    }
+  });
+
   // Initialize Victoria Billionaire Engine on server startup
   victoriaBillionaireInitializer.initializeOnStartup();
 
