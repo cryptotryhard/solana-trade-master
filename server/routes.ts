@@ -33,6 +33,7 @@ import { getForceWalletSync, getForceRealityStats } from './force-wallet-sync';
 import { microCapitalTrader } from './micro-capital-trader';
 import { RealPortfolioService } from './real-portfolio-service';
 import { smartCapitalAllocator } from './smart-capital-allocator';
+import { aggressiveGrowthEngine } from './aggressive-growth-engine';
 
 export function registerRoutes(app: Express) {
   // Emergency SOL extraction endpoint
@@ -2163,6 +2164,78 @@ export function registerRoutes(app: Express) {
       res.json({
         success: true,
         message: "Capital rebalancing initiated for rapid compounding"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  // Aggressive Growth Scaling Endpoints
+  app.post("/api/aggressive/scale", async (req, res) => {
+    try {
+      console.log('🚀 Activating aggressive momentum scaling');
+      await aggressiveGrowthEngine.executeMomentumReallocation();
+      
+      res.json({
+        success: true,
+        message: "Aggressive scaling activated - targeting 2x+ performers"
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/aggressive/cleanup", async (req, res) => {
+    try {
+      console.log('🧹 Scanning for dead tokens to liquidate');
+      const deadTokens = await aggressiveGrowthEngine.cleanupDeadTokens();
+      
+      res.json({
+        success: true,
+        deadTokensFound: deadTokens.length,
+        deadTokens: deadTokens.map(t => ({
+          symbol: t.symbol,
+          valueUSD: t.valueUSD,
+          reason: t.reason
+        })),
+        message: `Found ${deadTokens.length} dead tokens for cleanup`
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.get("/api/aggressive/status", async (req, res) => {
+    try {
+      const stats = aggressiveGrowthEngine.getEngineStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message
+      });
+    }
+  });
+
+  app.post("/api/aggressive/frequency", async (req, res) => {
+    try {
+      const { intervalSeconds } = req.body;
+      const intervalMs = (intervalSeconds || 30) * 1000;
+      
+      aggressiveGrowthEngine.setTradingFrequency(intervalMs);
+      
+      res.json({
+        success: true,
+        message: `Trading frequency set to ${intervalSeconds}s intervals`
       });
     } catch (error) {
       res.status(500).json({
