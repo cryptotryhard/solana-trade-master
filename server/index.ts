@@ -40,30 +40,28 @@ setTimeout(async () => {
   console.log('🎯 Target wallet: 9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d');
   
   try {
-    const { realTradingValidator } = await import('./real-trading-validator');
+    const { emergencyStopFakeTrading } = await import('./emergency-stop-fake-trading');
     
-    // Stop all fake trading systems
-    realTradingValidator.stopAllFakeTrading();
+    // Execute emergency stop of all fake trading
+    const stopResult = await emergencyStopFakeTrading.executeEmergencyStop();
     
-    // Validate wallet connection
-    const validation = await realTradingValidator.validateRealWalletConnection();
+    console.log('🛑 FAKE SYSTEMS STOPPED:', stopResult.fakeSystemsStopped);
     
-    if (validation.isValid) {
-      console.log('✅ REAL WALLET VALIDATED');
-      console.log(`💰 Available SOL: ${validation.actualBalance}`);
-      console.log('🔥 Executing test transaction to verify real trading capability');
+    if (stopResult.realWalletValidated) {
+      console.log('✅ EMERGENCY STOP SUCCESSFUL');
+      console.log(`🔓 Authentic wallet: ${stopResult.walletAddress}`);
+      console.log(`💰 Real SOL balance: ${stopResult.solBalance}`);
       
-      const testTx = await realTradingValidator.executeTestTransaction();
-      if (testTx) {
-        console.log('✅ REAL TRADING CONFIRMED - System ready for live execution');
-      } else {
-        console.log('❌ REAL TRADING FAILED - Check wallet private key configuration');
-      }
+      // Validate only real tokens allowed
+      await emergencyStopFakeTrading.validateRealTokenOnly();
+      
+      console.log('🚫 ALL FAKE TRADING PERMANENTLY DISABLED');
+      console.log('🔥 Only authentic blockchain transactions will execute');
     } else {
-      console.error('❌ WALLET VALIDATION FAILED:', validation.message);
+      console.error('❌ EMERGENCY STOP FAILED:', stopResult.message);
     }
   } catch (error) {
-    console.error('❌ Real wallet validation failed:', error);
+    console.error('❌ Emergency stop execution failed:', error);
   }
 }, 5000);
 

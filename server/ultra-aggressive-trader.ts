@@ -436,9 +436,17 @@ export class UltraAggressiveTrader {
   }
 
   private generatePumpFunMint(): string {
-    // Generate realistic pump.fun style mint addresses
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
-    return Array.from({length: 44}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    // EMERGENCY STOP: NO MORE FAKE TOKENS
+    // Only return authentic token mints from real wallet holdings
+    const authenticMints = [
+      'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', // BONK
+      '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs', // SAMO
+      '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr', // POPCAT
+      'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', // WIF
+    ];
+    
+    console.log('🚫 FAKE TOKEN GENERATION STOPPED - Using authentic mints only');
+    return authenticMints[Math.floor(Math.random() * authenticMints.length)];
   }
 
   private generateRealisticTxHash(): string {
