@@ -1,21 +1,5 @@
 [
   {
-    "id": "trade_238_1749985934415",
-    "tokenMint": "9VGWje3YycDKNmdcCSZtZqRqmfgj4caXLXjxVNUYTqgn",
-    "symbol": "DOGE",
-    "entryPrice": 0.01032821660571572,
-    "entryAmount": 0.01032821660571572,
-    "tokensReceived": 10.009717360394674,
-    "entryTime": 1749985934415,
-    "currentPrice": 0.00961687936629004,
-    "status": "ACTIVE",
-    "entryTxHash": "kyd29RdckQXzncNnuGFaDduM3UDYvGScVKQjgShkhrrReCDG4YrnA48MRJN2X9MYpvzx7u8DYhEd5Pfr7uaeS5Ws",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.010518829539091968
-  },
-  {
     "id": "trade_239_1749985964415",
     "tokenMint": "Q2yJdLcJPd9qX4Gegyr54W2q27VhmaxKRZr6v17NdLth",
     "symbol": "BONK2",
@@ -798,5 +782,21 @@
     "stopLoss": 15,
     "trailingStop": 10,
     "maxPriceReached": 0.033007611773779935
+  },
+  {
+    "id": "trade_2_1749987390900",
+    "tokenMint": "AYYjFqUtqWC78h21crLGu4YdYQUudA8CBB17cWDCX4zT",
+    "symbol": "FLOKI",
+    "entryPrice": 0.007589666092661373,
+    "entryAmount": 0.007589666092661373,
+    "tokensReceived": 7.726428447150387,
+    "entryTime": 1749987390900,
+    "currentPrice": 0.00655073663336834,
+    "status": "ACTIVE",
+    "entryTxHash": "thPVkEEDHeA33UYpXPwrKRsgY3RK2eDuaF9SwGqHLe8Kwm9eUuN2jjEv97JKv1rwtLk6X49HDrUxsScH47rv3h2X",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.007854694005659614
   }
 ]
