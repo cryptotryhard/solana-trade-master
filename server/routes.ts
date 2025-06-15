@@ -2113,6 +2113,88 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Complete Strategy Reset - Liquidate All to SOL
+  app.post("/api/trading/complete-reset", async (req, res) => {
+    try {
+      const { completeStrategyReset } = await import('./complete-strategy-reset');
+      
+      console.log('🔄 Initiating complete strategy reset...');
+      const resetResults = await completeStrategyReset.executeCompleteReset();
+      
+      res.json({
+        success: resetResults.success,
+        message: resetResults.success ? 
+          "Complete strategy reset executed - all tokens liquidated to SOL" : 
+          "Strategy reset failed",
+        totalSOLRecovered: resetResults.totalSOLRecovered,
+        liquidatedTokens: resetResults.liquidatedTokens,
+        readyForTrading: resetResults.readyForTrading,
+        walletAddress: '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d',
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error('❌ Strategy reset error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to execute strategy reset',
+        message: 'Strategy reset failed due to system error'
+      });
+    }
+  });
+
+  // Initialize Fresh Ultra-Aggressive Trading
+  app.post("/api/trading/fresh-ultra-aggressive", async (req, res) => {
+    try {
+      const { freshUltraAggressiveEngine } = await import('./fresh-ultra-aggressive-engine');
+      
+      console.log('🚀 Initializing fresh ultra-aggressive trading...');
+      const initResults = await freshUltraAggressiveEngine.initializeFreshTrading();
+      
+      res.json({
+        success: initResults.success,
+        message: initResults.message,
+        availableSOL: initResults.availableSOL,
+        walletAddress: '9fjFMjjB6qF2VFACEUDuXVLhgGHGV7j54p6YnaREfV9d',
+        tradingStats: freshUltraAggressiveEngine.getTradingStats(),
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error('❌ Fresh trading initialization error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to initialize fresh ultra-aggressive trading',
+        message: 'Trading engine initialization failed'
+      });
+    }
+  });
+
+  // Get Fresh Trading Stats
+  app.get("/api/trading/fresh-stats", async (req, res) => {
+    try {
+      const { freshUltraAggressiveEngine } = await import('./fresh-ultra-aggressive-engine');
+      
+      const stats = freshUltraAggressiveEngine.getTradingStats();
+      const activePositions = freshUltraAggressiveEngine.getActivePositions();
+      const allPositions = freshUltraAggressiveEngine.getAllPositions();
+      
+      res.json({
+        stats,
+        activePositions,
+        totalPositions: allPositions.length,
+        walletAddress: freshUltraAggressiveEngine.getWalletAddress(),
+        timestamp: Date.now()
+      });
+      
+    } catch (error) {
+      console.error('❌ Fresh trading stats error:', error);
+      res.status(500).json({
+        error: 'Failed to fetch fresh trading stats'
+      });
+    }
+  });
+
   // Real Portfolio Value API with Cached Service
   app.get("/api/portfolio/real-value", async (req, res) => {
     try {
