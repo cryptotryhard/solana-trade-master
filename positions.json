@@ -1,37 +1,5 @@
 [
   {
-    "id": "trade_261_1749986624418",
-    "tokenMint": "WBM7tJgjVrbTpresLeXpxtuRLPwjVaFHJs8sp1ZwmBHE",
-    "symbol": "SHIB",
-    "entryPrice": 0.037985956382923174,
-    "entryAmount": 0.037985956382923174,
-    "tokensReceived": 37.37063940581204,
-    "entryTime": 1749986624418,
-    "currentPrice": 0.034588673928923355,
-    "status": "ACTIVE",
-    "entryTxHash": "3MHffxHTDMgDLTaSb3kkGjzTjGsKApFAVP77WvKB2vfPR1uAwzDrJCZYuT2HdvqHnZDLshbJsAbSka13KnzAY2YL",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.04150128994866319
-  },
-  {
-    "id": "trade_262_1749986654417",
-    "tokenMint": "GTVCFrkTBV7Xu7UctLMFL1YkmDz5KmPP5ZPbpqK74b7A",
-    "symbol": "WIF",
-    "entryPrice": 0.02161763483870083,
-    "entryAmount": 0.02161763483870083,
-    "tokensReceived": 21.60397719629024,
-    "entryTime": 1749986654417,
-    "currentPrice": 0.020176139594847813,
-    "status": "ACTIVE",
-    "entryTxHash": "1UH2TapUxy4XHr2Kaxx9vZtU6jsAPpB5nmJQEmuJhpnBb62GRKGgczB3ngddkLnW58CR5zpfg5UZ3H3KgTJdbS9T",
-    "targetProfit": 25,
-    "stopLoss": 15,
-    "trailingStop": 10,
-    "maxPriceReached": 0.022235480229313587
-  },
-  {
     "id": "trade_263_1749986684419",
     "tokenMint": "rF34scfYv5JgLgULtHtrQPbybCe7uaAvttGLxdnZjQ1u",
     "symbol": "PEPE",
@@ -798,5 +766,37 @@
     "stopLoss": 15,
     "trailingStop": 10,
     "maxPriceReached": 0.037030487470999705
+  },
+  {
+    "id": "trade_2_1749988069098",
+    "tokenMint": "YMnAqSb3jFS3ZCHqzbeu8Ut3ZaAsfUWUcBSbHDSY2P9m",
+    "symbol": "BONK2",
+    "entryPrice": 0.03804141876137594,
+    "entryAmount": 0.03804141876137594,
+    "tokensReceived": 36.66706525789453,
+    "entryTime": 1749988069098,
+    "currentPrice": 0.04214212552175787,
+    "status": "ACTIVE",
+    "entryTxHash": "dJDg4m2KQMMhuM55FL8BQ2c5u5uzM2zSRSsVEtX8JzN7e9DGNk9bdQc6c8Gx5HuZNnBxb5vabRGjwyPxJDGM9wJM",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.03994661145089089
+  },
+  {
+    "id": "trade_1_1749988076920",
+    "tokenMint": "1PvVRbf8knfmKqFS6KSz4u3ANwQPN36HG7wFeyvPsdeu",
+    "symbol": "WIF",
+    "entryPrice": 0.028025182903486243,
+    "entryAmount": 0.028025182903486243,
+    "tokensReceived": 29.067615833263265,
+    "entryTime": 1749988076920,
+    "currentPrice": 0.032950760030140795,
+    "status": "ACTIVE",
+    "entryTxHash": "WbJPfKF6t4qbWkgSYt4Y6beGdWaVCZ8NUscKvukRrefdYETunw8Dq7B8MDZqFSKLLeG2xwYc5ZM9y5gbcHQZBx9g",
+    "targetProfit": 25,
+    "stopLoss": 15,
+    "trailingStop": 10,
+    "maxPriceReached": 0.029028038589250633
   }
 ]
