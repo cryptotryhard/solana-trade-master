@@ -38,14 +38,15 @@ export class RpcManager {
     }
 
     if (process.env.QUICKNODE_RPC_URL) {
-      this.endpoints.push({
+      this.endpoints.unshift({
         url: process.env.QUICKNODE_RPC_URL,
-        name: 'QuickNode',
-        weight: 90,
+        name: 'QuickNode Premium',
+        weight: 100,
         lastUsed: 0,
         errorCount: 0,
         isHealthy: true
       });
+      console.log('✅ QuickNode Premium RPC configured as primary endpoint');
     }
 
     // Fallback endpoints

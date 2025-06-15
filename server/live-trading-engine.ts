@@ -155,7 +155,7 @@ export class LiveTradingEngine {
   }
 
   async activateLiveTrading(): Promise<void> {
-    console.log('🚀 ACTIVATING 24/7 LIVE TRADING ENGINE');
+    console.log('🚀 ACTIVATING 24/7 LIVE TRADING ENGINE WITH ENHANCED PORTFOLIO SERVICE');
     console.log(`💰 Concentrated Capital: $${this.systemMemory.totalCapital.toFixed(2)}`);
     console.log(`⚡ Velocity Cycles: ${this.tradingIntervalMs / 1000}s intervals`);
     console.log(`🎯 Profit Target: ${(this.profitThreshold * 100).toFixed(0)}% in ${this.maxHoldTimeMs / 1000}s`);
@@ -163,14 +163,15 @@ export class LiveTradingEngine {
     this.isActive = true;
     this.systemMemory.tradingActive = true;
     this.systemMemory.mode = 'LIVE';
+    this.systemMemory.lastSystemCheck = Date.now();
 
-    // Start main trading loop
+    // Start main trading loop with rate limiting protection
     this.startTradingLoop();
 
-    // Start position monitoring
+    // Start position monitoring with enhanced error handling
     this.startPositionMonitoring();
 
-    // Start dead token cleanup
+    // Start dead token cleanup with fallback systems
     this.startDeadTokenCleanup();
 
     console.log('✅ LIVE TRADING ACTIVE - 24/7 AUTONOMOUS EXECUTION STARTED');
