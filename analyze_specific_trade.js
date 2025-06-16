@@ -98,8 +98,8 @@ async function analyzeTransaction(signature) {
     }
 }
 
-// Analyze the most recent transaction
-const recentTx = '67PALfuCesdAc2JQdcSPqEWp8dVrgq6zYpi7NHy7pcQVGP5siXuQ55K6r7RkSLejDHHuoXyu4s9ke7vocKNwBQ8d';
+// Analyze the BULL token exit transaction
+const recentTx = 'yHcXNQ63FXFsnX5MraWNKzvvceXwhRjFUtyymVmyLqAL2ctwHpySzhA2NGHU2VX9CWXSWhXJcEg5jWGsEuKEh21T';
 
 analyzeTransaction(recentTx).then(result => {
     if (result) {
