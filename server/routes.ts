@@ -2438,6 +2438,81 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Victoria Live Trading Activation
+  app.post("/api/victoria/activate-live-trading", async (req, res) => {
+    try {
+      console.log('🚀 ACTIVATING VICTORIA LIVE TRADING - STOPPING ALL SYNTHETIC SYSTEMS');
+      
+      // Stop all synthetic engines immediately
+      if (billionaireEngine) {
+        billionaireEngine = null;
+        console.log('🛑 Synthetic billionaire engine stopped');
+      }
+      
+      const { victoriaLiveActivation } = await import('./victoria-live-activation');
+      const result = await victoriaLiveActivation.activateLiveTrading();
+      
+      if (result.success) {
+        console.log('✅ VICTORIA LIVE TRADING ACTIVATED');
+        console.log('✅ PHANTOM WALLET CONNECTED');
+        console.log('❌ ALL SYNTHETIC DATA DISABLED');
+      }
+      
+      res.json(result);
+      
+    } catch (error) {
+      console.error('❌ Live trading activation failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: `Live trading activation failed: ${error}` 
+      });
+    }
+  });
+
+  app.get("/api/victoria/live-status", async (req, res) => {
+    try {
+      const { victoriaLiveActivation } = await import('./victoria-live-activation');
+      const status = victoriaLiveActivation.getStatus();
+      const portfolioValue = await victoriaLiveActivation.getPortfolioValue();
+      
+      res.json({
+        success: true,
+        ...status,
+        ...portfolioValue,
+        mode: 'LIVE_TRADING',
+        authenticDataOnly: true
+      });
+      
+    } catch (error) {
+      res.json({
+        success: false,
+        status: 'LIVE_TRADING_INACTIVE',
+        error: 'Live trading not initialized'
+      });
+    }
+  });
+
+  app.get("/api/victoria/live-positions", async (req, res) => {
+    try {
+      const { victoriaLiveActivation } = await import('./victoria-live-activation');
+      const positions = await victoriaLiveActivation.getCurrentPositions();
+      
+      res.json({
+        success: true,
+        positions,
+        totalPositions: positions.length,
+        dataSource: 'live_phantom_wallet',
+        onlyRealTrades: true
+      });
+      
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch live positions' 
+      });
+    }
+  });
+
   // Emergency Trading Activation Endpoint
   app.post("/api/emergency/activate-trading", async (req, res) => {
     try {
