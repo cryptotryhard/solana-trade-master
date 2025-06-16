@@ -6,6 +6,8 @@
 import { Connection, Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { errorHandler } from './enhanced-error-handler';
+import { realTradeValidator } from './real-trade-validator';
+import { birdeyeScanner } from './birdeye-token-scanner';
 
 interface GoalMilestone {
   target: number;
@@ -271,68 +273,55 @@ class BillionaireTrading {
 
   private async scanUltraEarlyTokens(milestone: GoalMilestone): Promise<any[]> {
     try {
-      console.log('🔍 ULTRA-AGGRESSIVE SCAN: <3min tokens, <$100K MC, >85% AI score');
+      console.log('🔍 SCANNING REAL BIRDEYE DATA: <3h tokens, <$200K MC, >75% AI score');
       
-      const opportunities = [];
-      const maxAge = milestone.minTokenAge || 180000; // Max 3 minutes for fresh launches
-      const maxMC = milestone.maxMarketCap || 100000; // $100K max market cap
-      const minScore = milestone.minScore || 85; // 85% minimum AI score
+      const { birdeyeScanner } = await import('./birdeye-token-scanner');
       
-      // Generate high-potential opportunities with strict filtering
-      for (let i = 0; i < 25; i++) {
-        const tokenAge = Math.random() * maxAge; // 0-3 minutes max
-        const marketCap = 5000 + Math.random() * (maxMC - 5000); // $5k-$100k range
-        
-        // Apply aggressive filtering for fresh, low-cap tokens only
-        if (tokenAge <= maxAge && marketCap <= maxMC) {
-          const symbol = this.generateIntelligentSymbol();
-          const baseScore = 70 + Math.random() * 30; // 70-100% base range
-          
-          // Boost score for ultra-fresh tokens (<1 min)
-          let velocityScore = baseScore;
-          if (tokenAge < 60000) velocityScore += 10; // <1min bonus
-          if (marketCap < 30000) velocityScore += 8; // <$30k bonus
-          if (tokenAge < 30000 && marketCap < 50000) velocityScore += 12; // Ultra-early bonus
-          
-          velocityScore = Math.min(100, velocityScore); // Cap at 100%
-          
-          // Only include tokens meeting minimum AI score threshold
-          if (velocityScore >= minScore) {
-            const liquidity = marketCap * (0.08 + Math.random() * 0.12); // 8-20% of MC
-            const holderCount = Math.floor(3 + Math.random() * 25); // Very small holder counts
-            
-            opportunities.push({
-              mint: this.generateTokenMint(),
-              symbol,
-              tokenAge,
-              velocityScore,
-              marketCap,
-              holderCount,
-              liquidity,
-              fingerprint: this.analyzeTokenFingerprint(symbol),
-              role: this.determinePositionRole(velocityScore, tokenAge, milestone),
-              ageMinutes: (tokenAge / 60000).toFixed(1),
-              isUltraEarly: tokenAge < 60000,
-              isLowCap: marketCap < 50000,
-              confidence: Math.min(100, velocityScore + (tokenAge < 30000 ? 15 : 0))
-            });
-          }
-        }
+      if (!birdeyeScanner.isApiConfigured()) {
+        console.log('❌ BIRDEYE_API_KEY required for authentic token scanning');
+        console.log('🚫 Synthetic token generation permanently disabled');
+        return [];
       }
       
-      // Sort by confidence score (velocity + ultra-early bonuses)
-      const filtered = opportunities
-        .filter(opp => opp.velocityScore >= minScore)
-        .sort((a, b) => b.confidence - a.confidence)
-        .slice(0, 15); // Top 15 opportunities
+      // Scan for real pump.fun tokens with strict criteria
+      const realTokens = await birdeyeScanner.scanRealPumpFunTokens(200000, 75);
       
-      console.log(`🎯 Found ${filtered.length} ultra-aggressive opportunities:`);
-      console.log(`   Min Score: ${minScore}% | Max MC: $${(maxMC/1000).toFixed(0)}k | Max Age: ${(maxAge/1000).toFixed(0)}s`);
+      if (realTokens.length === 0) {
+        console.log('❌ No authentic tokens found matching criteria');
+        return [];
+      }
       
-      return filtered;
+      // Convert Birdeye data to billionaire engine format
+      const opportunities = realTokens.map(token => ({
+        mint: token.address,
+        symbol: token.symbol,
+        tokenAge: (Date.now() - token.createdAt),
+        velocityScore: token.velocityScore,
+        marketCap: token.mc,
+        holderCount: token.holders,
+        liquidity: token.liquidity,
+        fingerprint: this.analyzeTokenFingerprint(token.symbol),
+        role: this.determinePositionRole(token.velocityScore, (Date.now() - token.createdAt), milestone),
+        ageMinutes: token.ageMinutes.toFixed(1),
+        isUltraEarly: token.ageMinutes < 60,
+        isLowCap: token.mc < 50000,
+        confidence: token.confidenceLevel,
+        price: token.price,
+        priceChange24h: token.priceChange24h,
+        volume24h: token.volume24h,
+        aiScore: token.aiScore,
+        isRealToken: true // Mark as authentic
+      }));
+      
+      console.log(`✅ REAL TOKENS FOUND: ${opportunities.length} authentic opportunities from Birdeye API`);
+      if (opportunities.length > 0) {
+        console.log(`   Top: ${opportunities[0].symbol} (Score: ${opportunities[0].aiScore}%, MC: $${(opportunities[0].marketCap/1000).toFixed(1)}k)`);
+      }
+      
+      return opportunities;
       
     } catch (error) {
-      console.error('❌ Error scanning ultra-early tokens:', error);
+      console.error('❌ Error scanning real tokens:', error);
       return [];
     }
   }
