@@ -118,6 +118,31 @@ export default function BillionaireDashboard() {
     }
   });
 
+  const activateRealTradingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/victoria/activate-real-trading', { method: 'POST' });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to activate real trading');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/victoria/real-status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/billionaire/status'] });
+    }
+  });
+
+  const { data: victoriaRealStatus } = useQuery({
+    queryKey: ['/api/victoria/real-status'],
+    refetchInterval: 3000,
+  });
+
+  const { data: confirmedTrades } = useQuery({
+    queryKey: ['/api/victoria/confirmed-trades'],
+    refetchInterval: 5000,
+  });
+
   const formatCurrency = (amount: number) => {
     if (amount >= 1e9) return `$${(amount / 1e9).toFixed(2)}B`;
     if (amount >= 1e6) return `$${(amount / 1e6).toFixed(2)}M`;
