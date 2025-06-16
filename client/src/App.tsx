@@ -25,6 +25,7 @@ import PortfolioDashboard from "@/pages/portfolio-dashboard";
 import CapitalAllocationDashboard from "@/pages/capital-allocation-dashboard";
 import UltraAggressiveDashboard from "@/pages/UltraAggressiveDashboard";
 import BillionaireDashboard from "@/pages/BillionaireDashboard";
+import VictoriaLiveDashboard from "@/pages/VictoriaLiveDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/allocation" component={CapitalAllocationDashboard} />
       <Route path="/ultra-aggressive" component={UltraAggressiveDashboard} />
       <Route path="/billionaire" component={BillionaireDashboard} />
+      <Route path="/victoria-live" component={VictoriaLiveDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
