@@ -494,6 +494,9 @@ export class UltraAggressiveTrader {
     this.isTrading = false;
     console.log('⏸️ Ultra-aggressive trading stopped');
   }
+  public getStats(): any {
+  return this.getTradingStats();
+}
 }
 
 export const ultraAggressiveTrader = new UltraAggressiveTrader();

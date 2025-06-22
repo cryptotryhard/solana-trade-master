@@ -2445,7 +2445,8 @@ export function registerRoutes(app: Express) {
       
       // Stop all synthetic engines immediately
       if (billionaireEngine) {
-        billionaireEngine = null;
+        // billionaireEngine = null;
+
         console.log('🛑 Synthetic billionaire engine stopped');
       }
       

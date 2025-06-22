@@ -22,7 +22,9 @@ export class RealBlockchainTrader {
 
   constructor() {
     // Use QuickNode RPC for reliable connection
-    this.connection = new Connection(process.env.QUICKNODE_RPC_URL!, 'confirmed');
+    const rpc = process.env.QUICKNODE_RPC || process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
+this.connection = new Connection(rpc, 'confirmed');
+
     
     // Initialize with actual private key for the Phantom wallet
     if (!process.env.WALLET_PRIVATE_KEY) {

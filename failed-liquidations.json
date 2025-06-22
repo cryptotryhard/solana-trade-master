@@ -1,0 +1,188 @@
+[
+  {
+    "mint": "45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q",
+    "amount": 3559329.656232,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:27.613Z"
+  },
+  {
+    "mint": "CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump",
+    "amount": 257646.632439,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:30.745Z"
+  },
+  {
+    "mint": "45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q",
+    "amount": 3559329.656232,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:32.385Z"
+  },
+  {
+    "mint": "BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump",
+    "amount": 277360.31446,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:33.876Z"
+  },
+  {
+    "mint": "CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump",
+    "amount": 257646.632439,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:35.485Z"
+  },
+  {
+    "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "amount": 98056.686106379,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:37.528Z"
+  },
+  {
+    "mint": "BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump",
+    "amount": 277360.31446,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T18:29:38.587Z"
+  },
+  {
+    "mint": "45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q",
+    "amount": 3559329.656232,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:46.759Z"
+  },
+  {
+    "mint": "CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump",
+    "amount": 257646.632439,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:49.882Z"
+  },
+  {
+    "mint": "45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q",
+    "amount": 3559329.656232,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:51.594Z"
+  },
+  {
+    "mint": "BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump",
+    "amount": 277360.31446,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:53.093Z"
+  },
+  {
+    "mint": "CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump",
+    "amount": 257646.632439,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:54.723Z"
+  },
+  {
+    "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "amount": 98056.686106379,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:56.482Z"
+  },
+  {
+    "mint": "BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump",
+    "amount": 277360.31446,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:57.852Z"
+  },
+  {
+    "mint": "FXQzaTpB2drqUyb1cdXAr3YGzMdo1TUayinjLwodrEsg",
+    "amount": 85686.547106,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:06:59.594Z"
+  },
+  {
+    "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "amount": 98056.686106379,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:07:01.143Z"
+  },
+  {
+    "mint": "8wXtPeU6557ETkp9WHFY1n1EcU6NxDvbAggHGsMYiHsB",
+    "amount": 27195.149602603,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:07:02.814Z"
+  },
+  {
+    "mint": "FXQzaTpB2drqUyb1cdXAr3YGzMdo1TUayinjLwodrEsg",
+    "amount": 85686.547106,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:07:04.223Z"
+  },
+  {
+    "mint": "8wXtPeU6557ETkp9WHFY1n1EcU6NxDvbAggHGsMYiHsB",
+    "amount": 27195.149602603,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:07:07.499Z"
+  },
+  {
+    "mint": "45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q",
+    "amount": 3559329.656232,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:27.334Z"
+  },
+  {
+    "mint": "CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump",
+    "amount": 257646.632439,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:30.498Z"
+  },
+  {
+    "mint": "45xQcL4u3KRqWgx5YQ4c3D8cgFfN4gdSk6Ntv4EcVk8Q",
+    "amount": 3559329.656232,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:32.084Z"
+  },
+  {
+    "mint": "BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump",
+    "amount": 277360.31446,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:33.651Z"
+  },
+  {
+    "mint": "CSsZtwjMutuYPuJtrcXTBVrievmPwGFf2zCcmLKXpump",
+    "amount": 257646.632439,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:35.214Z"
+  },
+  {
+    "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "amount": 98056.686106379,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:36.924Z"
+  },
+  {
+    "mint": "BioWc1abVbpCkyLx2Dge7Wu9pfRrqVUWGNFETokFpump",
+    "amount": 277360.31446,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:38.320Z"
+  },
+  {
+    "mint": "FXQzaTpB2drqUyb1cdXAr3YGzMdo1TUayinjLwodrEsg",
+    "amount": 85686.547106,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:40.047Z"
+  },
+  {
+    "mint": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+    "amount": 98056.686106379,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:41.560Z"
+  },
+  {
+    "mint": "8wXtPeU6557ETkp9WHFY1n1EcU6NxDvbAggHGsMYiHsB",
+    "amount": 27195.149602603,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:43.286Z"
+  },
+  {
+    "mint": "FXQzaTpB2drqUyb1cdXAr3YGzMdo1TUayinjLwodrEsg",
+    "amount": 85686.547106,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:44.652Z"
+  },
+  {
+    "mint": "8wXtPeU6557ETkp9WHFY1n1EcU6NxDvbAggHGsMYiHsB",
+    "amount": 27195.149602603,
+    "reason": "swap failed",
+    "timestamp": "2025-06-16T19:19:47.924Z"
+  }
+]

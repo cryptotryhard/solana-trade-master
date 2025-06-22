@@ -52,7 +52,7 @@ class VictoriaMasterController {
       console.log('🚀 Starting VICTORIA autonomous operations...');
       
       // Check system health before starting
-      const rpcStatus = optimizedRPCManager.getEndpointStatus();
+      const rpcStatus = optimizedRPCManager.getOptimizedConnection()
       if (rpcStatus.healthyEndpoints > 0) {
         autonomousPumpFunTrader.startAutonomousTrading();
         console.log('✅ Autonomous pump.fun trading activated');
@@ -89,7 +89,7 @@ class VictoriaMasterController {
       );
 
       // Get RPC health status
-      const rpcStatus = optimizedRPCManager.getEndpointStatus();
+      const rpcStatus = optimizedRPCManager.getOptimizedConnection()
       const rpcHealth = rpcStatus.healthyEndpoints > 0;
 
       // Determine trading status
@@ -186,7 +186,7 @@ class VictoriaMasterController {
         positions: allPositions,
         tradingHistory,
         systemHealth: {
-          rpcEndpoints: optimizedRPCManager.getEndpointStatus(),
+          rpcEndpoints: optimizedRPCManager.getOptimizedConnection()
           lastUpdate: new Date().toISOString()
         }
       };
@@ -231,7 +231,7 @@ class VictoriaMasterController {
    */
   public async performHealthCheck(): Promise<any> {
     try {
-      const rpcStatus = optimizedRPCManager.getEndpointStatus();
+      const rpcStatus = optimizedRPCManager.getOptimizedConnection();
       const tradingStats = autonomousPumpFunTrader.getTradingStats();
       const cacheStats = enhancedBlockchainService.getCacheStats();
 

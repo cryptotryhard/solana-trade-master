@@ -14,6 +14,23 @@ class OptimizedRPCManager {
 
   constructor() {
     this.initializeConnections();
+    const privateRPCs = [];
+
+if (process.env.QUICKNODE_RPC?.startsWith('https://')) {
+  privateRPCs.push(process.env.QUICKNODE_RPC);
+}
+if (process.env.SOLANA_RPC?.startsWith('https://')) {
+  privateRPCs.push(process.env.SOLANA_RPC);
+}
+
+const publicEndpoints = [
+  ...privateRPCs,
+  'https://api.mainnet-beta.solana.com',
+  'https://solana-api.projectserum.com',
+  'https://rpc.ankr.com/solana',
+  'https://solana.public-rpc.com'
+];
+
   }
 
   private initializeConnections() {
@@ -107,3 +124,4 @@ class OptimizedRPCManager {
 }
 
 export const optimizedRPCManager = new OptimizedRPCManager();
+

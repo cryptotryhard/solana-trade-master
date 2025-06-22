@@ -9,6 +9,7 @@ import { errorHandler } from './enhanced-error-handler';
 import { realTradeValidator } from './real-trade-validator';
 import { birdeyeScanner } from './birdeye-token-scanner';
 
+
 interface GoalMilestone {
   target: number;
   strategy: string;
@@ -148,10 +149,10 @@ class BillionaireTrading {
 
   constructor() {
     this.wallet = Keypair.fromSecretKey(bs58.decode(process.env.WALLET_PRIVATE_KEY!));
-    this.connection = new Connection(
-      'https://mainnet.helius-rpc.com/?api-key=' + process.env.HELIUS_API_KEY,
-      'confirmed'
-    );
+    import { optimizedRPCManager } from './optimized-rpc-manager';
+
+this.connection = optimizedRPCManager.getOptimizedConnection();
+
   }
 
   async startBillionaireEngine() {
@@ -292,26 +293,28 @@ class BillionaireTrading {
       }
       
       // Convert Birdeye data to billionaire engine format
-      const opportunities = realTokens.map(token => ({
-        mint: token.address,
-        symbol: token.symbol,
-        tokenAge: (Date.now() - token.createdAt),
-        velocityScore: token.velocityScore,
-        marketCap: token.mc,
-        holderCount: token.holders,
-        liquidity: token.liquidity,
-        fingerprint: this.analyzeTokenFingerprint(token.symbol),
-        role: this.determinePositionRole(token.velocityScore, (Date.now() - token.createdAt), milestone),
-        ageMinutes: token.ageMinutes.toFixed(1),
-        isUltraEarly: token.ageMinutes < 60,
-        isLowCap: token.mc < 50000,
-        confidence: token.confidenceLevel,
-        price: token.price,
-        priceChange24h: token.priceChange24h,
-        volume24h: token.volume24h,
-        aiScore: token.aiScore,
-        isRealToken: true // Mark as authentic
-      }));
+      const opportunities = realTokens
+  .filter(token => token.liquidity >= 1000) // ⛔ skip low liquidity tokens
+  .map(token => ({
+    mint: token.address,
+    symbol: token.symbol,
+    tokenAge: (Date.now() - token.createdAt),
+    velocityScore: token.velocityScore,
+    marketCap: token.mc,
+    holderCount: token.holders,
+    liquidity: token.liquidity,
+    fingerprint: this.analyzeTokenFingerprint(token.symbol),
+    role: this.determinePositionRole(token.velocityScore, (Date.now() - token.createdAt), milestone),
+    ageMinutes: token.ageMinutes.toFixed(1),
+    isUltraEarly: token.ageMinutes < 60,
+    isLowCap: token.mc < 50000,
+    confidence: token.confidenceLevel,
+    price: token.price,
+    priceChange24h: token.priceChange24h,
+    volume24h: token.volume24h,
+    aiScore: token.aiScore,
+    isRealToken: true
+  }));
       
       console.log(`✅ REAL TOKENS FOUND: ${opportunities.length} authentic opportunities from Birdeye API`);
       if (opportunities.length > 0) {
